@@ -38,19 +38,29 @@ final class LocationManager: NSObject, CLLocationManagerDelegate {
         case .authorizedWhenInUse, .authorizedAlways:
             if resolving { manager.requestLocation() }
         case .denied, .restricted:
-            resolving = false
+            DispatchQueue.main.async { [weak self] in
+                self?.resolving = false
+            }
         default:
             break
         }
     }
 
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        resolving = false
-        guard let location = locations.last else { return }
-        SettingsStore.shared.resolvedOriginCode = Airport.nearest(to: location).code
+        guard let location = locations.last else {
+            DispatchQueue.main.async { [weak self] in self?.resolving = false }
+            return
+        }
+        let code = Airport.nearest(to: location).code
+        DispatchQueue.main.async { [weak self] in
+            self?.resolving = false
+            SettingsStore.shared.resolvedOriginCode = code
+        }
     }
 
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        resolving = false
+        DispatchQueue.main.async { [weak self] in
+            self?.resolving = false
+        }
     }
 }

@@ -116,6 +116,8 @@ struct SeatSelectionView: View {
         }
         .buttonStyle(.plain)
         .disabled(taken)
+        .accessibilityLabel(taken ? "Seat \(id), taken" : "Seat \(id)")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
         .scaleEffect(isSelected ? 1.08 : 1)
         .animation(.snappy(duration: 0.25), value: isSelected)
     }

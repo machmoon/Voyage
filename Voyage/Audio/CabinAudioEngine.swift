@@ -158,8 +158,8 @@ final class CabinAudioEngine {
 
                 let sample = self.lp2 * 3.2 * self.currentGain * wobble
                 for buffer in ablPointer {
-                    let buf = UnsafeMutableBufferPointer<Float>(buffer)
-                    buf[frame] = sample
+                    guard let data = buffer.mData else { continue }
+                    data.assumingMemoryBound(to: Float.self)[frame] = sample
                 }
             }
             return noErr

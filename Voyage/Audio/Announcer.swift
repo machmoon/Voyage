@@ -5,7 +5,9 @@ import AVFoundation
 final class Announcer: NSObject, AVSpeechSynthesizerDelegate {
     static let shared = Announcer()
 
-    private let synthesizer = AVSpeechSynthesizer()
+    // AVSpeechSynthesizer is not Sendable; Announcer is a process-wide singleton
+    // always messaged from the main actor / speech callbacks.
+    private nonisolated(unsafe) let synthesizer = AVSpeechSynthesizer()
 
     private override init() {
         super.init()

@@ -35,7 +35,7 @@ final class FlightSession {
     let itinerary: Itinerary
     var seat: String = "—"
     var intentions: [String] = []
-    let bookedAt = Date()
+    let bookedAt: Date
 
     /// Frequent-flyer tier at booking time; drives cosmetic unlocks only.
     let tier: FlyerTier
@@ -49,7 +49,7 @@ final class FlightSession {
     private(set) var stage: Stage = .preflight
     private(set) var legIndex: Int = 0
     private(set) var legStartDate: Date?
-    private(set) var now = Date()
+    private(set) var now: Date
     private(set) var destinationCondition: SkyCondition = .clear
     private(set) var connectionDeparts: Date?
     private(set) var completedMiles: Double = 0
@@ -63,6 +63,7 @@ final class FlightSession {
     private var graceWorkItem: DispatchWorkItem?
     private var firedEvents: Set<Event> = []
     private let modelContext: ModelContext
+    private let clock: any VoyageClock
 
     // MARK: Phase timing constants
 
@@ -73,10 +74,17 @@ final class FlightSession {
     static let graceDuration: TimeInterval = 30
     static let finalCallWindow: TimeInterval = 3 * 60
 
-    init(itinerary: Itinerary, modelContext: ModelContext, tier: FlyerTier) {
+    init(itinerary: Itinerary,
+         modelContext: ModelContext,
+         tier: FlyerTier,
+         clock: any VoyageClock = SystemClock()) {
         self.itinerary = itinerary
         self.modelContext = modelContext
         self.tier = tier
+        self.clock = clock
+        let t = clock.now
+        self.bookedAt = t
+        self.now = t
     }
 
     // MARK: Derived timing
@@ -191,8 +199,9 @@ final class FlightSession {
 
     private func startLeg() {
         stage = .inFlight
-        legStartDate = .now
-        now = .now
+        let t = clock.now
+        legStartDate = t
+        now = t
         firedEvents = []
         CabinAudioEngine.shared.startAmbience(profile: .taxi)
         Announcer.shared.announce(
@@ -219,10 +228,18 @@ final class FlightSession {
         timer = t
     }
 
-    private func tick() {
-        now = .now
+    /// Advances session logic using the injected clock. Tests call this after
+    /// mutating a `ManualClock`; production uses the 0.5s Timer.
+    func tick() {
+        now = clock.now
         switch stage {
         case .inFlight:
+            // Honor grace deadline even if the DispatchWorkItem was delayed —
+            // keeps strict mode correct under clock injection and background audio.
+            if let deadline = graceDeadline, now >= deadline {
+                divert()
+                return
+            }
             fireDueEvents()
             if legElapsed >= currentLeg.duration {
                 completeLeg()
@@ -324,13 +341,15 @@ final class FlightSession {
         if legIndex == itinerary.legs.count - 1 {
             stage = .arrived
             CabinAudioEngine.shared.setProfile(.taxi)
-            let timeText = Date.now.formatted(date: .omitted, time: .shortened)
+            let timeText = clock.now.formatted(date: .omitted, time: .shortened)
             Announcer.shared.announce(
                 .landed(city: itinerary.destination.city, localTimeText: timeText),
                 premiumChime: hasPremiumChime
             )
             finishSession(completed: true)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 8) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 8) { [weak self] in
+                // Only stop if we haven't started another leg/session ambience.
+                guard self?.stage == .arrived || self == nil else { return }
                 CabinAudioEngine.shared.stopAmbience()
             }
         } else {
@@ -341,7 +360,8 @@ final class FlightSession {
                 .layover(city: currentLeg.destination.city, minutes: minutes),
                 premiumChime: hasPremiumChime
             )
-            DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 10) { [weak self] in
+                guard self?.stage == .layover || self == nil else { return }
                 CabinAudioEngine.shared.stopAmbience()
             }
         }
@@ -360,13 +380,14 @@ final class FlightSession {
         switch scenePhase {
         case .background:
             guard stage == .inFlight else { return }
-            let deadline = Date.now.addingTimeInterval(Self.graceDuration)
+            let deadline = clock.now.addingTimeInterval(Self.graceDuration)
             graceDeadline = deadline
-            // If ambience keeps the process alive, this fires even in background.
+            // Real-time backup: if ambience keeps the process alive, this fires
+            // even in background. Tests rely on `tick()` + the injected clock.
             let work = DispatchWorkItem { [weak self] in
                 Task { @MainActor [weak self] in
                     guard let self, self.stage == .inFlight,
-                          let d = self.graceDeadline, Date.now >= d else { return }
+                          let d = self.graceDeadline, self.clock.now >= d else { return }
                     self.divert()
                 }
             }
@@ -376,7 +397,7 @@ final class FlightSession {
         case .active:
             graceWorkItem?.cancel()
             graceWorkItem = nil
-            if stage == .inFlight, let deadline = graceDeadline, Date.now > deadline {
+            if stage == .inFlight, let deadline = graceDeadline, clock.now > deadline {
                 divert()
             } else {
                 graceDeadline = nil
