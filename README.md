@@ -35,6 +35,7 @@ A study-session app where every focus session is an airline flight. Pick a desti
 - **Location** is requested once, only to pick your nearest home airport; you can override it in Settings.
 - **Background audio** is enabled so the cabin ambience keeps playing during the 30-second grace period if you background the app mid-flight — overstay and the flight diverts.
 - Fast testing tip: shorten sessions by editing `shortHaulDuration` / `longHaulDuration` in `Voyage/Models/RoutePlanner.swift` and `layoverDuration` for the lounge.
+- **QA short flights:** launch with argument `-VoyageShortFlights` to compress takeoff (~3s) and climb (~8s total elapsed) so runway/cloud window scenes can be screenshot without waiting ~90s. Example: Scheme → Run → Arguments Passed On Launch, or `xcrun simctl launch booted com.patliu.voyage -VoyageShortFlights`.
 
 ## Structure
 

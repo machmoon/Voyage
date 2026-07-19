@@ -67,8 +67,15 @@ final class FlightSession {
 
     // MARK: Phase timing constants
 
-    static let takeoffRollDuration: TimeInterval = 18
-    static let climbEndsAt: TimeInterval = 90
+    /// Launch argument `-VoyageShortFlights` compresses takeoff/climb for QA screenshots
+    /// without waiting ~90s of real-time (see README).
+    static var shortFlightsEnabled: Bool {
+        ProcessInfo.processInfo.arguments.contains("-VoyageShortFlights")
+    }
+
+    static var takeoffRollDuration: TimeInterval { shortFlightsEnabled ? 3 : 18 }
+    /// Elapsed seconds when climb ends and cruise begins (includes the takeoff roll).
+    static var climbEndsAt: TimeInterval { shortFlightsEnabled ? 8 : 90 }
     static let descentDuration: TimeInterval = 180
     static let landingDuration: TimeInterval = 15
     static let graceDuration: TimeInterval = 30
@@ -306,7 +313,10 @@ final class FlightSession {
         let e = legElapsed
         let d = currentLeg.duration
 
-        if e >= 4 {
+        let takeoffCue = Self.shortFlightsEnabled ? 0.8 : 4.0
+        let gearUpDelay = Self.shortFlightsEnabled ? 1.5 : 14.0
+
+        if e >= takeoffCue {
             fire(.takeoffPower) {
                 CabinAudioEngine.shared.setProfile(.takeoffRoll)
                 Haptics.softTick()
@@ -318,7 +328,7 @@ final class FlightSession {
                 Haptics.tap()
             }
         }
-        if e >= Self.takeoffRollDuration + 14 {
+        if e >= Self.takeoffRollDuration + gearUpDelay {
             fire(.gearUp) {
                 CabinAudioEngine.shared.playThunk()
                 Haptics.gearThunk()

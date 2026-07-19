@@ -353,6 +353,7 @@ struct HomeView: View {
         }
         .buttonStyle(.plain)
         .foregroundStyle(isSelected ? Color.primary : Color.white)
+        .accessibilityIdentifier("destination-\(airport.code)")
     }
 
     private var departButtons: some View {
@@ -378,6 +379,7 @@ struct HomeView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
             }
+            .accessibilityIdentifier("depart-now")
             .background(
                 selectedDestination?.accentColor ?? .accentColor,
                 in: RoundedRectangle(cornerRadius: 16, style: .continuous)

@@ -36,6 +36,7 @@
 		B255B8530C78C28F18FDA0C1 /* InFlightView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD7705DAB62E1CCFB2ED9BFE /* InFlightView.swift */; };
 		B3CE3D47A00CDA957DE780C3 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E56316EB70D85A66C9B618B3 /* SettingsView.swift */; };
 		BEEC020E7B00A161632E72BC /* VoyageSmokeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B08FC90B909634E033DBB2B /* VoyageSmokeUITests.swift */; };
+		C7FDAF2BD88333F514059BF5 /* ScreenshotTourUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C6FBB0F4116077FBF34D6A5 /* ScreenshotTourUITests.swift */; };
 		CE910C079DA82AEBD377378D /* VoyageClock.swift in Sources */ = {isa = PBXBuildFile; fileRef = E29771D86F89BBD9C6ADB9A2 /* VoyageClock.swift */; };
 		D59281AE250FEE4F8D4E047A /* VoyageApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08A62644CD80D9C5F040E411 /* VoyageApp.swift */; };
 		D9F03FA5FBAE43273A7FFE79 /* DivertedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEADBF54A9BE3BC765AB6B39 /* DivertedView.swift */; };
@@ -82,6 +83,7 @@
 		88D4D98A42F216B799704C84 /* BoardingPassView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardingPassView.swift; sourceTree = "<group>"; };
 		98D80A40384AA0FD2BE7D690 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		9968ED4F95A2D37CDE0A2494 /* FlightSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightSessionTests.swift; sourceTree = "<group>"; };
+		9C6FBB0F4116077FBF34D6A5 /* ScreenshotTourUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotTourUITests.swift; sourceTree = "<group>"; };
 		A0FF1BED67E63D4365884E3C /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		A6D839091C0E94900792F598 /* LogbookEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogbookEntry.swift; sourceTree = "<group>"; };
 		A93104A963095B69587AD9F3 /* Announcer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Announcer.swift; sourceTree = "<group>"; };
@@ -105,6 +107,7 @@
 		12FB964947FA47E42D74D117 /* VoyageUITests */ = {
 			isa = PBXGroup;
 			children = (
+				9C6FBB0F4116077FBF34D6A5 /* ScreenshotTourUITests.swift */,
 				2B08FC90B909634E033DBB2B /* VoyageSmokeUITests.swift */,
 			);
 			path = VoyageUITests;
@@ -399,6 +402,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C7FDAF2BD88333F514059BF5 /* ScreenshotTourUITests.swift in Sources */,
 				BEEC020E7B00A161632E72BC /* VoyageSmokeUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
