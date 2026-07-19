@@ -36,7 +36,13 @@ final class FlightSession {
     var seat: String = "—"
     var intentions: [String] = []
     let bookedAt = Date()
-    let isPremiumCabin: Bool
+
+    /// Frequent-flyer tier at booking time; drives cosmetic unlocks only.
+    let tier: FlyerTier
+    var isPremiumCabin: Bool { tier >= .silver }
+    var hasPremiumChime: Bool { tier == .platinum }
+    var hasSunsetScene: Bool { tier >= .gold }
+    var hasAuroraScene: Bool { tier == .platinum }
 
     // MARK: Live state
 
@@ -66,10 +72,10 @@ final class FlightSession {
     static let graceDuration: TimeInterval = 30
     static let finalCallWindow: TimeInterval = 3 * 60
 
-    init(itinerary: Itinerary, modelContext: ModelContext, isPremiumCabin: Bool) {
+    init(itinerary: Itinerary, modelContext: ModelContext, tier: FlyerTier) {
         self.itinerary = itinerary
         self.modelContext = modelContext
-        self.isPremiumCabin = isPremiumCabin
+        self.tier = tier
     }
 
     // MARK: Derived timing
@@ -182,7 +188,7 @@ final class FlightSession {
                 city: currentLeg.destination.city,
                 durationText: spokenDuration(currentLeg.duration)
             ),
-            premiumChime: isPremiumCabin
+            premiumChime: hasPremiumChime
         )
     }
 
@@ -213,7 +219,7 @@ final class FlightSession {
                 fire(.finalCall) {
                     Haptics.warning()
                     Announcer.shared.announce(.finalBoardingCall(city: itinerary.destination.city),
-                                              premiumChime: isPremiumCabin)
+                                              premiumChime: hasPremiumChime)
                 }
             }
             if let departs = connectionDeparts,
@@ -261,14 +267,14 @@ final class FlightSession {
         if e >= Self.climbEndsAt {
             fire(.cruiseReached) {
                 CabinAudioEngine.shared.setProfile(.cruise)
-                CabinAudioEngine.shared.playChime(premium: isPremiumCabin)
+                CabinAudioEngine.shared.playChime(premium: hasPremiumChime)
             }
         }
         if e >= d / 2 {
             fire(.midpoint) {
                 Announcer.shared.announce(
                     .midpoint(city: currentLeg.destination.city, altitude: altitudeFeet),
-                    premiumChime: isPremiumCabin
+                    premiumChime: hasPremiumChime
                 )
             }
         }
@@ -278,7 +284,7 @@ final class FlightSession {
                 Announcer.shared.announce(
                     .descent(city: currentLeg.destination.city,
                              weather: destinationCondition.spokenDescription),
-                    premiumChime: isPremiumCabin
+                    premiumChime: hasPremiumChime
                 )
             }
         }
@@ -307,7 +313,7 @@ final class FlightSession {
             let timeText = Date.now.formatted(date: .omitted, time: .shortened)
             Announcer.shared.announce(
                 .landed(city: itinerary.destination.city, localTimeText: timeText),
-                premiumChime: isPremiumCabin
+                premiumChime: hasPremiumChime
             )
             finishSession(completed: true)
             DispatchQueue.main.asyncAfter(deadline: .now() + 8) {
@@ -319,7 +325,7 @@ final class FlightSession {
             let minutes = Int(itinerary.layoverDuration / 60)
             Announcer.shared.announce(
                 .layover(city: currentLeg.destination.city, minutes: minutes),
-                premiumChime: isPremiumCabin
+                premiumChime: hasPremiumChime
             )
             DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
                 CabinAudioEngine.shared.stopAmbience()

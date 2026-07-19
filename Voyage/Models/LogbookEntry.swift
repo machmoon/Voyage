@@ -46,7 +46,7 @@ final class LogbookEntry {
 }
 
 /// Frequent-flyer status, computed from lifetime completed miles.
-enum FlyerTier: String, CaseIterable, Identifiable {
+enum FlyerTier: String, CaseIterable, Identifiable, Comparable {
     case member = "Member"
     case silver = "Silver"
     case gold = "Gold"
@@ -65,6 +65,10 @@ enum FlyerTier: String, CaseIterable, Identifiable {
 
     static func tier(forMiles miles: Double) -> FlyerTier {
         allCases.last { miles >= $0.threshold } ?? .member
+    }
+
+    static func < (lhs: FlyerTier, rhs: FlyerTier) -> Bool {
+        lhs.threshold < rhs.threshold
     }
 
     var next: FlyerTier? {
