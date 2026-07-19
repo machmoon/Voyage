@@ -25,24 +25,26 @@ enum Haptics {
     /// The pass finally rips free.
     static func rip() {
         heavy.impactOccurred()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.09) {
-            rigid.impactOccurred(intensity: 0.8)
-        }
+        after(0.09) { rigid.impactOccurred(intensity: 0.8) }
     }
 
     /// Landing-gear thunk (up after climb, down on approach).
     static func gearThunk() {
         heavy.impactOccurred(intensity: 0.9)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
-            medium.impactOccurred(intensity: 0.5)
-        }
+        after(0.12) { medium.impactOccurred(intensity: 0.5) }
     }
 
     /// Main-gear touchdown, then nose gear.
     static func touchdown() {
         heavy.impactOccurred()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-            rigid.impactOccurred(intensity: 0.9)
+        after(0.35) { rigid.impactOccurred(intensity: 0.9) }
+    }
+
+    /// Runs a follow-up beat on the main actor after a delay.
+    private static func after(_ seconds: Double, _ beat: @escaping @MainActor () -> Void) {
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+            beat()
         }
     }
 

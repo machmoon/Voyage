@@ -53,6 +53,7 @@ final class FlightSession {
     private(set) var destinationCondition: SkyCondition = .clear
     private(set) var connectionDeparts: Date?
     private(set) var completedMiles: Double = 0
+    private(set) var completedFocusSeconds: TimeInterval = 0
     private(set) var logEntry: LogbookEntry?
 
     /// Deadline after which backgrounding becomes a diversion.
@@ -306,6 +307,7 @@ final class FlightSession {
 
     private func completeLeg() {
         completedMiles += currentLeg.distanceMiles
+        completedFocusSeconds += currentLeg.duration
 
         if legIndex == itinerary.legs.count - 1 {
             stage = .arrived
@@ -398,10 +400,12 @@ final class FlightSession {
         timer?.invalidate()
         timer = nil
 
-        let priorLegsFocus = itinerary.legs.prefix(legIndex).reduce(0) { $0 + $1.duration }
+        // Diverted mid-leg still credits the partial leg; a missed connection
+        // credits exactly the legs that landed (layover time isn't focus).
+        let partialLeg = stage == .diverted ? min(legElapsed, currentLeg.duration) : 0
         let focusSeconds = completed
             ? itinerary.totalFocusDuration
-            : priorLegsFocus + legElapsed
+            : completedFocusSeconds + partialLeg
 
         let entry = LogbookEntry(
             originCode: itinerary.origin.code,

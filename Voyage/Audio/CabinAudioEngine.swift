@@ -123,7 +123,7 @@ final class CabinAudioEngine {
         sampleRate = output.outputFormat(forBus: 0).sampleRate
         let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)
 
-        let node = AVAudioSourceNode { [weak self] _, _, frameCount, audioBufferList -> OSStatus in
+        let node = AVAudioSourceNode { [weak self] (_, _, frameCount, audioBufferList) -> OSStatus in
             guard let self else { return noErr }
             let ablPointer = UnsafeMutableAudioBufferListPointer(audioBufferList)
             let gainStep: Float = 1.0 / Float(self.sampleRate * 1.2)   // ~1.2 s full swell

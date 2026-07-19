@@ -64,13 +64,13 @@ struct BoardingPassView: View {
     private func startPrinting() {
         guard !printed else { return }
         // Ticking print-head haptics while the pass feeds out.
-        for i in 0..<8 {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15 + Double(i) * 0.18) {
-                Haptics.softTick()
-            }
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(250))
             printed = true
+            for _ in 0..<8 {
+                Haptics.softTick()
+                try? await Task.sleep(for: .milliseconds(180))
+            }
         }
     }
 
@@ -87,6 +87,8 @@ struct BoardingPassView: View {
                 .fill(Color(.systemBackground))
                 .shadow(color: .black.opacity(0.45), radius: 22, y: 12)
         )
+        // The pass is printed paper — always light, even in dark mode.
+        .environment(\.colorScheme, .light)
     }
 
     private var passBody: some View {
@@ -244,7 +246,8 @@ struct BoardingPassView: View {
         ripped = true
         Haptics.rip()
         CabinAudioEngine.shared.playRip()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) {
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(750))
             onBoarded()
         }
     }

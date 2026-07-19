@@ -6,7 +6,6 @@ import SwiftData
 struct RootView: View {
     @State private var session: FlightSession?
     @Environment(\.scenePhase) private var scenePhase
-    @State private var settings = SettingsStore.shared
     @State private var scheduler = FlightScheduler.shared
 
     var body: some View {
@@ -34,7 +33,6 @@ struct RootView: View {
             Haptics.prepare()
         }
         .preferredColorScheme(session?.stage == .inFlight ? .dark : nil)
-        .environment(settings)
     }
 
     private var sessionStageKey: String {

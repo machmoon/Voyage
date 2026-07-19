@@ -22,13 +22,6 @@ enum Theme {
     static let cardBackground = Color(.secondarySystemGroupedBackground)
     static let nightSkyTop = Color(hex: "060B1F")
     static let nightSkyBottom = Color(hex: "1B2447")
-
-    /// Monospaced, wide-tracked airline label ("GATE", "SEAT", "FLIGHT").
-    static func airlineLabel(_ text: String) -> Text {
-        Text(text.uppercased())
-            .font(.caption2.weight(.semibold))
-            .kerning(1.6)
-    }
 }
 
 /// Small uppercase caption used all over the boarding-pass UI.
