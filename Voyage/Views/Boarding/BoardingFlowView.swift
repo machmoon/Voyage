@@ -13,9 +13,19 @@ struct BoardingFlowView: View {
 
     @State private var step: Step = .seat
 
+    private var isCabinStep: Bool { step == .seat }
+
     var body: some View {
         ZStack {
-            Color(.systemGroupedBackground).ignoresSafeArea()
+            Group {
+                if isCabinStep {
+                    Theme.cabinCanvas
+                } else {
+                    Color(.systemGroupedBackground)
+                }
+            }
+            .ignoresSafeArea()
+            .animation(.smooth(duration: 0.35), value: step)
 
             VStack(spacing: 0) {
                 topBar
@@ -30,9 +40,12 @@ struct BoardingFlowView: View {
                 Button(action: onCancel) {
                     Image(systemName: "xmark")
                         .font(.subheadline.weight(.bold))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(isCabinStep ? Theme.cabinSecondary : .secondary)
                         .frame(width: 34, height: 34)
-                        .background(Theme.cardBackground, in: Circle())
+                        .background(
+                            isCabinStep ? Theme.cabinAisle : Theme.cardBackground,
+                            in: Circle()
+                        )
                 }
             }
             Spacer()
@@ -46,7 +59,11 @@ struct BoardingFlowView: View {
         HStack(spacing: 6) {
             ForEach(0..<4) { i in
                 Capsule()
-                    .fill(i <= step.rawValue ? Color.accentColor : Color(.systemFill))
+                    .fill(
+                        i <= step.rawValue
+                            ? (isCabinStep ? session.itinerary.destination.accentColor : Color.accentColor)
+                            : (isCabinStep ? Theme.cabinMetal : Color(.systemFill))
+                    )
                     .frame(width: i == step.rawValue ? 22 : 8, height: 6)
             }
         }

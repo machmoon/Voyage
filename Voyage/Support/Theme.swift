@@ -22,6 +22,18 @@ enum Theme {
     static let cardBackground = Color(.secondarySystemGroupedBackground)
     static let nightSkyTop = Color(hex: "060B1F")
     static let nightSkyBottom = Color(hex: "1B2447")
+
+    // Cabin seat map (airline map, not Settings)
+    static let cabinCanvas = Color(hex: "101218")
+    static let cabinFuselage = Color(hex: "1A1D26")
+    static let cabinAisle = Color(hex: "252933")
+    static let cabinMetal = Color(hex: "3A4050")
+    static let seatAvailable = Color(hex: "4A5163")
+    static let seatAvailableTop = Color(hex: "5A6278")
+    static let seatTaken = Color(hex: "2A2E38")
+    static let seatTakenTop = Color(hex: "323744")
+    static let cabinLabel = Color.white.opacity(0.55)
+    static let cabinSecondary = Color.white.opacity(0.72)
 }
 
 /// Small uppercase caption used all over the boarding-pass UI.
