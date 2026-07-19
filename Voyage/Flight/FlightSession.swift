@@ -89,7 +89,11 @@ final class FlightSession {
 
     // MARK: Derived timing
 
-    var currentLeg: FlightLeg { itinerary.legs[legIndex] }
+    var currentLeg: FlightLeg {
+        let legs = itinerary.legs
+        precondition(!legs.isEmpty, "Itinerary must have at least one leg")
+        return legs[min(max(0, legIndex), legs.count - 1)]
+    }
 
     var legElapsed: TimeInterval {
         guard let start = legStartDate else { return 0 }
@@ -97,7 +101,11 @@ final class FlightSession {
     }
 
     var legRemaining: TimeInterval { max(0, currentLeg.duration - legElapsed) }
-    var legProgress: Double { min(1, legElapsed / currentLeg.duration) }
+    var legProgress: Double {
+        let d = currentLeg.duration
+        guard d > 0 else { return 0 }
+        return min(1, legElapsed / d)
+    }
 
     /// Remaining focus time across all legs (excludes layover).
     var totalRemaining: TimeInterval {
@@ -108,10 +116,19 @@ final class FlightSession {
     var phase: LegPhase {
         let e = legElapsed
         let d = currentLeg.duration
-        if e < Self.takeoffRollDuration { return .takeoffRoll }
-        if e < Self.climbEndsAt { return .climb }
-        if e < d - Self.descentDuration { return .cruise }
-        if e < d - Self.landingDuration { return .descent }
+        guard d > 0 else { return .cruise }
+
+        // Clamp phase windows so short synthetic legs (unit tests / demos)
+        // still progress without inverted cruise/descent intervals.
+        let takeoffEnd = min(Self.takeoffRollDuration, d * 0.15)
+        let climbEnd = min(Self.climbEndsAt, max(takeoffEnd + 0.01, d * 0.35))
+        let landingStart = max(climbEnd, d - Self.landingDuration)
+        let descentStart = max(climbEnd, min(landingStart, d - min(Self.descentDuration, d * 0.45)))
+
+        if e < takeoffEnd { return .takeoffRoll }
+        if e < climbEnd { return .climb }
+        if e < descentStart { return .cruise }
+        if e < landingStart { return .descent }
         return .landing
     }
 
@@ -130,34 +147,40 @@ final class FlightSession {
     /// Flavor altitude for the flight-info pill.
     var altitudeFeet: Int {
         let cruiseAlt = 36_000.0
+        let climbSpan = max(0.001, Self.climbEndsAt - Self.takeoffRollDuration)
+        let descentSpan = max(0.001, Self.descentDuration - Self.landingDuration)
         switch phase {
         case .takeoffRoll:
             return 0
         case .climb:
-            let t = (legElapsed - Self.takeoffRollDuration) / (Self.climbEndsAt - Self.takeoffRollDuration)
+            let t = min(1, max(0, (legElapsed - Self.takeoffRollDuration) / climbSpan))
             return Int((t * t) * cruiseAlt / 100) * 100
         case .cruise:
             let wobble = sin(legElapsed / 47) * 240
             return Int((cruiseAlt + wobble) / 100) * 100
         case .descent:
-            let intoDescent = legElapsed - (currentLeg.duration - Self.descentDuration)
-            let t = intoDescent / (Self.descentDuration - Self.landingDuration)
+            let intoDescent = max(0, legElapsed - (currentLeg.duration - Self.descentDuration))
+            let t = min(1, intoDescent / descentSpan)
             return max(1_500, Int((1 - t) * cruiseAlt / 100) * 100)
         case .landing:
-            let intoLanding = legElapsed - (currentLeg.duration - Self.landingDuration)
-            let t = intoLanding / Self.landingDuration
+            let intoLanding = max(0, legElapsed - (currentLeg.duration - Self.landingDuration))
+            let t = min(1, intoLanding / max(0.001, Self.landingDuration))
             return max(0, Int((1 - t) * 1_500 / 50) * 50)
         }
     }
 
     /// Flavor ground speed for the flight-info pill.
     var groundSpeedMph: Int {
+        let climbSpan = max(0.001, Self.climbEndsAt - Self.takeoffRollDuration)
+        let takeoff = max(0.001, Self.takeoffRollDuration)
+        let descent = max(0.001, Self.descentDuration)
+        let landing = max(0.001, Self.landingDuration)
         switch phase {
-        case .takeoffRoll: return Int(legElapsed / Self.takeoffRollDuration * 170)
-        case .climb: return 170 + Int((legElapsed - Self.takeoffRollDuration) / (Self.climbEndsAt - Self.takeoffRollDuration) * 370)
+        case .takeoffRoll: return Int(min(1, legElapsed / takeoff) * 170)
+        case .climb: return 170 + Int(min(1, max(0, (legElapsed - Self.takeoffRollDuration) / climbSpan)) * 370)
         case .cruise: return 540 + Int(sin(legElapsed / 31) * 12)
-        case .descent: return 540 - Int((1 - legRemaining / Self.descentDuration) * 380)
-        case .landing: return max(0, Int(legRemaining / Self.landingDuration * 150))
+        case .descent: return 540 - Int((1 - min(1, legRemaining / descent)) * 380)
+        case .landing: return max(0, Int(min(1, legRemaining / landing) * 150))
         }
     }
 
@@ -203,15 +226,22 @@ final class FlightSession {
         legStartDate = t
         now = t
         firedEvents = []
+        // Ambience after a beat so a just-played rip one-shot never races
+        // engine start / graph rebuild on the same turn as stage transition.
         CabinAudioEngine.shared.startAmbience(profile: .taxi)
-        Announcer.shared.announce(
-            .welcomeAboard(
-                flightNumber: currentLeg.flightNumber,
-                city: currentLeg.destination.city,
-                durationText: spokenDuration(currentLeg.duration)
-            ),
-            premiumChime: hasPremiumChime
-        )
+        Task { @MainActor [weak self] in
+            guard let self, self.stage == .inFlight else { return }
+            try? await Task.sleep(for: .milliseconds(200))
+            guard self.stage == .inFlight else { return }
+            Announcer.shared.announce(
+                .welcomeAboard(
+                    flightNumber: self.currentLeg.flightNumber,
+                    city: self.currentLeg.destination.city,
+                    durationText: self.spokenDuration(self.currentLeg.duration)
+                ),
+                premiumChime: self.hasPremiumChime
+            )
+        }
     }
 
     // MARK: Tick

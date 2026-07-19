@@ -19,13 +19,13 @@ struct Itinerary: Hashable, Codable {
     /// Lounge break between legs, in seconds. Zero for direct flights.
     let layoverDuration: TimeInterval
 
-    var origin: Airport { legs.first!.origin }
-    var destination: Airport { legs.last!.destination }
-    var connection: Airport? { legs.count > 1 ? legs.first!.destination : nil }
+    var origin: Airport { legs[0].origin }
+    var destination: Airport { legs[legs.count - 1].destination }
+    var connection: Airport? { legs.count > 1 ? legs[0].destination : nil }
     var isConnection: Bool { legs.count > 1 }
     var totalMiles: Double { legs.reduce(0) { $0 + $1.distanceMiles } }
     var totalFocusDuration: TimeInterval { legs.reduce(0) { $0 + $1.duration } }
-    var primaryFlightNumber: String { legs.first!.flightNumber }
+    var primaryFlightNumber: String { legs[0].flightNumber }
 }
 
 enum RoutePlanner {

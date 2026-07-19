@@ -65,12 +65,18 @@ final class CabinAudioEngine {
     private var lp2: Float = 0
     private var rumblePhase: Float = 0
 
+    /// One-shots keep the engine alive until this deadline so `stopAmbience`
+    /// cannot tear the graph down mid-buffer (rip → depart race).
+    private var oneShotHoldUntil: Date = .distantPast
+    private var teardownWorkItem: DispatchWorkItem?
+
     private init() {}
 
     // MARK: - Lifecycle
 
     /// Configures the session and starts the engine if ambience is enabled.
     func startAmbience(profile: Profile) {
+        cancelPendingTeardown()
         guard SettingsStore.shared.ambienceEnabled else { return }
         setProfile(profile)
         startEngineIfNeeded()
@@ -78,13 +84,8 @@ final class CabinAudioEngine {
 
     func stopAmbience() {
         targetGain = 0
-        // Let the tail fade before tearing the engine down.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
-            guard let self, self.targetGain == 0 else { return }
-            self.engine.stop()
-            self.isRunning = false
-            try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
-        }
+        // Let the bed (and any in-flight one-shot) finish before teardown.
+        scheduleTeardown(after: 0.6)
     }
 
     func setProfile(_ profile: Profile) {
@@ -113,6 +114,9 @@ final class CabinAudioEngine {
             }
             engine.prepare()
             try engine.start()
+            if !effectsPlayer.isPlaying {
+                effectsPlayer.play()
+            }
             isRunning = true
         } catch {
             // Audio is a garnish — never let it take the app down.
@@ -122,8 +126,11 @@ final class CabinAudioEngine {
 
     private func buildGraph() {
         let output = engine.outputNode
-        sampleRate = output.outputFormat(forBus: 0).sampleRate
-        let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)
+        let hwRate = output.outputFormat(forBus: 0).sampleRate
+        sampleRate = hwRate > 0 ? hwRate : 44_100
+        guard let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1) else {
+            return
+        }
 
         let node = AVAudioSourceNode { [weak self] (_, _, frameCount, audioBufferList) -> OSStatus in
             guard let self else { return noErr }
@@ -172,16 +179,51 @@ final class CabinAudioEngine {
         sourceNode = node
     }
 
+    private func cancelPendingTeardown() {
+        teardownWorkItem?.cancel()
+        teardownWorkItem = nil
+    }
+
+    private func holdEngine(for duration: TimeInterval) {
+        let until = Date().addingTimeInterval(duration)
+        if until > oneShotHoldUntil {
+            oneShotHoldUntil = until
+        }
+        cancelPendingTeardown()
+    }
+
+    private func scheduleTeardown(after delay: TimeInterval) {
+        cancelPendingTeardown()
+        let work = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            guard self.targetGain == 0 else { return }
+            let remaining = self.oneShotHoldUntil.timeIntervalSinceNow
+            if remaining > 0.01 {
+                self.scheduleTeardown(after: remaining)
+                return
+            }
+            self.effectsPlayer.stop()
+            self.engine.stop()
+            self.isRunning = false
+            try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+            self.teardownWorkItem = nil
+        }
+        teardownWorkItem = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + max(0.05, delay), execute: work)
+    }
+
     // MARK: - One-shot effects
 
     /// Two-tone cabin chime ("bing-bong"). Platinum flyers get a richer triple chime.
     func playChime(premium: Bool = false) {
         guard SettingsStore.shared.ambienceEnabled || SettingsStore.shared.announcementsEnabled else { return }
+        cancelPendingTeardown()
         startEngineIfNeeded()
         let notes: [(Double, Double)] = premium
             ? [(830.6, 0.0), (659.3, 0.35), (554.4, 0.70)]   // G#5, E5, C#5
             : [(659.3, 0.0), (523.3, 0.4)]                    // E5, C5
-        guard let buffer = makeBuffer(duration: notes.last!.1 + 1.2, build: { i, t, sr in
+        guard let last = notes.last,
+              let buffer = makeBuffer(duration: last.1 + 1.2, build: { i, t, sr in
             var sample: Float = 0
             for (freq, start) in notes {
                 let local = t - start
@@ -192,14 +234,18 @@ final class CabinAudioEngine {
                     sample += sinf(4 * .pi * Float(freq) * Float(local)) * env * 0.04
                 }
             }
+            _ = i; _ = sr
             return sample
         }) else { return }
+        holdEngine(for: last.1 + 1.4)
         schedule(buffer)
     }
 
     /// Sharp paper-tear burst for the boarding-pass rip.
     func playRip() {
+        cancelPendingTeardown()
         startEngineIfNeeded()
+        holdEngine(for: 0.7)
         guard let buffer = makeBuffer(duration: 0.45, build: { i, t, sr in
             let progress = Float(t / 0.45)
             let env = (1 - progress) * (1 - progress)
@@ -214,7 +260,9 @@ final class CabinAudioEngine {
 
     /// Low mechanical thunk for landing gear.
     func playThunk() {
+        cancelPendingTeardown()
         startEngineIfNeeded()
+        holdEngine(for: 0.7)
         guard let buffer = makeBuffer(duration: 0.5, build: { _, t, _ in
             let env = expf(-9 * Float(t))
             let body = sinf(2 * .pi * 52 * Float(t)) * env * 0.55
@@ -227,8 +275,8 @@ final class CabinAudioEngine {
     // MARK: - Buffer helpers
 
     private func makeBuffer(duration: Double, build: (Int, Double, Double) -> Float) -> AVAudioPCMBuffer? {
-        let sr = sampleRate
-        let frames = AVAudioFrameCount(duration * sr)
+        let sr = sampleRate > 0 ? sampleRate : 44_100
+        let frames = AVAudioFrameCount(max(1, duration * sr))
         guard let format = AVAudioFormat(standardFormatWithSampleRate: sr, channels: 1),
               let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frames),
               let channel = buffer.floatChannelData?[0] else { return nil }
@@ -240,7 +288,7 @@ final class CabinAudioEngine {
     }
 
     private func schedule(_ buffer: AVAudioPCMBuffer) {
-        guard engine.isRunning else { return }
+        guard isRunning, engine.isRunning else { return }
         effectsPlayer.scheduleBuffer(buffer, at: nil, options: [])
         if !effectsPlayer.isPlaying {
             effectsPlayer.play()

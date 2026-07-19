@@ -335,9 +335,9 @@ struct HomeView: View {
                 HStack(spacing: 4) {
                     Image(systemName: itinerary.isConnection ? "arrow.triangle.swap" : "arrow.right")
                         .font(.system(size: 8, weight: .bold))
-                    Text(itinerary.isConnection
-                         ? "\(itinerary.totalFocusDuration.shortDurationText) via \(itinerary.connection!.code)"
-                         : itinerary.totalFocusDuration.shortDurationText)
+                    Text(itinerary.connection.map {
+                        "\(itinerary.totalFocusDuration.shortDurationText) via \($0.code)"
+                    } ?? itinerary.totalFocusDuration.shortDurationText)
                         .font(.system(size: 10, weight: .semibold))
                 }
                 .foregroundStyle(.secondary)

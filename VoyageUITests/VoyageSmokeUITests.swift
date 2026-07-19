@@ -45,8 +45,10 @@ final class VoyageSmokeUITests: XCTestCase {
         XCTAssertTrue(skip.waitForExistence(timeout: 5))
         skip.tap()
 
-        let tearHint = app.staticTexts["Pull the stub sideways to tear & board"]
-        XCTAssertTrue(tearHint.waitForExistence(timeout: 8), "Expected boarding pass tear hint")
+        let tearHint = app.staticTexts["Pull the stub down to tear & board"]
+        let tearButton = app.buttons["Tear & board"]
+        let passReady = tearHint.waitForExistence(timeout: 8) || tearButton.waitForExistence(timeout: 1)
+        XCTAssertTrue(passReady, "Expected boarding pass tear hint or Tear & board control")
 
         // Capture boarding-pass screen for QA artifacts.
         let screenshot = XCUIScreen.main.screenshot()

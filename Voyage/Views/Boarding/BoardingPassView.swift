@@ -7,6 +7,7 @@ struct BoardingPassView: View {
     let onBoarded: () -> Void
 
     @State private var printed = false
+    /// Positive = stub pulled down away from the body (vertical tear).
     @State private var tearTranslation: CGFloat = 0
     @State private var ripped = false
     @State private var lastRatchetStep = 0
@@ -18,6 +19,9 @@ struct BoardingPassView: View {
         for byte in leg.flightNumber.utf8 { hash = hash &* 33 &+ UInt64(byte) }
         return "B\(hash % 22 + 1)"
     }
+
+    /// Distance the stub must travel before the tear commits.
+    private let tearThreshold: CGFloat = 72
 
     var body: some View {
         ZStack {
@@ -39,7 +43,22 @@ struct BoardingPassView: View {
 
                 Spacer()
 
-                Text(ripped ? "Boarding…" : "Pull the stub sideways to tear & board")
+                if printed && !ripped {
+                    Button {
+                        rip()
+                    } label: {
+                        Text("Tear & board")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(.white.opacity(0.9))
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(.white.opacity(0.12), in: Capsule())
+                    }
+                    .accessibilityLabel("Tear and board")
+                    .accessibilityHint("Tears the boarding pass stub and continues to flight mode")
+                }
+
+                Text(ripped ? "Boarding…" : "Pull the stub down to tear & board")
                     .font(.footnote.weight(.medium))
                     .foregroundStyle(.white.opacity(0.65))
                     .padding(.bottom, 24)
@@ -47,6 +66,11 @@ struct BoardingPassView: View {
             .clipped()
         }
         .onAppear { startPrinting() }
+        .accessibilityElement(children: .contain)
+        .accessibilityAction(named: Text("Tear & board")) {
+            guard printed, !ripped else { return }
+            rip()
+        }
     }
 
     private var printerSlot: some View {
@@ -74,21 +98,32 @@ struct BoardingPassView: View {
         }
     }
 
-    // MARK: Pass card
+    // MARK: Pass card — two separate paper pieces
 
     private var passCard: some View {
         VStack(spacing: 0) {
-            passBody
-            perforation
-            stub
+            bodyPiece
+            stubPiece
         }
-        .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color(.systemBackground))
-                .shadow(color: .black.opacity(0.45), radius: 22, y: 12)
-        )
         // The pass is printed paper — always light, even in dark mode.
         .environment(\.colorScheme, .light)
+    }
+
+    /// Main ticket body with its own fill/shadow. After a rip, the bottom
+    /// edge becomes ragged where the stub tore away.
+    private var bodyPiece: some View {
+        VStack(spacing: 0) {
+            passBody
+            if !ripped {
+                perforation
+            } else {
+                Color.clear.frame(height: 8)
+            }
+        }
+        .background(Color(.systemBackground))
+        .clipShape(PassBodyPaper(torn: ripped))
+        .compositingGroup()
+        .shadow(color: .black.opacity(ripped ? 0.35 : 0.45), radius: ripped ? 16 : 22, y: 12)
     }
 
     private var passBody: some View {
@@ -155,6 +190,7 @@ struct BoardingPassView: View {
             }
         }
         .padding(22)
+        .padding(.bottom, ripped ? 4 : 0)
     }
 
     private func passField(_ label: String, _ value: String) -> some View {
@@ -178,6 +214,7 @@ struct BoardingPassView: View {
             halfNotch(leading: false)
         }
         .frame(height: 22)
+        .background(Color(.systemBackground))
     }
 
     private func halfNotch(leading: Bool) -> some View {
@@ -189,11 +226,54 @@ struct BoardingPassView: View {
 
     // MARK: Stub + tear gesture
 
-    private var stub: some View {
-        let width = UIScreen.main.bounds.width - 56
-        let progress = min(1, abs(tearTranslation) / (width * 0.55))
+    private var stubPiece: some View {
+        let progress = min(1, max(0, tearTranslation) / tearThreshold)
+        let dragY = ripped ? 420 : max(0, tearTranslation)
+        let dragX = ripped ? 48 : progress * 10
+        let angle = ripped ? 18.0 : Double(progress * 6)
 
-        return HStack {
+        return stubContent
+            .padding(.horizontal, 22)
+            .padding(.top, 10)
+            .padding(.bottom, 20)
+            .background(Color(.systemBackground))
+            .clipShape(
+                UnevenRoundedRectangle(
+                    topLeadingRadius: 0,
+                    bottomLeadingRadius: 18,
+                    bottomTrailingRadius: 18,
+                    topTrailingRadius: 0,
+                    style: .continuous
+                )
+            )
+            // Matching top tear when separating so the stub looks like torn paper.
+            .overlay(alignment: .top) {
+                if tearTranslation > 2 || ripped {
+                    TornEdge()
+                        .fill(Color(.systemBackground))
+                        .frame(height: 8)
+                        .rotationEffect(.degrees(180))
+                        .offset(y: -4)
+                        .allowsHitTesting(false)
+                }
+            }
+            .compositingGroup()
+            .shadow(
+                color: .black.opacity(progress > 0 || ripped ? 0.28 + 0.22 * progress : 0.08),
+                radius: progress > 0 || ripped ? 10 + 8 * progress : 2,
+                y: progress > 0 || ripped ? 6 + 6 * progress : 1
+            )
+            .contentShape(Rectangle())
+            .offset(x: dragX, y: dragY)
+            .rotationEffect(.degrees(angle), anchor: .topLeading)
+            .opacity(ripped ? 0 : 1)
+            .gesture(tearGesture())
+            .animation(ripped ? .smooth(duration: 0.55) : nil, value: ripped)
+            .accessibilityHidden(ripped)
+    }
+
+    private var stubContent: some View {
+        HStack {
             VStack(alignment: .leading, spacing: 3) {
                 FieldLabel("Seat")
                 Text(session.seat)
@@ -205,30 +285,26 @@ struct BoardingPassView: View {
             Image(systemName: "hand.draw.fill")
                 .font(.footnote)
                 .foregroundStyle(.tertiary)
+                .accessibilityHidden(true)
         }
-        .padding(.horizontal, 22)
-        .padding(.top, 6)
-        .padding(.bottom, 20)
-        .contentShape(Rectangle())
-        .offset(x: ripped ? width * 1.4 : tearTranslation)
-        .rotationEffect(.degrees(ripped ? 14 : Double(progress * 5)), anchor: .bottomLeading)
-        .opacity(ripped ? 0 : 1)
-        .gesture(tearGesture(width: width))
-        .animation(ripped ? .smooth(duration: 0.55) : nil, value: ripped)
     }
 
-    private func tearGesture(width: CGFloat) -> some Gesture {
+    private func tearGesture() -> some Gesture {
         DragGesture()
             .onChanged { value in
                 guard printed, !ripped else { return }
-                tearTranslation = value.translation.width
-                // Ratchet haptic every ~7% of tear progress.
-                let step = Int(abs(tearTranslation) / (width * 0.07))
+                // Vertical tear along the perforation: only count downward pull.
+                // A strong horizontal swipe also contributes so either metaphor works.
+                let vertical = max(0, value.translation.height)
+                let horizontal = abs(value.translation.width) * 0.55
+                tearTranslation = max(vertical, horizontal)
+
+                let step = Int(tearTranslation / (tearThreshold * 0.12))
                 if step != lastRatchetStep {
                     lastRatchetStep = step
                     Haptics.ratchet()
                 }
-                if abs(tearTranslation) > width * 0.55 {
+                if tearTranslation > tearThreshold {
                     rip()
                 }
             }
@@ -247,9 +323,69 @@ struct BoardingPassView: View {
         Haptics.rip()
         CabinAudioEngine.shared.playRip()
         Task { @MainActor in
+            // Let the stub fly off before advancing; also gives the rip
+            // one-shot time to finish before depart starts ambience.
             try? await Task.sleep(for: .milliseconds(750))
             onBoarded()
         }
+    }
+}
+
+// MARK: - Paper shapes
+
+/// Main pass silhouette: rounded top, flat or ragged bottom.
+private struct PassBodyPaper: Shape {
+    var torn: Bool
+
+    func path(in rect: CGRect) -> Path {
+        let r: CGFloat = 22
+        var path = Path()
+        path.move(to: CGPoint(x: rect.minX + r, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX - r, y: rect.minY))
+        path.addQuadCurve(to: CGPoint(x: rect.maxX, y: rect.minY + r),
+                          control: CGPoint(x: rect.maxX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
+
+        if torn {
+            // Ragged tear along the bottom edge.
+            let teeth = 14
+            let step = rect.width / CGFloat(teeth)
+            for i in 0..<teeth {
+                let x = rect.maxX - CGFloat(i + 1) * step
+                let dip: CGFloat = (i % 2 == 0) ? 7 : 2
+                path.addLine(to: CGPoint(x: x + step * 0.5, y: rect.maxY + dip))
+                path.addLine(to: CGPoint(x: x, y: rect.maxY + (i % 2 == 0 ? 1 : 6)))
+            }
+        } else {
+            path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+        }
+
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.minY + r))
+        path.addQuadCurve(to: CGPoint(x: rect.minX + r, y: rect.minY),
+                          control: CGPoint(x: rect.minX, y: rect.minY))
+        path.closeSubpath()
+        return path
+    }
+}
+
+/// Thin jagged strip used as a torn-paper accent on the body/stub seam.
+private struct TornEdge: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let teeth = 16
+        let step = rect.width / CGFloat(teeth)
+        path.move(to: CGPoint(x: rect.minX, y: rect.minY))
+        for i in 0..<teeth {
+            let x0 = rect.minX + CGFloat(i) * step
+            let x1 = x0 + step * 0.5
+            let x2 = x0 + step
+            let peak: CGFloat = (i % 2 == 0) ? rect.maxY : rect.midY
+            path.addLine(to: CGPoint(x: x1, y: peak))
+            path.addLine(to: CGPoint(x: x2, y: rect.minY + (i % 2 == 0 ? 2 : 0)))
+        }
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
+        path.closeSubpath()
+        return path
     }
 }
 
