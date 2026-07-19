@@ -27,3 +27,8 @@ xcuserdata/
 # Playgrounds
 timeline.xctimeline
 playground.xcworkspace
+
+# Local QA log dumps (keep screenshots)
+QA/*.log
+QA/*.txt
+QA/uitest/
