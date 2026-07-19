@@ -88,7 +88,9 @@ final class CabinAudioEngine {
     }
 
     func setProfile(_ profile: Profile) {
-        targetGain = profile.gain
+        // One-shot effects (chime, thunk) may keep the engine alive while
+        // ambience is switched off — keep the bed silent in that case.
+        targetGain = SettingsStore.shared.ambienceEnabled ? profile.gain : 0
         targetBrightness = profile.brightness
     }
 

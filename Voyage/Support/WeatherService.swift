@@ -1,4 +1,5 @@
 import Foundation
+import CoreLocation
 #if canImport(WeatherKit)
 import WeatherKit
 #endif

@@ -14,14 +14,21 @@ struct InFlightView: View {
         return hour >= 19 || hour < 6
     }
 
-    /// Red-eye flights dim the whole cabin.
+    /// Red-eye flights dim the whole cabin, and the crew dims the lights
+    /// again for approach and landing.
     private var cabinColor: Color {
-        isNight ? Color(hex: "0B0910") : Color(hex: "1A1E2A")
+        let dimmedForLanding = session.phase >= .descent
+        if isNight {
+            return Color(hex: dimmedForLanding ? "060508" : "0B0910")
+        }
+        return Color(hex: dimmedForLanding ? "10131D" : "1A1E2A")
     }
 
     var body: some View {
         ZStack {
-            cabinColor.ignoresSafeArea()
+            cabinColor
+                .ignoresSafeArea()
+                .animation(.smooth(duration: 2.5), value: session.phase)
 
             VStack(spacing: 0) {
                 topBar
@@ -82,7 +89,7 @@ struct InFlightView: View {
                 ) {
                     settings.ambienceEnabled.toggle()
                     if settings.ambienceEnabled {
-                        CabinAudioEngine.shared.startAmbience(profile: .cruise)
+                        CabinAudioEngine.shared.startAmbience(profile: session.ambienceProfile)
                     } else {
                         CabinAudioEngine.shared.stopAmbience()
                     }

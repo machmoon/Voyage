@@ -107,6 +107,18 @@ final class FlightSession {
         return .landing
     }
 
+    /// The ambience bed matching the current phase (used when the user
+    /// re-enables sound mid-flight).
+    var ambienceProfile: CabinAudioEngine.Profile {
+        switch phase {
+        case .takeoffRoll: return .takeoffRoll
+        case .climb: return .climb
+        case .cruise: return .cruise
+        case .descent: return .descent
+        case .landing: return .landingRoll
+        }
+    }
+
     /// Flavor altitude for the flight-info pill.
     var altitudeFeet: Int {
         let cruiseAlt = 36_000.0
