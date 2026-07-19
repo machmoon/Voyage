@@ -8,10 +8,24 @@ struct InFlightView: View {
     @State private var showInfoPill = true
     @State private var showExitConfirm = false
     @State private var settings = SettingsStore.shared
+    /// Defer the TimelineView/Canvas window one run-loop after the
+    /// preflight → inFlight transition so heavy drawing doesn't race the stage swap.
+    @State private var windowSceneArmed = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var isNight: Bool {
         let hour = Calendar.current.component(.hour, from: Date())
         return hour >= 19 || hour < 6
+    }
+
+    /// Subtle nose-up pitch while punching through the cloud deck.
+    private var climbWindowPitch: Double {
+        guard !reduceMotion, session.phase == .climb else { return 0 }
+        let climbSpan = max(0.001, FlightSession.climbEndsAt - FlightSession.takeoffRollDuration)
+        let intoClimb = max(0, session.legElapsed - FlightSession.takeoffRollDuration)
+        let t = min(1, intoClimb / climbSpan)
+        // Peak right after rotation, ease toward level by cruise.
+        return -5.5 * (1.0 - t * 0.75)
     }
 
     /// Red-eye flights dim the whole cabin, and the crew dims the lights
@@ -67,6 +81,11 @@ struct InFlightView: View {
         } message: {
             Text("Diverting ends the session. Miles are only earned for completed legs.")
         }
+        .task {
+            // Yield one frame so RootView can finish the stage transition first.
+            await Task.yield()
+            windowSceneArmed = true
+        }
     }
 
     // MARK: Top bar
@@ -118,14 +137,20 @@ struct InFlightView: View {
 
     private var airplaneWindow: some View {
         let shape = RoundedRectangle(cornerRadius: 110, style: .continuous)
-        return WindowSceneView(
-            phase: session.phase,
-            altitudeFraction: Double(session.altitudeFeet) / 36_000.0,
-            isNight: isNight,
-            condition: session.destinationCondition,
-            showSunset: session.hasSunsetScene,
-            showAurora: session.hasAuroraScene
-        )
+        return Group {
+            if windowSceneArmed {
+                WindowSceneView(
+                    phase: session.phase,
+                    altitudeFraction: Double(session.altitudeFeet) / 36_000.0,
+                    isNight: isNight,
+                    condition: session.destinationCondition,
+                    showSunset: session.hasSunsetScene,
+                    showAurora: session.hasAuroraScene
+                )
+            } else {
+                Color(hex: isNight ? "0B0910" : "1A1E2A")
+            }
+        }
         .aspectRatio(0.72, contentMode: .fit)
         .clipShape(shape)
         .overlay(
@@ -147,6 +172,13 @@ struct InFlightView: View {
                 )
                 .shadow(color: .black.opacity(0.55), radius: 24, y: 10)
         )
+        .rotation3DEffect(
+            .degrees(climbWindowPitch),
+            axis: (x: 1, y: 0, z: 0),
+            anchor: .center,
+            perspective: 0.45
+        )
+        .animation(reduceMotion ? nil : .easeInOut(duration: 1.2), value: session.phase)
     }
 
     // MARK: Countdown
@@ -167,8 +199,8 @@ struct InFlightView: View {
                 .font(.caption)
                 .foregroundStyle(.white.opacity(0.4))
 
-            if session.itinerary.isConnection && session.legIndex == 0 {
-                Text("\(session.totalRemaining.shortDurationText) total · lounge break at \(session.itinerary.connection!.code)")
+            if session.legIndex == 0, let via = session.itinerary.connection {
+                Text("\(session.totalRemaining.shortDurationText) total · lounge break at \(via.code)")
                     .font(.caption2)
                     .foregroundStyle(.white.opacity(0.3))
                     .padding(.top, 2)

@@ -12,8 +12,11 @@ struct WindowSceneView: View {
     let showSunset: Bool
     let showAurora: Bool
 
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
+        TimelineView(.animation(minimumInterval: frameInterval, paused: isPaused)) { timeline in
             Canvas { context, size in
                 let t = timeline.date.timeIntervalSinceReferenceDate
                 drawSky(context: context, size: size, time: t)
@@ -35,6 +38,19 @@ struct WindowSceneView: View {
                 }
             }
         }
+    }
+
+    /// ~30fps for motion-heavy phases; ~13fps for cruise; ~18fps on descent.
+    private var frameInterval: Double {
+        switch phase {
+        case .takeoffRoll, .landing, .climb: return 1.0 / 30.0
+        case .cruise: return 1.0 / 13.0
+        case .descent: return 1.0 / 18.0
+        }
+    }
+
+    private var isPaused: Bool {
+        scenePhase != .active || reduceMotion
     }
 
     // MARK: Sky
@@ -108,107 +124,379 @@ struct WindowSceneView: View {
     // MARK: Clouds
 
     private func drawClouds(context: GraphicsContext, size: CGSize, time: Double) {
-        // Three parallax layers; nearer layers are bigger, faster, more opaque.
-        for layer in 0..<3 {
-            let layerScale = 1.0 + Double(layer) * 0.8
-            let drift = time * (6 + Double(layer) * 7)      // horizontal cruise drift
-            let vertical = verticalCloudOffset(time: time, layer: layer)
-            let opacity = cloudOpacity(layer: layer)
+        // Far → near: slower/smaller → faster/larger. Far layer alone gets soft blur.
+        let layerCount = 4
+        for layer in 0..<layerCount {
+            let opacity = cloudOpacity(layer: layer, layerCount: layerCount)
             guard opacity > 0.01 else { continue }
 
+            let layerT = Double(layer) / Double(layerCount - 1)
+            let layerScale = 0.55 + layerT * 1.35
+            let drift = time * (3.5 + Double(layer) * 5.5)
+            let vertical = verticalCloudOffset(time: time, layer: layer)
+            let cloudCount = cloudsPerLayer(layer: layer)
+
             var rng = SeededRandom(seed: UInt64(101 + layer * 37))
-            for _ in 0..<5 {
-                let baseX = rng.next() * (size.width + 200) - 100
-                let baseY = rng.next() * size.height * 1.6
-                let width = (60 + rng.next() * 110) * layerScale
-                let height = width * 0.34
+            for cloudIndex in 0..<cloudCount {
+                let baseX = rng.next() * (size.width + 280) - 120
+                let baseY = cloudBaseY(rng: &rng, size: size, layer: layer)
+                let width = (70 + rng.next() * 130) * layerScale * cruiseScale
+                let height = width * (0.28 + rng.next() * 0.14)
 
-                let x = (baseX - drift).truncatingRemainder(dividingBy: size.width + 240)
-                let wrappedX = x < -120 ? x + size.width + 240 : x
-                let y = (baseY + vertical).truncatingRemainder(dividingBy: size.height * 1.6)
-                let wrappedY = y < 0 ? y + size.height * 1.6 : y
+                let wrapW = size.width + 320
+                let wrapH = size.height * 1.8
+                let x = (baseX - drift).truncatingRemainder(dividingBy: wrapW)
+                let wrappedX = x < -140 ? x + wrapW : x
+                let y = (baseY + vertical).truncatingRemainder(dividingBy: wrapH)
+                let wrappedY = y < 0 ? y + wrapH : y
 
-                drawCloudBlob(context: context,
-                              at: CGPoint(x: wrappedX, y: wrappedY - size.height * 0.3),
-                              width: width, height: height,
-                              opacity: opacity)
+                let seed = UInt64(cloudIndex * 91 + layer * 1301 + 17)
+                drawCloudVolume(
+                    context: context,
+                    at: CGPoint(x: wrappedX, y: wrappedY - size.height * cloudVerticalBias),
+                    width: width,
+                    height: height,
+                    opacity: opacity,
+                    seed: seed,
+                    blurFarLayer: layer == 0
+                )
             }
         }
     }
 
+    /// Cruise keeps undercast low and thin; climb fills the pane.
+    private var cruiseScale: Double {
+        switch phase {
+        case .cruise: return condition == .cloudy ? 0.85 : 0.55
+        case .descent: return 0.9
+        default: return 1.0
+        }
+    }
+
+    private var cloudVerticalBias: Double {
+        switch phase {
+        case .cruise: return 0.05   // thin deck sitting low / distant
+        case .climb: return 0.35
+        case .descent: return 0.25
+        case .takeoffRoll, .landing: return 0.15
+        }
+    }
+
+    private func cloudsPerLayer(layer: Int) -> Int {
+        switch phase {
+        case .takeoffRoll:
+            return condition == .cloudy ? (layer == 0 ? 3 : 2) : 0
+        case .landing:
+            return condition == .cloudy ? 3 : (layer < 2 ? 2 : 1)
+        case .cruise:
+            return condition == .cloudy ? 4 : 3
+        case .climb:
+            return 5 + (layer == 1 || layer == 2 ? 1 : 0)
+        case .descent:
+            return 4
+        }
+    }
+
+    private func cloudBaseY(rng: inout SeededRandom, size: CGSize, layer: Int) -> Double {
+        switch phase {
+        case .cruise:
+            // Distant undercast clustered in the lower third.
+            return size.height * (0.55 + rng.next() * 0.55) + Double(layer) * 20
+        case .climb:
+            return rng.next() * size.height * 1.7
+        default:
+            return rng.next() * size.height * 1.5
+        }
+    }
+
     private func verticalCloudOffset(time: Double, layer: Int) -> Double {
-        let speed = 40.0 + Double(layer) * 36
+        let speed = 32.0 + Double(layer) * 28
         switch phase {
         case .takeoffRoll: return 0
-        case .climb: return time * speed          // we rise → clouds sink past us
-        case .cruise: return 0
-        case .descent, .landing: return -time * speed * 0.7
+        case .climb: return time * speed
+        case .cruise: return sin(time * 0.08 + Double(layer)) * 4
+        case .descent, .landing: return -time * speed * 0.65
         }
     }
 
-    private func cloudOpacity(layer: Int) -> Double {
+    private func cloudOpacity(layer: Int, layerCount: Int) -> Double {
         let base: Double
         switch phase {
-        case .takeoffRoll: base = condition == .cloudy ? 0.25 : 0.0
-        case .climb: base = 0.85
-        case .cruise: base = condition == .cloudy ? 0.7 : 0.35
-        case .descent: base = 0.75
-        case .landing: base = condition == .cloudy ? 0.4 : 0.15
+        case .takeoffRoll: base = condition == .cloudy ? 0.22 : 0.0
+        case .climb: base = 0.78
+        case .cruise: base = condition == .cloudy ? 0.45 : 0.22
+        case .descent: base = 0.62
+        case .landing: base = condition == .cloudy ? 0.32 : 0.12
         }
-        let layerFactor = 0.5 + Double(layer) * 0.25
-        return base * layerFactor * (isNight ? 0.4 : 1.0)
+        let layerT = Double(layer) / Double(max(layerCount - 1, 1))
+        let layerFactor = 0.4 + layerT * 0.55
+        let nightFactor = isNight ? 0.55 : 1.0
+        return base * layerFactor * nightFactor
     }
 
-    private func drawCloudBlob(context: GraphicsContext, at center: CGPoint,
-                               width: Double, height: Double, opacity: Double) {
-        let color = isNight ? Color(hex: "3A4468") : .white
-        var blob = context
-        blob.addFilter(.blur(radius: height * 0.28))
-        // Three overlapping ellipses read as one soft cloud.
-        let rects = [
-            CGRect(x: center.x - width / 2, y: center.y - height / 2, width: width, height: height),
-            CGRect(x: center.x - width * 0.30, y: center.y - height * 0.95, width: width * 0.6, height: height),
-            CGRect(x: center.x - width * 0.05, y: center.y - height * 0.6, width: width * 0.5, height: height * 0.9),
-        ]
-        for rect in rects {
-            blob.fill(Path(ellipseIn: rect), with: .color(color.opacity(opacity)))
+    /// Soft multi-lobe volume: overlapping fills; blur only on the farthest layer.
+    private func drawCloudVolume(
+        context: GraphicsContext,
+        at center: CGPoint,
+        width: Double,
+        height: Double,
+        opacity: Double,
+        seed: UInt64,
+        blurFarLayer: Bool
+    ) {
+        var rng = SeededRandom(seed: seed)
+        let lobeCount = 5 + Int(rng.next() * 3.99) // 5…8
+
+        let fillColor: Color
+        let highlight: Color
+        if isNight {
+            fillColor = Color(hex: "2A3558")
+            highlight = Color(hex: "4A5A82")
+        } else if showSunset && phase == .cruise {
+            fillColor = Color(hex: "FFE4D0")
+            highlight = Color(hex: "FFF6EE")
+        } else {
+            fillColor = Color(hex: "F4F7FC")
+            highlight = .white
+        }
+
+        var layerContext = context
+        if blurFarLayer {
+            layerContext.addFilter(.blur(radius: max(1.5, height * 0.12)))
+        }
+
+        for lobe in 0..<lobeCount {
+            let ox = (rng.next() - 0.5) * width * 0.72
+            let oy = (rng.next() - 0.45) * height * 0.55
+            let w = width * (0.32 + rng.next() * 0.48)
+            let h = height * (0.5 + rng.next() * 0.55)
+            let rect = CGRect(
+                x: center.x + ox - w / 2,
+                y: center.y + oy - h / 2,
+                width: w,
+                height: h
+            )
+            let isHighlight = lobe % 3 == 0
+            let color = isHighlight ? highlight : fillColor
+            let lobeAlpha = opacity * (isHighlight ? 0.55 : 0.72)
+            layerContext.fill(Path(ellipseIn: rect), with: .color(color.opacity(lobeAlpha)))
         }
     }
 
     // MARK: Runway
 
     private func drawRunway(context: GraphicsContext, size: CGSize, time: Double) {
-        let horizon = size.height * 0.62
+        let horizon = size.height * 0.58
+        let groundHeight = size.height - horizon
+        let cx = size.width / 2
+        let scroll = reduceMotion ? 0 : (time * runwayScrollSpeed).truncatingRemainder(dividingBy: 1.0)
 
-        // Ground plane.
-        let ground = Path(CGRect(x: 0, y: horizon, width: size.width, height: size.height - horizon))
-        let groundColor = isNight ? Color(hex: "0A0D14") : Color(hex: "3E4A3E")
-        context.fill(ground, with: .color(groundColor))
+        drawGroundPlane(context: context, size: size, horizon: horizon)
 
-        // Edge lights rushing past with perspective.
-        let scroll = (time * 2.2).truncatingRemainder(dividingBy: 1.0)
-        for i in 0..<9 {
-            let depth = (Double(i) / 9.0 + scroll).truncatingRemainder(dividingBy: 1.0)
-            let y = horizon + pow(depth, 2.2) * (size.height - horizon)
-            let spread = 18 + pow(depth, 2.0) * (size.width * 0.55)
-            let radius = 1.0 + depth * 3.2
-            let alpha = 0.25 + depth * 0.75
-            let lightColor: Color = isNight ? Color(hex: "FFD97A") : .white
-            for side in [-1.0, 1.0] {
-                let x = size.width / 2 + side * spread
+        // Asphalt trapezoid vanishing to a point on the horizon.
+        let nearHalf = size.width * 0.46
+        let farHalf = size.width * 0.028
+        var asphalt = Path()
+        asphalt.move(to: CGPoint(x: cx - nearHalf, y: size.height))
+        asphalt.addLine(to: CGPoint(x: cx - farHalf, y: horizon))
+        asphalt.addLine(to: CGPoint(x: cx + farHalf, y: horizon))
+        asphalt.addLine(to: CGPoint(x: cx + nearHalf, y: size.height))
+        asphalt.closeSubpath()
+
+        let asphaltTop = isNight ? Color(hex: "1A1D24") : Color(hex: "3A3F48")
+        let asphaltBottom = isNight ? Color(hex: "0C0E14") : Color(hex: "2A2E36")
+        context.fill(asphalt, with: .linearGradient(
+            Gradient(colors: [asphaltTop, asphaltBottom]),
+            startPoint: CGPoint(x: cx, y: horizon),
+            endPoint: CGPoint(x: cx, y: size.height)
+        ))
+
+        // Soft shoulder / edge fade into ground.
+        drawRunwayShoulders(context: context, size: size, horizon: horizon, cx: cx,
+                            nearHalf: nearHalf, farHalf: farHalf)
+
+        // Painted edge lines.
+        drawPerspectiveEdgeLines(context: context, size: size, horizon: horizon, cx: cx,
+                                 nearHalf: nearHalf * 0.92, farHalf: farHalf * 0.85)
+
+        // Approach / threshold bars near the vanishing point.
+        drawThresholdBars(context: context, size: size, horizon: horizon, cx: cx,
+                          nearHalf: nearHalf, farHalf: farHalf)
+
+        // Foreshortened centerline dashes + edge lights scrolling with speed.
+        let sampleCount = 22
+        for i in 0..<sampleCount {
+            let raw = (Double(i) / Double(sampleCount) + scroll).truncatingRemainder(dividingBy: 1.0)
+            let depth = max(0.002, raw) // 0 = horizon, 1 = near
+            let y = horizon + pow(depth, 2.05) * groundHeight
+            let halfW = farHalf + (nearHalf - farHalf) * pow(depth, 1.12)
+            let alpha = 0.2 + depth * 0.8
+
+            // Centerline dash — length/width scale with depth.
+            let dashW = 1.4 + depth * 5.5
+            let dashH = 3.0 + depth * 22
+            let gapFactor = abs(sin(Double(i) * 1.7 + scroll * .pi))
+            if gapFactor > 0.22 {
                 context.fill(
-                    Path(ellipseIn: CGRect(x: x - radius, y: y - radius,
-                                           width: radius * 2, height: radius * 2)),
-                    with: .color(lightColor.opacity(alpha))
+                    Path(CGRect(x: cx - dashW / 2, y: y - dashH / 2, width: dashW, height: dashH)),
+                    with: .color(Color.white.opacity(alpha * 0.85))
                 )
             }
-            // Center-line stripe.
-            let stripeWidth = 2.0 + depth * 5
-            let stripeHeight = 4.0 + depth * 16
+
+            // Edge lights: warm bloom + bright core.
+            let coreR = 0.9 + depth * 3.4
+            let bloomR = coreR * (isNight ? 3.2 : 2.2)
+            let lightAlpha = (isNight ? 0.35 : 0.22) + depth * (isNight ? 0.65 : 0.45)
+            let warm = Color(hex: isNight ? "FFD27A" : "FFE8A8")
+            for side in [-1.0, 1.0] {
+                let x = cx + side * halfW * 0.98
+                // Bloom
+                context.fill(
+                    Path(ellipseIn: CGRect(x: x - bloomR, y: y - bloomR * 0.7,
+                                           width: bloomR * 2, height: bloomR * 1.4)),
+                    with: .color(warm.opacity(lightAlpha * 0.28))
+                )
+                // Core
+                context.fill(
+                    Path(ellipseIn: CGRect(x: x - coreR, y: y - coreR,
+                                           width: coreR * 2, height: coreR * 2)),
+                    with: .color(warm.opacity(min(1, lightAlpha + 0.15)))
+                )
+            }
+        }
+    }
+
+    private var runwayScrollSpeed: Double {
+        phase == .takeoffRoll ? 2.6 : 2.1
+    }
+
+    private func drawGroundPlane(context: GraphicsContext, size: CGSize, horizon: Double) {
+        let groundRect = CGRect(x: 0, y: horizon, width: size.width, height: size.height - horizon)
+        if isNight {
+            context.fill(Path(groundRect), with: .linearGradient(
+                Gradient(colors: [
+                    Color(hex: "0A1018"),
+                    Color(hex: "06080E"),
+                    Color(hex: "04050A")
+                ]),
+                startPoint: CGPoint(x: 0, y: horizon),
+                endPoint: CGPoint(x: 0, y: size.height)
+            ))
+            // Sparse distant field / taxiway glints.
+            var rng = SeededRandom(seed: 501)
+            for _ in 0..<18 {
+                let x = rng.next() * size.width
+                let d = 0.15 + rng.next() * 0.85
+                let y = horizon + pow(d, 2.1) * (size.height - horizon)
+                let r = 0.4 + d * 1.2
+                // Keep glints off the runway corridor.
+                let offCenter = abs(x - size.width / 2) / size.width
+                guard offCenter > 0.22 else { continue }
+                context.fill(
+                    Path(ellipseIn: CGRect(x: x, y: y, width: r, height: r)),
+                    with: .color(Color(hex: "C9D4E8").opacity(0.12 + d * 0.2))
+                )
+            }
+        } else {
+            context.fill(Path(groundRect), with: .linearGradient(
+                Gradient(colors: [
+                    Color(hex: "5A6B52"),  // muted near-horizon scrub
+                    Color(hex: "4A5A44"),
+                    Color(hex: "3D4A38")   // darker near camera — not lime
+                ]),
+                startPoint: CGPoint(x: 0, y: horizon),
+                endPoint: CGPoint(x: 0, y: size.height)
+            ))
+            // Subtle field patches for texture (no cards / no noise bitmap).
+            var rng = SeededRandom(seed: 502)
+            for _ in 0..<10 {
+                let x = rng.next() * size.width
+                let d = rng.next()
+                let y = horizon + pow(d, 1.8) * (size.height - horizon)
+                let w = 28 + rng.next() * 70
+                let h = 8 + rng.next() * 18
+                let offCenter = abs(x - size.width / 2) / size.width
+                guard offCenter > 0.2 else { continue }
+                context.fill(
+                    Path(ellipseIn: CGRect(x: x - w / 2, y: y - h / 2, width: w, height: h)),
+                    with: .color(Color(hex: "465440").opacity(0.35))
+                )
+            }
+        }
+
+        // Haze band just under the horizon.
+        let hazeH = size.height * 0.06
+        context.fill(
+            Path(CGRect(x: 0, y: horizon, width: size.width, height: hazeH)),
+            with: .linearGradient(
+                Gradient(colors: [
+                    (isNight ? Color(hex: "1A2238") : Color(hex: "9BB5C9")).opacity(0.35),
+                    .clear
+                ]),
+                startPoint: CGPoint(x: 0, y: horizon),
+                endPoint: CGPoint(x: 0, y: horizon + hazeH)
+            )
+        )
+    }
+
+    private func drawRunwayShoulders(
+        context: GraphicsContext,
+        size: CGSize,
+        horizon: Double,
+        cx: Double,
+        nearHalf: Double,
+        farHalf: Double
+    ) {
+        let shoulder = isNight ? Color(hex: "141820") : Color(hex: "4A5348")
+        for side in [-1.0, 1.0] {
+            var path = Path()
+            let nearOuter = nearHalf * 1.12
+            let farOuter = farHalf * 1.8
+            path.move(to: CGPoint(x: cx + side * nearHalf, y: size.height))
+            path.addLine(to: CGPoint(x: cx + side * farHalf, y: horizon))
+            path.addLine(to: CGPoint(x: cx + side * farOuter, y: horizon))
+            path.addLine(to: CGPoint(x: cx + side * nearOuter, y: size.height))
+            path.closeSubpath()
+            context.fill(path, with: .color(shoulder.opacity(isNight ? 0.55 : 0.4)))
+        }
+    }
+
+    private func drawPerspectiveEdgeLines(
+        context: GraphicsContext,
+        size: CGSize,
+        horizon: Double,
+        cx: Double,
+        nearHalf: Double,
+        farHalf: Double
+    ) {
+        let lineColor = Color.white.opacity(isNight ? 0.55 : 0.7)
+        for side in [-1.0, 1.0] {
+            var path = Path()
+            path.move(to: CGPoint(x: cx + side * nearHalf, y: size.height))
+            path.addLine(to: CGPoint(x: cx + side * farHalf, y: horizon))
+            context.stroke(path, with: .color(lineColor), lineWidth: 1.6)
+        }
+    }
+
+    private func drawThresholdBars(
+        context: GraphicsContext,
+        size: CGSize,
+        horizon: Double,
+        cx: Double,
+        nearHalf: Double,
+        farHalf: Double
+    ) {
+        // A few white bars just below the vanishing point (approach markings).
+        for bar in 0..<4 {
+            let depth = 0.04 + Double(bar) * 0.028
+            let y = horizon + pow(depth, 2.05) * (size.height - horizon)
+            let halfW = farHalf + (nearHalf - farHalf) * pow(depth, 1.12)
+            let barHalf = halfW * 0.55
+            let thickness = 1.2 + depth * 4
             context.fill(
-                Path(CGRect(x: size.width / 2 - stripeWidth / 2, y: y - stripeHeight / 2,
-                            width: stripeWidth, height: stripeHeight)),
-                with: .color(.white.opacity(alpha * 0.6))
+                Path(CGRect(x: cx - barHalf, y: y - thickness / 2,
+                            width: barHalf * 2, height: thickness)),
+                with: .color(.white.opacity(0.35 + Double(bar) * 0.08))
             )
         }
     }
