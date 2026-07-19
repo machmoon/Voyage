@@ -25,3 +25,42 @@ targets:
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         ENABLE_PREVIEWS: true
         CODE_SIGN_STYLE: Automatic
+        ENABLE_TESTABILITY: true
+  VoyageTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: VoyageTests
+    dependencies:
+      - target: Voyage
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.patliu.voyage.tests
+        GENERATE_INFOPLIST_FILE: true
+        TARGETED_DEVICE_FAMILY: "1"
+        CODE_SIGN_STYLE: Automatic
+  VoyageUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: VoyageUITests
+    dependencies:
+      - target: Voyage
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.patliu.voyage.uitests
+        GENERATE_INFOPLIST_FILE: true
+        TARGETED_DEVICE_FAMILY: "1"
+        CODE_SIGN_STYLE: Automatic
+schemes:
+  Voyage:
+    build:
+      targets:
+        Voyage: all
+        VoyageTests: [test]
+        VoyageUITests: [test]
+    test:
+      targets:
+        - VoyageTests
+        - VoyageUITests
+      gatherCoverageData: false

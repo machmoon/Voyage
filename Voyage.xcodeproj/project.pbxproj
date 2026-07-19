@@ -10,10 +10,13 @@
 		0056CD7616753D1EF62C48F1 /* LogbookView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CB577FFDB00B9AA668840E0 /* LogbookView.swift */; };
 		032D7F92BC8E892B6FCCE829 /* WindowSceneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4639BD8F909C425C8B7EC5D /* WindowSceneView.swift */; };
 		161265440A6378F89192956D /* Airport.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAE328D769F7CC7D57744FF9 /* Airport.swift */; };
+		1BB004AE4363B8528A7852C9 /* FlightSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9968ED4F95A2D37CDE0A2494 /* FlightSessionTests.swift */; };
 		1EAD722054B83F4EEE63287B /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 793C5C9DEF97C291C6FABE16 /* RootView.swift */; };
 		22916C44E8510AA1BA7CB56E /* Announcer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A93104A963095B69587AD9F3 /* Announcer.swift */; };
+		24FA1FC88A608A3DE8CEF338 /* FlyerTierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 415D0FFCD4FA6DB8C28976A0 /* FlyerTierTests.swift */; };
 		28268935EDB310EBE897F19F /* LocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C88294A662E6C2C66610A47 /* LocationManager.swift */; };
 		2A6D2CD0EC832A9D6BD443E8 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98D80A40384AA0FD2BE7D690 /* Theme.swift */; };
+		2AB8D241BA72ABEF44132012 /* RoutePlannerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE7C38C4A1700E1751034581 /* RoutePlannerTests.swift */; };
 		35FA40ACFD47FB95CFCF6110 /* SeatSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBE81C5820E0ED57F7ACBBBB /* SeatSelectionView.swift */; };
 		3901C73F8B9CB34C525A51DB /* WeatherService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2D217AFDB4461EF35491CB0 /* WeatherService.swift */; };
 		4988E370A735BF5D60C834F7 /* CabinAudioEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0C5C9C32760DDC7FD61A5E7 /* CabinAudioEngine.swift */; };
@@ -32,20 +35,42 @@
 		B0C15F691D97DE29A203B2E7 /* FlightModeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F8F627044439CB1ADFC0262 /* FlightModeView.swift */; };
 		B255B8530C78C28F18FDA0C1 /* InFlightView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD7705DAB62E1CCFB2ED9BFE /* InFlightView.swift */; };
 		B3CE3D47A00CDA957DE780C3 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E56316EB70D85A66C9B618B3 /* SettingsView.swift */; };
+		BEEC020E7B00A161632E72BC /* VoyageSmokeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B08FC90B909634E033DBB2B /* VoyageSmokeUITests.swift */; };
+		CE910C079DA82AEBD377378D /* VoyageClock.swift in Sources */ = {isa = PBXBuildFile; fileRef = E29771D86F89BBD9C6ADB9A2 /* VoyageClock.swift */; };
 		D59281AE250FEE4F8D4E047A /* VoyageApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08A62644CD80D9C5F040E411 /* VoyageApp.swift */; };
 		D9F03FA5FBAE43273A7FFE79 /* DivertedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEADBF54A9BE3BC765AB6B39 /* DivertedView.swift */; };
 		DC3D19079E2863BF42B343D2 /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2383FDD5245C999AB4D11CFA /* Haptics.swift */; };
 		FB5766BF560C242EC935A52F /* BoardingFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC2722D2607D1446EB0D8DD9 /* BoardingFlowView.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		629744368DD9D55F9A29006A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8807452F109B3993874A36E1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A304795E7822D1B4E01EDED7;
+			remoteInfo = Voyage;
+		};
+		F43B72CB75BBB7C3BD351253 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8807452F109B3993874A36E1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A304795E7822D1B4E01EDED7;
+			remoteInfo = Voyage;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		08A62644CD80D9C5F040E411 /* VoyageApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoyageApp.swift; sourceTree = "<group>"; };
 		0DF13B0FF6F67EF0797DAFA7 /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
+		21DF43DD51750D57EB40C3BF /* VoyageTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = VoyageTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		2383FDD5245C999AB4D11CFA /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
 		2395A0E623392E6DA9E44EF0 /* Voyage.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Voyage.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		2B08FC90B909634E033DBB2B /* VoyageSmokeUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoyageSmokeUITests.swift; sourceTree = "<group>"; };
 		2CB577FFDB00B9AA668840E0 /* LogbookView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogbookView.swift; sourceTree = "<group>"; };
 		3AAB53D2E07097E1378EDA77 /* ScheduleSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleSheet.swift; sourceTree = "<group>"; };
 		40BDCC51D903FA09B7B40B74 /* ArrivalFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArrivalFlowView.swift; sourceTree = "<group>"; };
+		415D0FFCD4FA6DB8C28976A0 /* FlyerTierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlyerTierTests.swift; sourceTree = "<group>"; };
 		4CF9A3E41E2483EE5D95F966 /* LayoverLoungeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoverLoungeView.swift; sourceTree = "<group>"; };
 		5C88294A662E6C2C66610A47 /* LocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
 		5F8F627044439CB1ADFC0262 /* FlightModeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightModeView.swift; sourceTree = "<group>"; };
@@ -53,8 +78,10 @@
 		685811A683D09ECDC6325F88 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		6CB0E8E2B49F73535A03C4E3 /* FlightSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightSession.swift; sourceTree = "<group>"; };
 		793C5C9DEF97C291C6FABE16 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		7E4AD40DA935C2327A44C973 /* VoyageUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = VoyageUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		88D4D98A42F216B799704C84 /* BoardingPassView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardingPassView.swift; sourceTree = "<group>"; };
 		98D80A40384AA0FD2BE7D690 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		9968ED4F95A2D37CDE0A2494 /* FlightSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightSessionTests.swift; sourceTree = "<group>"; };
 		A0FF1BED67E63D4365884E3C /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		A6D839091C0E94900792F598 /* LogbookEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogbookEntry.swift; sourceTree = "<group>"; };
 		A93104A963095B69587AD9F3 /* Announcer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Announcer.swift; sourceTree = "<group>"; };
@@ -63,7 +90,9 @@
 		CA93F9C86955AB5BB4D19771 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		CAE328D769F7CC7D57744FF9 /* Airport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Airport.swift; sourceTree = "<group>"; };
 		CBE81C5820E0ED57F7ACBBBB /* SeatSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeatSelectionView.swift; sourceTree = "<group>"; };
+		CE7C38C4A1700E1751034581 /* RoutePlannerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutePlannerTests.swift; sourceTree = "<group>"; };
 		DD7705DAB62E1CCFB2ED9BFE /* InFlightView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InFlightView.swift; sourceTree = "<group>"; };
+		E29771D86F89BBD9C6ADB9A2 /* VoyageClock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoyageClock.swift; sourceTree = "<group>"; };
 		E4639BD8F909C425C8B7EC5D /* WindowSceneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowSceneView.swift; sourceTree = "<group>"; };
 		E56316EB70D85A66C9B618B3 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		E90C1A3DFBF3DAA7D4ABB231 /* CheckBagView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckBagView.swift; sourceTree = "<group>"; };
@@ -73,6 +102,14 @@
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
+		12FB964947FA47E42D74D117 /* VoyageUITests */ = {
+			isa = PBXGroup;
+			children = (
+				2B08FC90B909634E033DBB2B /* VoyageSmokeUITests.swift */,
+			);
+			path = VoyageUITests;
+			sourceTree = "<group>";
+		};
 		1550AC8C5623D8D1F3E314C9 /* Boarding */ = {
 			isa = PBXGroup;
 			children = (
@@ -83,6 +120,16 @@
 				CBE81C5820E0ED57F7ACBBBB /* SeatSelectionView.swift */,
 			);
 			path = Boarding;
+			sourceTree = "<group>";
+		};
+		1BA96B100B2F9F9417EFF03F /* VoyageTests */ = {
+			isa = PBXGroup;
+			children = (
+				9968ED4F95A2D37CDE0A2494 /* FlightSessionTests.swift */,
+				415D0FFCD4FA6DB8C28976A0 /* FlyerTierTests.swift */,
+				CE7C38C4A1700E1751034581 /* RoutePlannerTests.swift */,
+			);
+			path = VoyageTests;
 			sourceTree = "<group>";
 		};
 		2949B626BE076965871A30FA /* Landing */ = {
@@ -116,6 +163,8 @@
 			isa = PBXGroup;
 			children = (
 				63368066C1BBFB454978D83E /* Voyage */,
+				1BA96B100B2F9F9417EFF03F /* VoyageTests */,
+				12FB964947FA47E42D74D117 /* VoyageUITests */,
 				EE697A7AB4D722BB991321EC /* Products */,
 			);
 			sourceTree = "<group>";
@@ -205,6 +254,8 @@
 			isa = PBXGroup;
 			children = (
 				2395A0E623392E6DA9E44EF0 /* Voyage.app */,
+				21DF43DD51750D57EB40C3BF /* VoyageTests.xctest */,
+				7E4AD40DA935C2327A44C973 /* VoyageUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -217,6 +268,7 @@
 				5C88294A662E6C2C66610A47 /* LocationManager.swift */,
 				0DF13B0FF6F67EF0797DAFA7 /* SettingsStore.swift */,
 				98D80A40384AA0FD2BE7D690 /* Theme.swift */,
+				E29771D86F89BBD9C6ADB9A2 /* VoyageClock.swift */,
 				F2D217AFDB4461EF35491CB0 /* WeatherService.swift */,
 			);
 			path = Support;
@@ -225,6 +277,24 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		4FF7C8D507A57E3C87D791D3 /* VoyageTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 12AD8D11D40D6D7491A86689 /* Build configuration list for PBXNativeTarget "VoyageTests" */;
+			buildPhases = (
+				608E5F86FB06F8520BB37292 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				FDDAF9D61B6F8E5AB8C640C5 /* PBXTargetDependency */,
+			);
+			name = VoyageTests;
+			packageProductDependencies = (
+			);
+			productName = VoyageTests;
+			productReference = 21DF43DD51750D57EB40C3BF /* VoyageTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		A304795E7822D1B4E01EDED7 /* Voyage */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = ED23C4CAB20385D0BF6E05C2 /* Build configuration list for PBXNativeTarget "Voyage" */;
@@ -243,6 +313,24 @@
 			productReference = 2395A0E623392E6DA9E44EF0 /* Voyage.app */;
 			productType = "com.apple.product-type.application";
 		};
+		DD47B6B3610D608AC05419CB /* VoyageUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A444451368F2A056E111616C /* Build configuration list for PBXNativeTarget "VoyageUITests" */;
+			buildPhases = (
+				85D6E91038BB1D410161E6C2 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				17E73B6D10D6504A44AC03AA /* PBXTargetDependency */,
+			);
+			name = VoyageUITests;
+			packageProductDependencies = (
+			);
+			productName = VoyageUITests;
+			productReference = 7E4AD40DA935C2327A44C973 /* VoyageUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -252,8 +340,15 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
+					4FF7C8D507A57E3C87D791D3 = {
+						ProvisioningStyle = Automatic;
+					};
 					A304795E7822D1B4E01EDED7 = {
 						ProvisioningStyle = Automatic;
+					};
+					DD47B6B3610D608AC05419CB = {
+						ProvisioningStyle = Automatic;
+						TestTargetID = A304795E7822D1B4E01EDED7;
 					};
 				};
 			};
@@ -272,6 +367,8 @@
 			projectRoot = "";
 			targets = (
 				A304795E7822D1B4E01EDED7 /* Voyage */,
+				4FF7C8D507A57E3C87D791D3 /* VoyageTests */,
+				DD47B6B3610D608AC05419CB /* VoyageUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -288,6 +385,24 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		608E5F86FB06F8520BB37292 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1BB004AE4363B8528A7852C9 /* FlightSessionTests.swift in Sources */,
+				24FA1FC88A608A3DE8CEF338 /* FlyerTierTests.swift in Sources */,
+				2AB8D241BA72ABEF44132012 /* RoutePlannerTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		85D6E91038BB1D410161E6C2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BEEC020E7B00A161632E72BC /* VoyageSmokeUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		B07965DF829D86CC5AF124FB /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -318,12 +433,26 @@
 				B3CE3D47A00CDA957DE780C3 /* SettingsView.swift in Sources */,
 				2A6D2CD0EC832A9D6BD443E8 /* Theme.swift in Sources */,
 				D59281AE250FEE4F8D4E047A /* VoyageApp.swift in Sources */,
+				CE910C079DA82AEBD377378D /* VoyageClock.swift in Sources */,
 				3901C73F8B9CB34C525A51DB /* WeatherService.swift in Sources */,
 				032D7F92BC8E892B6FCCE829 /* WindowSceneView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		17E73B6D10D6504A44AC03AA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A304795E7822D1B4E01EDED7 /* Voyage */;
+			targetProxy = F43B72CB75BBB7C3BD351253 /* PBXContainerItemProxy */;
+		};
+		FDDAF9D61B6F8E5AB8C640C5 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A304795E7822D1B4E01EDED7 /* Voyage */;
+			targetProxy = 629744368DD9D55F9A29006A /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		005379AD3B62F0B2B5551D77 /* Release */ = {
@@ -334,6 +463,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_TESTABILITY = YES;
 				INFOPLIST_FILE = Voyage/Support/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -344,6 +474,42 @@
 				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
+		};
+		19DDBCDDDC4AE2195102A31C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.patliu.voyage.uitests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = Voyage;
+			};
+			name = Release;
+		};
+		226A06EEE6B19311DBA4E010 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.patliu.voyage.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Voyage.app/Voyage";
+			};
+			name = Debug;
 		};
 		3D6FCFC97BEABE787F8C75DE /* Release */ = {
 			isa = XCBuildConfiguration;
@@ -412,6 +578,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_TESTABILITY = YES;
 				INFOPLIST_FILE = Voyage/Support/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -420,6 +587,42 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.patliu.voyage;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		5DE76B9F9CC4385110176880 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.patliu.voyage.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Voyage.app/Voyage";
+			};
+			name = Release;
+		};
+		8A889B7A9D7DD95710F7E4A0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.patliu.voyage.uitests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = Voyage;
 			};
 			name = Debug;
 		};
@@ -492,6 +695,24 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		12AD8D11D40D6D7491A86689 /* Build configuration list for PBXNativeTarget "VoyageTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				226A06EEE6B19311DBA4E010 /* Debug */,
+				5DE76B9F9CC4385110176880 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		A444451368F2A056E111616C /* Build configuration list for PBXNativeTarget "VoyageUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8A889B7A9D7DD95710F7E4A0 /* Debug */,
+				19DDBCDDDC4AE2195102A31C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		AA039BEDDF5B0F3BF70CDEB9 /* Build configuration list for PBXProject "Voyage" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
