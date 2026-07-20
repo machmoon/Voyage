@@ -51,9 +51,9 @@ struct SeatSelectionView: View {
     private var legend: some View {
         HStack(spacing: 14) {
             legendChip(color: Theme.seatFirstGold, label: "First")
-            legendChip(color: Theme.seatAvailableGreen, label: "Available")
-            legendChip(color: Theme.seatBookedGray, label: "Booked")
-            legendChip(color: Theme.seatSelectedGreen, label: "Selected")
+            legendChip(color: Theme.seatOpen, label: "Available")
+            legendChip(color: Theme.seatTakenFill, label: "Booked")
+            legendChip(color: Theme.seatChosen, label: "Selected")
         }
     }
 
@@ -146,39 +146,32 @@ struct SeatSelectionView: View {
         let taken = isTaken(id)
         let isSelected = selected == id
 
-        let shell: Color = isSelected ? Theme.seatSelectedGreen
-            : (taken ? Theme.seatBookedGray : Theme.seatFirstGold)
-        let cushion: Color = isSelected ? Theme.seatSelectedGreen.opacity(0.75)
-            : (taken ? Theme.seatBookedGray.opacity(0.7) : Theme.seatFirstGoldLight)
+        let shell: Color = isSelected ? Theme.seatChosen
+            : (taken ? Theme.seatTakenFill : Theme.seatFirstGold)
+        let cushion: Color = isSelected ? Theme.seatChosen.opacity(0.72)
+            : (taken ? Theme.seatTakenFill.opacity(0.7) : Theme.seatFirstGoldLight)
 
         return Button {
             guard !taken else { return }
             Haptics.tap()
             withAnimation(.snappy(duration: 0.25)) { selected = id }
         } label: {
-            // A little recliner pod, seen from above: shell, armrests,
-            // cushion, headrest.
-            ZStack {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(shell)
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .strokeBorder(Theme.seatMapInk.opacity(taken ? 0.05 : 0.16), lineWidth: 1)
-
-                HStack {
-                    armrest(shell: shell)
-                    Spacer()
-                    armrest(shell: shell)
-                }
-                .padding(.horizontal, 5)
-
-                VStack(spacing: 3) {
-                    // Headrest band.
-                    Capsule()
-                        .fill(Theme.seatMapInk.opacity(taken ? 0.08 : 0.18))
-                        .frame(width: 30, height: 5)
-                    // Cushion.
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(cushion)
+            // A front-view armchair: tall backrest with a headrest notch,
+            // wide seat cushion, armrests flanking the sides.
+            HStack(alignment: .bottom, spacing: 2) {
+                armrest(shell: shell, taken: taken)
+                VStack(spacing: 0) {
+                    // Backrest with headrest.
+                    UnevenRoundedRectangle(topLeadingRadius: 16, bottomLeadingRadius: 4,
+                                           bottomTrailingRadius: 4, topTrailingRadius: 16,
+                                           style: .continuous)
+                        .fill(shell)
+                        .overlay(alignment: .top) {
+                            Capsule()
+                                .fill(.white.opacity(taken ? 0.25 : 0.4))
+                                .frame(width: 22, height: 4)
+                                .padding(.top, 5)
+                        }
                         .overlay {
                             if isSelected {
                                 Text(id)
@@ -190,11 +183,18 @@ struct SeatSelectionView: View {
                                     .foregroundStyle(Theme.seatMapInk.opacity(0.3))
                             }
                         }
-                        .frame(width: 44, height: 30)
+                        .frame(width: 46, height: 40)
+                    // Seat cushion.
+                    UnevenRoundedRectangle(topLeadingRadius: 3, bottomLeadingRadius: 8,
+                                           bottomTrailingRadius: 8, topTrailingRadius: 3,
+                                           style: .continuous)
+                        .fill(cushion)
+                        .frame(width: 52, height: 12)
+                        .padding(.top, 2)
                 }
-                .padding(.vertical, 6)
+                armrest(shell: shell, taken: taken)
             }
-            .frame(width: 78, height: 56)
+            .frame(width: 78, height: 58, alignment: .bottom)
         }
         .buttonStyle(.plain)
         .disabled(taken)
@@ -204,11 +204,18 @@ struct SeatSelectionView: View {
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
-    private func armrest(shell: Color) -> some View {
-        Capsule()
-            .fill(shell)
-            .overlay(Capsule().strokeBorder(Theme.seatMapInk.opacity(0.14), lineWidth: 1))
-            .frame(width: 7, height: 34)
+    private func armrest(shell: Color, taken: Bool) -> some View {
+        UnevenRoundedRectangle(topLeadingRadius: 5, bottomLeadingRadius: 3,
+                               bottomTrailingRadius: 3, topTrailingRadius: 5,
+                               style: .continuous)
+            .fill(shell.opacity(taken ? 0.8 : 1))
+            .overlay(
+                UnevenRoundedRectangle(topLeadingRadius: 5, bottomLeadingRadius: 3,
+                                       bottomTrailingRadius: 3, topTrailingRadius: 5,
+                                       style: .continuous)
+                    .strokeBorder(Theme.seatMapInk.opacity(0.15), lineWidth: 1)
+            )
+            .frame(width: 9, height: 30)
     }
 
     // MARK: Main Cabin (2–2)
@@ -313,7 +320,10 @@ struct SeatSelectionView: View {
                 RoundedRectangle(cornerRadius: 9, style: .continuous)
                     .fill(seatColor(taken: taken, selected: isSelected))
                 RoundedRectangle(cornerRadius: 9, style: .continuous)
-                    .strokeBorder(Theme.seatMapInk.opacity(taken ? 0.05 : 0.12), lineWidth: 1)
+                    .strokeBorder(
+                        taken ? Theme.seatMapInk.opacity(0.05) : Theme.accent.opacity(isSelected ? 0 : 0.35),
+                        lineWidth: 1
+                    )
                 if isSelected {
                     Text(id)
                         .font(.system(size: 11, weight: .bold))
@@ -332,9 +342,9 @@ struct SeatSelectionView: View {
     }
 
     private func seatColor(taken: Bool, selected: Bool) -> Color {
-        if selected { return Theme.seatSelectedGreen }
-        if taken { return Theme.seatBookedGray }
-        return Theme.seatAvailableGreen
+        if selected { return Theme.seatChosen }
+        if taken { return Theme.seatTakenFill }
+        return Theme.seatOpen
     }
 
     // MARK: Seat identity / pricing
@@ -402,12 +412,12 @@ struct SeatSelectionView: View {
                 } label: {
                     Image(systemName: "arrow.right")
                         .font(.system(size: 20, weight: .bold))
-                        .foregroundStyle(Theme.seatMapInk)
+                        .foregroundStyle(selected == nil ? Theme.seatMapInk.opacity(0.5) : .white)
                         .frame(width: 58, height: 58)
                         .background(
                             selected == nil
-                                ? Theme.seatBookedGray.opacity(0.5)
-                                : Theme.seatAvailableGreen,
+                                ? Theme.seatTakenFill.opacity(0.6)
+                                : Theme.accent,
                             in: Circle()
                         )
                 }

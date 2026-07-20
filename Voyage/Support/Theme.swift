@@ -31,28 +31,16 @@ enum Theme {
     /// perforation punch-outs can match it exactly.
     static let boardingBackdrop = Color(hex: "10152E")
 
-    // Light seat map (reference design): cream page, ink wings,
-    // green seat states.
-    static let seatMapBackground = Color(hex: "F4F1E8")
-    static let seatMapInk = Color(hex: "121512")
+    // Seat map: cool paper page, accent-tinted seat states (one palette
+    // with the rest of the app), airline-convention gold for First.
+    static let seatMapBackground = Color(hex: "F2F4F8")
+    static let seatMapInk = Color(hex: "14161C")
     static let seatMapFuselage = Color.white
-    static let seatAvailableGreen = Color(hex: "BCE3A5")
+    static let seatOpen = Color(hex: "DCE8FF")
+    static let seatChosen = accent
+    static let seatTakenFill = Color(hex: "D5D9E0")
     static let seatFirstGold = Color(hex: "E9CD82")
     static let seatFirstGoldLight = Color(hex: "F3E2AC")
-    static let seatSelectedGreen = Color(hex: "2E6B3F")
-    static let seatBookedGray = Color(hex: "AAB0B3")
-
-    // Cabin seat map (airline map, not Settings)
-    static let cabinCanvas = Color(hex: "101218")
-    static let cabinFuselage = Color(hex: "1A1D26")
-    static let cabinAisle = Color(hex: "252933")
-    static let cabinMetal = Color(hex: "3A4050")
-    static let seatAvailable = Color(hex: "4A5163")
-    static let seatAvailableTop = Color(hex: "5A6278")
-    static let seatTaken = Color(hex: "2A2E38")
-    static let seatTakenTop = Color(hex: "323744")
-    static let cabinLabel = Color.white.opacity(0.55)
-    static let cabinSecondary = Color.white.opacity(0.72)
 }
 
 /// Small uppercase caption used all over the boarding-pass UI.

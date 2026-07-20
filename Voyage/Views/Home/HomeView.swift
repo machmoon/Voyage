@@ -107,7 +107,7 @@ struct HomeView: View {
                                 contourStyle: .geodesic)
                         .stroke(
                             Theme.accent,
-                            style: StrokeStyle(lineWidth: 3, lineCap: .round, dash: [7, 5])
+                            style: StrokeStyle(lineWidth: 3, lineCap: .round)
                         )
                 }
             }
