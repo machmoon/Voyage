@@ -2,6 +2,7 @@ import Foundation
 import SwiftUI
 import SwiftData
 import Observation
+import CoreLocation
 
 /// Where we are inside a single leg, derived from elapsed time.
 enum LegPhase: Int, Comparable {
@@ -50,6 +51,8 @@ final class FlightSession {
     private(set) var legIndex: Int = 0
     private(set) var legStartDate: Date?
     private(set) var now: Date
+    /// Real current weather at the current leg's endpoints.
+    private(set) var originCondition: SkyCondition = .clear
     private(set) var destinationCondition: SkyCondition = .clear
     private(set) var connectionDeparts: Date?
     private(set) var completedMiles: Double = 0
@@ -69,17 +72,17 @@ final class FlightSession {
 
     /// Launch argument `-VoyageShortFlights` compresses takeoff/climb for QA screenshots
     /// without waiting ~90s of real-time (see README).
-    static var shortFlightsEnabled: Bool {
+    nonisolated static var shortFlightsEnabled: Bool {
         ProcessInfo.processInfo.arguments.contains("-VoyageShortFlights")
     }
 
-    static var takeoffRollDuration: TimeInterval { shortFlightsEnabled ? 3 : 18 }
+    nonisolated static var takeoffRollDuration: TimeInterval { shortFlightsEnabled ? 3 : 18 }
     /// Elapsed seconds when climb ends and cruise begins (includes the takeoff roll).
-    static var climbEndsAt: TimeInterval { shortFlightsEnabled ? 8 : 90 }
-    static let descentDuration: TimeInterval = 180
-    static let landingDuration: TimeInterval = 15
-    static let graceDuration: TimeInterval = 30
-    static let finalCallWindow: TimeInterval = 3 * 60
+    nonisolated static var climbEndsAt: TimeInterval { shortFlightsEnabled ? 8 : 90 }
+    nonisolated static let descentDuration: TimeInterval = 180
+    nonisolated static let landingDuration: TimeInterval = 15
+    nonisolated static let graceDuration: TimeInterval = 30
+    nonisolated static let finalCallWindow: TimeInterval = 3 * 60
 
     init(itinerary: Itinerary,
          modelContext: ModelContext,
@@ -191,6 +194,36 @@ final class FlightSession {
         }
     }
 
+    /// Weather the window scene should show right now: departure conditions
+    /// low on climb-out, arrival conditions once the descent begins.
+    var windowCondition: SkyCondition {
+        switch phase {
+        case .takeoffRoll, .climb: return originCondition
+        case .cruise, .descent, .landing: return destinationCondition
+        }
+    }
+
+    /// Seats over the wing get the wing in their window view.
+    /// Rows 5–8 of the 2–2 cabin sit over the wing box.
+    /// (Seat labels are letter-first, e.g. "C10".)
+    var hasWingView: Bool {
+        guard let row = Int(seat.filter(\.isNumber)) else { return false }
+        return (5...8).contains(row)
+    }
+
+    /// Live great-circle position along the current leg, for the map view.
+    var currentCoordinate: CLLocationCoordinate2D {
+        GreatCircle.point(from: currentLeg.origin.coordinate,
+                          to: currentLeg.destination.coordinate,
+                          fraction: legProgress)
+    }
+
+    /// Current true course toward the destination, degrees from north.
+    var currentCourse: Double {
+        GreatCircle.bearing(from: currentCoordinate,
+                            to: currentLeg.destination.coordinate)
+    }
+
     var layoverRemaining: TimeInterval {
         guard let departs = connectionDeparts else { return 0 }
         return max(0, departs.timeIntervalSince(now))
@@ -212,12 +245,21 @@ final class FlightSession {
     func departFirstLeg() {
         guard stage == .preflight else { return }
         startTimer()
-        Task { [weak self] in
-            guard let self else { return }
-            let condition = await WeatherService.destinationCondition(for: itinerary.destination)
-            self.destinationCondition = condition
-        }
         startLeg()
+    }
+
+    /// Real weather at both ends of the current leg: departure conditions
+    /// theme takeoff/climb, arrival conditions theme descent/landing.
+    private func fetchLegWeather() {
+        let leg = currentLeg
+        Task { [weak self] in
+            let origin = await WeatherService.condition(for: leg.origin)
+            self?.originCondition = origin
+        }
+        Task { [weak self] in
+            let destination = await WeatherService.condition(for: leg.destination)
+            self?.destinationCondition = destination
+        }
     }
 
     /// Called from the layover lounge to board the connecting leg.
@@ -233,6 +275,7 @@ final class FlightSession {
         legStartDate = t
         now = t
         firedEvents = []
+        fetchLegWeather()
         // Ambience after a beat so a just-played rip one-shot never races
         // engine start / graph rebuild on the same turn as stage transition.
         CabinAudioEngine.shared.startAmbience(profile: .taxi)
@@ -319,6 +362,7 @@ final class FlightSession {
         if e >= takeoffCue {
             fire(.takeoffPower) {
                 CabinAudioEngine.shared.setProfile(.takeoffRoll)
+                CabinAudioEngine.shared.playTakeoffSpool()
                 Haptics.softTick()
             }
         }
@@ -367,6 +411,7 @@ final class FlightSession {
         if e >= d - Self.landingDuration {
             fire(.touchdown) {
                 CabinAudioEngine.shared.setProfile(.landingRoll)
+                CabinAudioEngine.shared.playTouchdown()
                 Haptics.touchdown()
             }
         }

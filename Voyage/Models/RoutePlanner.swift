@@ -4,7 +4,7 @@ import Foundation
 struct FlightLeg: Identifiable, Hashable, Codable {
     let origin: Airport
     let destination: Airport
-    /// Focused-work duration of this leg, in seconds.
+    /// Focused-work duration of this leg, in seconds — the real block time.
     let duration: TimeInterval
     let flightNumber: String
 
@@ -12,11 +12,11 @@ struct FlightLeg: Identifiable, Hashable, Codable {
     var distanceMiles: Double { origin.distanceMiles(to: destination) }
 }
 
-/// A booked route: either a direct 2h short-haul, or a 6h long-haul
-/// split into two legs with a layover in between.
+/// A booked route mirroring the popular real-world itinerary: a nonstop
+/// where one exists, otherwise a connection with a lounge break between legs.
 struct Itinerary: Hashable, Codable {
     let legs: [FlightLeg]
-    /// Lounge break between legs, in seconds. Zero for direct flights.
+    /// Lounge break between legs, in seconds. Zero for nonstops.
     let layoverDuration: TimeInterval
 
     var origin: Airport { legs[0].origin }
@@ -29,70 +29,68 @@ struct Itinerary: Hashable, Codable {
 }
 
 enum RoutePlanner {
-    /// Great-circle distance above which a route is a 6h long-haul.
-    static let longHaulThresholdMiles: Double = 1500
-    static let shortHaulDuration: TimeInterval = 2 * 3600
-    static let longHaulDuration: TimeInterval = 6 * 3600
+    /// Lounge break between connection legs. Deliberately a Pomodoro-length
+    /// breather rather than a real-world multi-hour layover.
     static let layoverDuration: TimeInterval = 15 * 60
 
-    static func isLongHaul(from origin: Airport, to destination: Airport) -> Bool {
-        origin.distanceMiles(to: destination) >= longHaulThresholdMiles
-    }
-
-    /// Session length for the route as booked (excludes the layover break).
-    static func focusDuration(from origin: Airport, to destination: Airport) -> TimeInterval {
-        isLongHaul(from: origin, to: destination) ? longHaulDuration : shortHaulDuration
-    }
-
-    /// Builds the bookable itinerary between two airports.
-    /// Long-hauls always connect through the airport with the smallest detour.
-    static func itinerary(from origin: Airport, to destination: Airport) -> Itinerary {
-        guard isLongHaul(from: origin, to: destination) else {
+    /// Builds the bookable itinerary between two airports using real-world
+    /// block times and the popular routing from `RouteCatalog`.
+    /// `flightNumberOverride` stamps a specific scheduled departure's number
+    /// onto the first leg (later departures carry different numbers).
+    static func itinerary(from origin: Airport, to destination: Airport,
+                          flightNumberOverride: String? = nil) -> Itinerary {
+        if let direct = RouteCatalog.nonstop(from: origin, to: destination) {
             let leg = FlightLeg(
                 origin: origin,
                 destination: destination,
-                duration: shortHaulDuration,
-                flightNumber: flightNumber(from: origin, to: destination)
+                duration: direct.duration,
+                flightNumber: flightNumberOverride ?? direct.flightNumberText
             )
             return Itinerary(legs: [leg], layoverDuration: 0)
         }
 
-        let via = connectionAirport(from: origin, to: destination)
-        let d1 = origin.distanceMiles(to: via)
-        let d2 = via.distanceMiles(to: destination)
-
-        // Split the 6h of focused time across the legs in proportion to
-        // distance, clamped so no leg drops below 90 minutes, rounded to 5 min.
-        let minLeg: TimeInterval = 90 * 60
-        var first = longHaulDuration * (d1 / (d1 + d2))
-        first = min(max(first, minLeg), longHaulDuration - minLeg)
-        first = (first / 300).rounded() * 300
-        let second = longHaulDuration - first
-
-        let leg1 = FlightLeg(origin: origin, destination: via, duration: first,
-                             flightNumber: flightNumber(from: origin, to: via))
-        let leg2 = FlightLeg(origin: via, destination: destination, duration: second,
-                             flightNumber: flightNumber(from: via, to: destination))
-        return Itinerary(legs: [leg1, leg2], layoverDuration: layoverDuration)
-    }
-
-    /// The intermediate stop that adds the least total distance.
-    static func connectionAirport(from origin: Airport, to destination: Airport) -> Airport {
-        Airport.all
-            .filter { $0 != origin && $0 != destination }
-            .min { lhs, rhs in
-                let l = origin.distanceMiles(to: lhs) + lhs.distanceMiles(to: destination)
-                let r = origin.distanceMiles(to: rhs) + rhs.distanceMiles(to: destination)
-                return l < r
-            }!
-    }
-
-    /// Deterministic pseudo-real flight number per city pair.
-    static func flightNumber(from origin: Airport, to destination: Airport) -> String {
-        var hash: UInt64 = 5381
-        for byte in (origin.code + destination.code).utf8 {
-            hash = hash &* 33 &+ UInt64(byte)
+        if let via = RouteCatalog.via(from: origin, to: destination),
+           let first = RouteCatalog.nonstop(from: origin, to: via),
+           let second = RouteCatalog.nonstop(from: via, to: destination) {
+            let leg1 = FlightLeg(origin: origin, destination: via,
+                                 duration: first.duration,
+                                 flightNumber: flightNumberOverride ?? first.flightNumberText)
+            let leg2 = FlightLeg(origin: via, destination: destination,
+                                 duration: second.duration,
+                                 flightNumber: second.flightNumberText)
+            return Itinerary(legs: [leg1, leg2], layoverDuration: layoverDuration)
         }
-        return "VA \(100 + Int(hash % 800))"
+
+        // Defensive fallback for a pair missing from the catalog:
+        // estimate a nonstop from great-circle distance.
+        let leg = FlightLeg(
+            origin: origin,
+            destination: destination,
+            duration: TimeInterval(estimatedMinutes(forMiles: origin.distanceMiles(to: destination))) * 60,
+            flightNumber: flightNumberOverride ?? "VA \(100 + abs(origin.code.hashValue ^ destination.code.hashValue) % 800)"
+        )
+        return Itinerary(legs: [leg], layoverDuration: 0)
+    }
+
+    static func isConnection(from origin: Airport, to destination: Airport) -> Bool {
+        RouteCatalog.nonstop(from: origin, to: destination) == nil
+            && RouteCatalog.via(from: origin, to: destination) != nil
+    }
+
+    /// Session length for the route as booked (excludes the lounge break).
+    static func focusDuration(from origin: Airport, to destination: Airport) -> TimeInterval {
+        itinerary(from: origin, to: destination).totalFocusDuration
+    }
+
+    /// The route's display flight number (first leg of the base schedule).
+    static func flightNumber(from origin: Airport, to destination: Airport) -> String {
+        itinerary(from: origin, to: destination).primaryFlightNumber
+    }
+
+    /// Block-time estimate: cruise ~510 mph plus 40 min taxi/climb/descent
+    /// overhead, rounded to 5 minutes. Used only as a catalog fallback.
+    static func estimatedMinutes(forMiles miles: Double) -> Int {
+        let raw = miles / 510.0 * 60.0 + 40.0
+        return max(45, Int((raw / 5.0).rounded()) * 5)
     }
 }

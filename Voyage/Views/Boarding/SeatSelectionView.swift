@@ -1,253 +1,348 @@
 import SwiftUI
 
-/// Cabin seat map: 3–3 economy (plus a 2–2 business cabin for Silver+),
-/// some seats already taken, window seats gently encouraged.
+/// Airline-style seat map: cream page, white fuselage, a 1–1 First Class
+/// cabin up front, a 2–2 Main Cabin behind it, exit-row markers over the
+/// wing box, and a fare card with cabin class, seat, flight number, and price.
 struct SeatSelectionView: View {
     @Bindable var session: FlightSession
     let onContinue: () -> Void
 
     @State private var selected: String?
 
-    private var businessRows: Range<Int> { session.isPremiumCabin ? 1..<3 : 1..<1 }
-    private let economyRows = 3..<13
-    private let letters = ["A", "B", "C", "D", "E", "F"]
-    private let businessLetters = ["A", "C", "D", "F"]
-
-    private var accent: Color { session.itinerary.destination.accentColor }
+    private let firstRows = Array(1...2)
+    private let economyRows = Array(3...12)
+    private let leftLetters = ["A", "B"]
+    private let rightLetters = ["C", "D"]
+    /// Visual break (exit row / over-wing box) after this economy row.
+    private let wingBreakAfterRow = 6
+    private let firstClassRows = 1...2
 
     var body: some View {
         VStack(spacing: 0) {
             header
             legend
-            ScrollView {
-                ZStack {
-                    fuselageShell
-                    VStack(spacing: 12) {
-                        fuselageNose
-                        if session.isPremiumCabin {
-                            cabinLabel("BUSINESS")
-                            ForEach(Array(businessRows), id: \.self) { row in
-                                seatRow(row: row, letters: businessLetters, isBusiness: true)
-                            }
-                            aisleDivider
-                            cabinLabel("ECONOMY")
-                        }
-                        ForEach(Array(economyRows), id: \.self) { row in
-                            seatRow(row: row, letters: letters, isBusiness: false)
-                        }
-                        fuselageTail
-                    }
-                    .padding(.horizontal, 28)
-                    .padding(.vertical, 22)
-                }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 20)
+                .padding(.top, 4)
+                .padding(.bottom, 10)
+
+            ScrollView(showsIndicators: false) {
+                fuselage
+                    .frame(maxWidth: 300)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 24)
+                    .padding(.top, 6)
+                    .padding(.bottom, 16)
             }
 
-            continueButton
+            fareCard
         }
-        .foregroundStyle(.white)
+        .background(Theme.seatMapBackground.ignoresSafeArea())
     }
 
-    // MARK: - Header / legend
+    // MARK: Header / legend
 
     private var header: some View {
-        VStack(spacing: 6) {
-            Text("Choose your seat")
-                .font(.title2.bold())
-                .foregroundStyle(.white)
-            Text("Flight \(session.currentLeg.flightNumber) · \(session.itinerary.origin.code) → \(session.itinerary.destination.code)")
-                .font(.subheadline)
-                .foregroundStyle(Theme.cabinSecondary)
-            Text("Window seats show the view you’ll get in flight.")
-                .font(.caption)
-                .foregroundStyle(Theme.cabinLabel)
-        }
-        .padding(.top, 10)
-        .padding(.bottom, 12)
+        Text("Select Seats")
+            .font(.system(size: 22, weight: .bold))
+            .foregroundStyle(Theme.seatMapInk)
+            .padding(.top, 6)
+            .padding(.bottom, 6)
     }
 
     private var legend: some View {
         HStack(spacing: 14) {
-            legendChip(color: Theme.seatAvailableTop, label: "Open")
-            legendChip(color: Theme.seatTaken, label: "Taken")
-            legendChip(color: accent, label: "Yours")
-            HStack(spacing: 6) {
-                RoundedRectangle(cornerRadius: 4, style: .continuous)
-                    .fill(accent.opacity(0.35))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 4, style: .continuous)
-                            .strokeBorder(accent.opacity(0.9), lineWidth: 1)
-                    )
-                    .frame(width: 14, height: 14)
-                    .shadow(color: accent.opacity(0.55), radius: 4)
-                Text("WINDOW")
-                    .font(.system(size: 10, weight: .heavy))
-                    .kerning(1.2)
-                    .foregroundStyle(accent)
-            }
+            legendChip(color: Theme.seatFirstGold, label: "First")
+            legendChip(color: Theme.seatAvailableGreen, label: "Available")
+            legendChip(color: Theme.seatBookedGray, label: "Booked")
+            legendChip(color: Theme.seatSelectedGreen, label: "Selected")
         }
-        .padding(.bottom, 10)
     }
 
     private func legendChip(color: Color, label: String) -> some View {
         HStack(spacing: 6) {
             RoundedRectangle(cornerRadius: 4, style: .continuous)
                 .fill(color)
-                .frame(width: 14, height: 14)
+                .frame(width: 15, height: 15)
             Text(label)
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(Theme.cabinSecondary)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(Theme.seatMapInk.opacity(0.8))
         }
     }
 
-    // MARK: - Fuselage chrome
+    // MARK: Aircraft
 
-    private var fuselageShell: some View {
-        RoundedRectangle(cornerRadius: 48, style: .continuous)
-            .fill(
-                LinearGradient(
-                    colors: [
-                        Theme.cabinFuselage.opacity(0.95),
-                        Theme.cabinCanvas,
-                        Theme.cabinFuselage.opacity(0.9)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 48, style: .continuous)
-                    .strokeBorder(
-                        LinearGradient(
-                            colors: [
-                                Theme.cabinMetal.opacity(0.55),
-                                Theme.cabinMetal.opacity(0.15),
-                                Theme.cabinMetal.opacity(0.4)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 1.2
-                    )
-            )
-            .overlay {
-                // Soft aisle strip down the cabin center
-                RoundedRectangle(cornerRadius: 2, style: .continuous)
-                    .fill(Theme.cabinAisle.opacity(0.55))
-                    .frame(width: 10)
-                    .padding(.vertical, 56)
-            }
-            .shadow(color: .black.opacity(0.35), radius: 18, y: 8)
+    private var fuselage: some View {
+        VStack(spacing: 0) {
+            nose
+            firstCabin
+            cabinDivider("MAIN CABIN")
+                .padding(.top, 18)
+                .padding(.bottom, 14)
+            economyCabin
+        }
+        .background(
+            NoseCappedColumn()
+                .fill(Theme.seatMapFuselage)
+                .shadow(color: .black.opacity(0.14), radius: 18, y: 8)
+        )
     }
 
-    private var fuselageNose: some View {
-        VStack(spacing: 6) {
+    private var nose: some View {
+        VStack(spacing: 8) {
+            // Cockpit windscreen.
             Capsule()
-                .fill(
-                    LinearGradient(
-                        colors: [Theme.cabinMetal.opacity(0.7), Theme.cabinMetal.opacity(0.2)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-                .frame(width: 54, height: 22)
-                .overlay(alignment: .top) {
-                    Capsule()
-                        .fill(Color.white.opacity(0.12))
-                        .frame(width: 28, height: 6)
-                        .offset(y: 4)
-                }
-            Image(systemName: "airplane")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(Theme.cabinLabel)
-                .rotationEffect(.degrees(-90))
-            Text("FORWARD")
-                .font(.system(size: 9, weight: .heavy))
-                .kerning(2)
-                .foregroundStyle(Theme.cabinLabel)
+                .fill(Theme.seatMapInk.opacity(0.85))
+                .frame(width: 58, height: 14)
+                .padding(.top, 34)
+            cabinDivider("FIRST CLASS")
+                .padding(.top, 14)
         }
-        .padding(.bottom, 4)
+        .padding(.bottom, 14)
         .accessibilityHidden(true)
     }
 
-    private var fuselageTail: some View {
-        Capsule()
-            .fill(Theme.cabinMetal.opacity(0.25))
-            .frame(width: 36, height: 8)
-            .padding(.top, 8)
-            .accessibilityHidden(true)
-    }
-
-    private var aisleDivider: some View {
-        HStack(spacing: 8) {
-            Rectangle().fill(Theme.cabinMetal.opacity(0.35)).frame(height: 1)
-            Text("AISLE")
-                .font(.system(size: 9, weight: .heavy))
+    private func cabinDivider(_ label: String) -> some View {
+        HStack(spacing: 10) {
+            dividerLine
+            Text(label)
+                .font(.system(size: 10, weight: .heavy))
                 .kerning(1.6)
-                .foregroundStyle(Theme.cabinLabel)
-            Rectangle().fill(Theme.cabinMetal.opacity(0.35)).frame(height: 1)
+                .foregroundStyle(Theme.seatMapInk.opacity(0.4))
+                .fixedSize()
+            dividerLine
         }
-        .padding(.vertical, 2)
+        .padding(.horizontal, 22)
     }
 
-    private func cabinLabel(_ text: String) -> some View {
-        Text(text)
-            .font(.system(size: 10, weight: .heavy))
-            .kerning(2.4)
-            .foregroundStyle(text == "BUSINESS" ? accent.opacity(0.85) : Theme.cabinLabel)
-            .padding(.vertical, 2)
+    private var dividerLine: some View {
+        Rectangle()
+            .fill(Theme.seatMapInk.opacity(0.1))
+            .frame(height: 1)
     }
 
-    // MARK: - Rows / seats
+    // MARK: First Class (1–1 wide recliners)
 
-    private func seatRow(row: Int, letters rowLetters: [String], isBusiness: Bool) -> some View {
-        let half = rowLetters.count / 2
-        return HStack(spacing: isBusiness ? 12 : 8) {
-            ForEach(rowLetters.prefix(half), id: \.self) { letter in
-                seatButton(row: row, letter: letter, isBusiness: isBusiness)
-            }
-            Text("\(row)")
-                .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                .foregroundStyle(Theme.cabinLabel)
-                .frame(width: 28)
-            ForEach(rowLetters.suffix(half), id: \.self) { letter in
-                seatButton(row: row, letter: letter, isBusiness: isBusiness)
+    private var firstCabin: some View {
+        VStack(spacing: 14) {
+            ForEach(firstRows, id: \.self) { row in
+                HStack(spacing: 0) {
+                    windowTick
+                    firstSeatButton(row: row, letter: "A")
+                        .frame(maxWidth: .infinity)
+                    Text("\(row)")
+                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(Theme.seatMapInk.opacity(0.25))
+                        .frame(width: 34)
+                    firstSeatButton(row: row, letter: "D")
+                        .frame(maxWidth: .infinity)
+                    windowTick
+                }
+                .padding(.horizontal, 18)
             }
         }
     }
 
-    private func seatButton(row: Int, letter: String, isBusiness: Bool) -> some View {
-        let id = "\(row)\(letter)"
+    private func firstSeatButton(row: Int, letter: String) -> some View {
+        let id = displaySeat(row: row, letter: letter)
         let taken = isTaken(id)
         let isSelected = selected == id
-        let isWindow = letter == "A" || letter == "F"
-        let size: CGFloat = isBusiness ? 52 : 46
+
+        let shell: Color = isSelected ? Theme.seatSelectedGreen
+            : (taken ? Theme.seatBookedGray : Theme.seatFirstGold)
+        let cushion: Color = isSelected ? Theme.seatSelectedGreen.opacity(0.75)
+            : (taken ? Theme.seatBookedGray.opacity(0.7) : Theme.seatFirstGoldLight)
 
         return Button {
             guard !taken else { return }
             Haptics.tap()
             withAnimation(.snappy(duration: 0.25)) { selected = id }
         } label: {
-            SeatCushion(
-                size: size,
-                isBusiness: isBusiness,
-                taken: taken,
-                selected: isSelected,
-                isWindow: isWindow,
-                accent: accent,
-                label: letter
-            )
+            // A little recliner pod, seen from above: shell, armrests,
+            // cushion, headrest.
+            ZStack {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(shell)
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(Theme.seatMapInk.opacity(taken ? 0.05 : 0.16), lineWidth: 1)
+
+                HStack {
+                    armrest(shell: shell)
+                    Spacer()
+                    armrest(shell: shell)
+                }
+                .padding(.horizontal, 5)
+
+                VStack(spacing: 3) {
+                    // Headrest band.
+                    Capsule()
+                        .fill(Theme.seatMapInk.opacity(taken ? 0.08 : 0.18))
+                        .frame(width: 30, height: 5)
+                    // Cushion.
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(cushion)
+                        .overlay {
+                            if isSelected {
+                                Text(id)
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundStyle(.white)
+                            } else if !taken {
+                                Image(systemName: "diamond.fill")
+                                    .font(.system(size: 7, weight: .bold))
+                                    .foregroundStyle(Theme.seatMapInk.opacity(0.3))
+                            }
+                        }
+                        .frame(width: 44, height: 30)
+                }
+                .padding(.vertical, 6)
+            }
+            .frame(width: 78, height: 56)
         }
         .buttonStyle(.plain)
         .disabled(taken)
-        .accessibilityLabel(taken ? "Seat \(id), taken" : "Seat \(id)")
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
         .scaleEffect(isSelected ? 1.06 : 1)
         .animation(.snappy(duration: 0.25), value: isSelected)
+        .accessibilityLabel(taken ? "First class seat \(id), taken" : "First class seat \(id)")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
-    /// Deterministic "already taken" seats, seeded by the flight number,
+    private func armrest(shell: Color) -> some View {
+        Capsule()
+            .fill(shell)
+            .overlay(Capsule().strokeBorder(Theme.seatMapInk.opacity(0.14), lineWidth: 1))
+            .frame(width: 7, height: 34)
+    }
+
+    // MARK: Main Cabin (2–2)
+
+    private var economyCabin: some View {
+        VStack(spacing: 12) {
+            columnHeaders
+            ForEach(economyRows, id: \.self) { row in
+                seatRow(row)
+                if row == wingBreakAfterRow {
+                    exitRowBreak
+                }
+            }
+        }
+        .padding(.bottom, 34)
+    }
+
+    private var columnHeaders: some View {
+        HStack(spacing: 0) {
+            windowTick.opacity(0)
+            seatHeaderGroup(leftLetters)
+            Text("")
+                .frame(width: 34)
+            seatHeaderGroup(rightLetters)
+            windowTick.opacity(0)
+        }
+        .padding(.horizontal, 18)
+        .accessibilityHidden(true)
+    }
+
+    private func seatHeaderGroup(_ letters: [String]) -> some View {
+        HStack(spacing: 10) {
+            ForEach(letters, id: \.self) { letter in
+                Text(letter)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Theme.seatMapInk.opacity(0.45))
+                    .frame(width: 44)
+            }
+        }
+    }
+
+    /// Over-wing exit row: red EXIT markers at both fuselage edges,
+    /// the way real airline seat maps mark it.
+    private var exitRowBreak: some View {
+        HStack {
+            exitTag
+            Spacer()
+            exitTag
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .accessibilityHidden(true)
+    }
+
+    private var exitTag: some View {
+        Text("EXIT")
+            .font(.system(size: 8, weight: .heavy))
+            .kerning(1)
+            .foregroundStyle(.white)
+            .padding(.horizontal, 5)
+            .padding(.vertical, 2)
+            .background(Color(hex: "C4453B"), in: RoundedRectangle(cornerRadius: 3))
+    }
+
+    private func seatRow(_ row: Int) -> some View {
+        HStack(spacing: 0) {
+            windowTick
+            HStack(spacing: 10) {
+                ForEach(leftLetters, id: \.self) { seatButton(row: row, letter: $0) }
+            }
+            Text("\(row)")
+                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                .foregroundStyle(Theme.seatMapInk.opacity(0.25))
+                .frame(width: 34)
+            HStack(spacing: 10) {
+                ForEach(rightLetters, id: \.self) { seatButton(row: row, letter: $0) }
+            }
+            windowTick
+        }
+        .padding(.horizontal, 18)
+    }
+
+    /// Small gray pill on the fuselage edge — a cabin window.
+    private var windowTick: some View {
+        Capsule()
+            .fill(Theme.seatMapInk.opacity(0.18))
+            .frame(width: 5, height: 16)
+            .accessibilityHidden(true)
+    }
+
+    private func seatButton(row: Int, letter: String) -> some View {
+        let id = displaySeat(row: row, letter: letter)
+        let taken = isTaken(id)
+        let isSelected = selected == id
+
+        return Button {
+            guard !taken else { return }
+            Haptics.tap()
+            withAnimation(.snappy(duration: 0.25)) { selected = id }
+        } label: {
+            ZStack {
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .fill(seatColor(taken: taken, selected: isSelected))
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .strokeBorder(Theme.seatMapInk.opacity(taken ? 0.05 : 0.12), lineWidth: 1)
+                if isSelected {
+                    Text(id)
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(.white)
+                        .minimumScaleFactor(0.7)
+                }
+            }
+            .frame(width: 44, height: 44)
+        }
+        .buttonStyle(.plain)
+        .disabled(taken)
+        .scaleEffect(isSelected ? 1.08 : 1)
+        .animation(.snappy(duration: 0.25), value: isSelected)
+        .accessibilityLabel(taken ? "Seat \(id), taken" : "Seat \(id)")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private func seatColor(taken: Bool, selected: Bool) -> Color {
+        if selected { return Theme.seatSelectedGreen }
+        if taken { return Theme.seatBookedGray }
+        return Theme.seatAvailableGreen
+    }
+
+    // MARK: Seat identity / pricing
+
+    /// Reference design labels seats letter-first ("C10").
+    private func displaySeat(row: Int, letter: String) -> String { "\(letter)\(row)" }
+
+    /// Deterministic "already booked" seats, seeded by the flight number,
     /// so the cabin looks the same if you go back a step.
     private func isTaken(_ seatID: String) -> Bool {
         var hash: UInt64 = 1469598103934665603
@@ -257,158 +352,119 @@ struct SeatSelectionView: View {
         return hash % 100 < 32
     }
 
-    private var continueButton: some View {
-        VStack(spacing: 8) {
-            if let selected, selected.hasSuffix("A") || selected.hasSuffix("F") {
-                Text("Window seat — this is the view you’ll get in flight.")
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(accent)
-                    .multilineTextAlignment(.center)
-                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+    private var selectedRow: Int? {
+        selected.flatMap { Int($0.filter(\.isNumber)) }
+    }
+
+    private var cabinClass: String {
+        guard let row = selectedRow else { return "—" }
+        return firstClassRows.contains(row) ? "First" : "Main Cabin"
+    }
+
+    private var price: Int {
+        guard let row = selectedRow else { return 0 }
+        let base = 59.0 + session.itinerary.totalMiles * 0.085
+        let multiplier = firstClassRows.contains(row) ? 3.0 : 1.0
+        return Int(((base * multiplier) / 5).rounded()) * 5
+    }
+
+    // MARK: Fare card
+
+    private var fareCard: some View {
+        VStack(spacing: 14) {
+            HStack(alignment: .top) {
+                fareField("Cabin Class", cabinClass)
+                Spacer()
+                fareField("Selected Seat", selected ?? "—", centered: true)
+                Spacer()
+                fareField("Flight No", session.currentLeg.flightNumber, trailing: true)
             }
-            Button {
-                if let selected {
-                    session.seat = selected
-                    Haptics.success()
-                    onContinue()
+
+            Divider()
+
+            HStack {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Total Price")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(Theme.seatMapInk.opacity(0.5))
+                    Text(selected == nil ? "$—" : "$\(price)")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundStyle(Theme.seatMapInk)
+                        .contentTransition(.numericText())
                 }
-            } label: {
-                Text(selected.map { "Take seat \($0)" } ?? "Select a seat")
-                    .font(.headline)
-                    .foregroundStyle(selected == nil ? Theme.cabinLabel : .white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 15)
-                    .background {
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .fill(
-                                selected == nil
-                                    ? LinearGradient(
-                                        colors: [Theme.cabinAisle, Theme.cabinAisle],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                    : LinearGradient(
-                                        colors: [accent, accent.opacity(0.75)],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                            )
+                Spacer()
+                Button {
+                    if let selected {
+                        session.seat = selected
+                        Haptics.success()
+                        onContinue()
                     }
+                } label: {
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundStyle(Theme.seatMapInk)
+                        .frame(width: 58, height: 58)
+                        .background(
+                            selected == nil
+                                ? Theme.seatBookedGray.opacity(0.5)
+                                : Theme.seatAvailableGreen,
+                            in: Circle()
+                        )
+                }
+                .disabled(selected == nil)
+                .accessibilityLabel(selected.map { "Take seat \($0)" } ?? "Select a seat")
             }
-            .disabled(selected == nil)
         }
-        .padding(.horizontal, 20)
-        .padding(.bottom, 10)
+        .padding(20)
+        .background(
+            UnevenRoundedRectangle(topLeadingRadius: 28, bottomLeadingRadius: 0,
+                                   bottomTrailingRadius: 0, topTrailingRadius: 28,
+                                   style: .continuous)
+                .fill(Theme.seatMapFuselage)
+                .shadow(color: .black.opacity(0.10), radius: 16, y: -4)
+                .ignoresSafeArea(edges: .bottom)
+        )
         .animation(.snappy(duration: 0.25), value: selected)
+    }
+
+    private func fareField(_ label: String, _ value: String,
+                           centered: Bool = false, trailing: Bool = false) -> some View {
+        let alignment: HorizontalAlignment = trailing ? .trailing : (centered ? .center : .leading)
+        return VStack(alignment: alignment, spacing: 3) {
+            Text(label)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(Theme.seatMapInk.opacity(0.5))
+            Text(value)
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(Theme.seatMapInk)
+                .contentTransition(.numericText())
+        }
     }
 }
 
-// MARK: - Seat cushion glyph
+// MARK: - Airframe shape
 
-/// Soft layered cushion — not an SF car-seat symbol.
-private struct SeatCushion: View {
-    let size: CGFloat
-    let isBusiness: Bool
-    let taken: Bool
-    let selected: Bool
-    let isWindow: Bool
-    let accent: Color
-    let label: String
+/// White fuselage column with a rounded nose and slight tail taper.
+private struct NoseCappedColumn: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let noseHeight = min(rect.height * 0.16, 90)
+        let tailInset = rect.width * 0.12
 
-    private var corner: CGFloat { isBusiness ? 14 : 11 }
-
-    var body: some View {
-        ZStack {
-            // Backrest
-            UnevenRoundedRectangle(
-                topLeadingRadius: corner,
-                bottomLeadingRadius: corner * 0.45,
-                bottomTrailingRadius: corner * 0.45,
-                topTrailingRadius: corner,
-                style: .continuous
-            )
-            .fill(cushionGradient)
-            .overlay(alignment: .top) {
-                // Soft highlight along the top edge of the cushion
-                Capsule()
-                    .fill(Color.white.opacity(taken ? 0.04 : (selected ? 0.22 : 0.12)))
-                    .frame(width: size * 0.55, height: 4)
-                    .padding(.top, 5)
-            }
-            .overlay {
-                UnevenRoundedRectangle(
-                    topLeadingRadius: corner,
-                    bottomLeadingRadius: corner * 0.45,
-                    bottomTrailingRadius: corner * 0.45,
-                    topTrailingRadius: corner,
-                    style: .continuous
-                )
-                .strokeBorder(borderColor, lineWidth: selected || (isWindow && !taken) ? 1.6 : 0.8)
-            }
-
-            if selected {
-                Image(systemName: "checkmark")
-                    .font(.system(size: isBusiness ? 15 : 13, weight: .bold))
-                    .foregroundStyle(.white)
-            } else {
-                Text(label)
-                    .font(.system(size: isBusiness ? 13 : 11, weight: .bold, design: .rounded))
-                    .foregroundStyle(labelColor)
-            }
-        }
-        .frame(width: size, height: size)
-        .shadow(
-            color: selected
-                ? accent.opacity(0.55)
-                : (isWindow && !taken ? accent.opacity(0.35) : .clear),
-            radius: selected ? 8 : 5
-        )
-        .opacity(taken ? 0.55 : 1)
-    }
-
-    private var cushionGradient: LinearGradient {
-        if taken {
-            return LinearGradient(
-                colors: [Theme.seatTakenTop, Theme.seatTaken],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        }
-        if selected {
-            return LinearGradient(
-                colors: [accent, accent.opacity(0.78)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        }
-        if isBusiness {
-            return LinearGradient(
-                colors: [
-                    Theme.seatAvailableTop.opacity(0.95),
-                    accent.opacity(0.28),
-                    Theme.seatAvailable
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        }
-        return LinearGradient(
-            colors: [Theme.seatAvailableTop, Theme.seatAvailable],
-            startPoint: .top,
-            endPoint: .bottom
-        )
-    }
-
-    private var borderColor: Color {
-        if selected { return accent.opacity(0.95) }
-        if taken { return Color.white.opacity(0.06) }
-        if isWindow { return accent.opacity(0.75) }
-        return Color.white.opacity(0.1)
-    }
-
-    private var labelColor: Color {
-        if taken { return Color.white.opacity(0.28) }
-        if isWindow { return accent.opacity(0.95) }
-        return Color.white.opacity(0.85)
+        path.move(to: CGPoint(x: rect.minX, y: rect.minY + noseHeight))
+        // Nose dome.
+        path.addQuadCurve(to: CGPoint(x: rect.midX, y: rect.minY),
+                          control: CGPoint(x: rect.minX, y: rect.minY))
+        path.addQuadCurve(to: CGPoint(x: rect.maxX, y: rect.minY + noseHeight),
+                          control: CGPoint(x: rect.maxX, y: rect.minY))
+        // Body sides with gentle tail taper.
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY * 0.82))
+        path.addQuadCurve(to: CGPoint(x: rect.maxX - tailInset, y: rect.maxY),
+                          control: CGPoint(x: rect.maxX, y: rect.maxY * 0.95))
+        path.addLine(to: CGPoint(x: rect.minX + tailInset, y: rect.maxY))
+        path.addQuadCurve(to: CGPoint(x: rect.minX, y: rect.maxY * 0.82),
+                          control: CGPoint(x: rect.minX, y: rect.maxY * 0.95))
+        path.closeSubpath()
+        return path
     }
 }

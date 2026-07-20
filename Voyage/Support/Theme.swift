@@ -19,9 +19,28 @@ extension Airport {
 }
 
 enum Theme {
+    /// The single app accent — a calm aviation blue. Functional UI (CTAs,
+    /// selection, route lines, progress) uses this everywhere; per-city
+    /// colors are reserved for logbook stamps, where they read as collectibles.
+    static let accent = Color(hex: "4E8CFF")
+
     static let cardBackground = Color(.secondarySystemGroupedBackground)
     static let nightSkyTop = Color(hex: "060B1F")
     static let nightSkyBottom = Color(hex: "1B2447")
+    /// Solid backdrop behind the boarding pass — solid (not a gradient) so
+    /// perforation punch-outs can match it exactly.
+    static let boardingBackdrop = Color(hex: "10152E")
+
+    // Light seat map (reference design): cream page, ink wings,
+    // green seat states.
+    static let seatMapBackground = Color(hex: "F4F1E8")
+    static let seatMapInk = Color(hex: "121512")
+    static let seatMapFuselage = Color.white
+    static let seatAvailableGreen = Color(hex: "BCE3A5")
+    static let seatFirstGold = Color(hex: "E9CD82")
+    static let seatFirstGoldLight = Color(hex: "F3E2AC")
+    static let seatSelectedGreen = Color(hex: "2E6B3F")
+    static let seatBookedGray = Color(hex: "AAB0B3")
 
     // Cabin seat map (airline map, not Settings)
     static let cabinCanvas = Color(hex: "101218")
@@ -47,6 +66,8 @@ struct FieldLabel: View {
             .font(.caption2.weight(.semibold))
             .kerning(1.4)
             .foregroundStyle(.secondary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.65)
     }
 }
 

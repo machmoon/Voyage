@@ -1,111 +1,97 @@
 import XCTest
-import CoreLocation
 @testable import Voyage
 
 final class RoutePlannerTests: XCTestCase {
 
-    private var bos: Airport { Airport.byCode("BOS") }
-    private var jfk: Airport { Airport.byCode("JFK") }
-    private var sfo: Airport { Airport.byCode("SFO") }
-    private var yqr: Airport { Airport.byCode("YQR") }
-    private var yyz: Airport { Airport.byCode("YYZ") }
-    private var lax: Airport { Airport.byCode("LAX") }
+    private let bos = Airport.byCode("BOS")
+    private let jfk = Airport.byCode("JFK")
+    private let sfo = Airport.byCode("SFO")
+    private let yqr = Airport.byCode("YQR")
+    private let lax = Airport.byCode("LAX")
 
-    // MARK: Great-circle distance
+    // MARK: Real durations
 
-    func testBOSToJFKIsShortHaulDistance() {
-        let miles = bos.distanceMiles(to: jfk)
-        // ~185–200 statute miles depending on exact airport coords
-        XCTAssertGreaterThan(miles, 150)
-        XCTAssertLessThan(miles, 250)
-        XCTAssertFalse(RoutePlanner.isLongHaul(from: bos, to: jfk))
-    }
-
-    func testBOSToSFOIsLongHaulDistance() {
-        let miles = bos.distanceMiles(to: sfo)
-        // Coast-to-coast ~2,700 miles
-        XCTAssertGreaterThan(miles, 2_400)
-        XCTAssertLessThan(miles, 3_000)
-        XCTAssertTrue(RoutePlanner.isLongHaul(from: bos, to: sfo))
-    }
-
-    func testDistanceIsSymmetric() {
-        XCTAssertEqual(bos.distanceMiles(to: sfo), sfo.distanceMiles(to: bos), accuracy: 0.001)
-    }
-
-    func testNearestAirportFromDowntownBoston() {
-        let downtown = CLLocation(latitude: 42.3601, longitude: -71.0589)
-        XCTAssertEqual(Airport.nearest(to: downtown).code, "BOS")
-    }
-
-    // MARK: Duration bucketing
-
-    func testShortHaulBucketsToTwoHours() {
-        XCTAssertEqual(RoutePlanner.focusDuration(from: bos, to: jfk), RoutePlanner.shortHaulDuration)
+    func testShuttleRouteUsesRealBlockTime() {
         let itinerary = RoutePlanner.itinerary(from: bos, to: jfk)
         XCTAssertEqual(itinerary.legs.count, 1)
-        XCTAssertEqual(itinerary.legs[0].duration, 2 * 3600)
+        XCTAssertEqual(itinerary.totalFocusDuration, 80 * 60)
         XCTAssertEqual(itinerary.layoverDuration, 0)
-        XCTAssertFalse(itinerary.isConnection)
     }
 
-    func testLongHaulBucketsToSixHoursFocus() {
-        XCTAssertEqual(RoutePlanner.focusDuration(from: bos, to: sfo), RoutePlanner.longHaulDuration)
+    func testTranscontinentalNonstopIsOneLongLeg() {
         let itinerary = RoutePlanner.itinerary(from: bos, to: sfo)
-        XCTAssertEqual(itinerary.totalFocusDuration, 6 * 3600, accuracy: 0.1)
-        XCTAssertTrue(itinerary.isConnection)
-        XCTAssertEqual(itinerary.layoverDuration, RoutePlanner.layoverDuration)
+        XCTAssertEqual(itinerary.legs.count, 1, "Popular BOS–SFO booking is nonstop")
+        XCTAssertEqual(itinerary.totalFocusDuration, 405 * 60)
     }
 
-    // MARK: Connection routing
+    func testJetStreamAsymmetry() {
+        let westbound = RoutePlanner.itinerary(from: bos, to: sfo).totalFocusDuration
+        let eastbound = RoutePlanner.itinerary(from: sfo, to: bos).totalFocusDuration
+        XCTAssertGreaterThan(westbound, eastbound,
+                             "Westbound fights the jet stream and must be longer")
+    }
 
-    func testLongHaulBecomesTwoLegConnection() {
+    // MARK: Connections
+
+    func testReginaRequiresConnection() {
         let itinerary = RoutePlanner.itinerary(from: bos, to: yqr)
         XCTAssertEqual(itinerary.legs.count, 2)
-        XCTAssertEqual(itinerary.origin.code, "BOS")
-        XCTAssertEqual(itinerary.destination.code, "YQR")
-        XCTAssertNotNil(itinerary.connection)
+        XCTAssertEqual(itinerary.connection?.code, "YYZ")
+        XCTAssertEqual(itinerary.layoverDuration, RoutePlanner.layoverDuration)
+        // Leg durations come from the two real nonstops.
+        XCTAssertEqual(itinerary.legs[0].duration, 115 * 60)
+        XCTAssertEqual(itinerary.legs[1].duration, 185 * 60)
+    }
+
+    func testConnectionLegsAreContiguous() {
+        let itinerary = RoutePlanner.itinerary(from: lax, to: yqr)
         XCTAssertEqual(itinerary.legs[0].destination, itinerary.legs[1].origin)
-        XCTAssertEqual(itinerary.legs[0].duration + itinerary.legs[1].duration, 6 * 3600, accuracy: 0.1)
+        XCTAssertEqual(itinerary.origin, lax)
+        XCTAssertEqual(itinerary.destination, yqr)
     }
 
-    func testConnectionAirportMinimizesDetour() {
-        // For BOS→YQR the planner should pick a sensible via (often YYZ).
-        let via = RoutePlanner.connectionAirport(from: bos, to: yqr)
-        XCTAssertNotEqual(via, bos)
-        XCTAssertNotEqual(via, yqr)
+    // MARK: Flight numbers
 
-        let viaDetour = bos.distanceMiles(to: via) + via.distanceMiles(to: yqr)
-        for candidate in Airport.all where candidate != bos && candidate != yqr {
-            let detour = bos.distanceMiles(to: candidate) + candidate.distanceMiles(to: yqr)
-            XCTAssertLessThanOrEqual(viaDetour, detour + 0.001)
+    func testFlightNumbersAreDeterministicAndDirectional() {
+        XCTAssertEqual(RoutePlanner.flightNumber(from: bos, to: sfo),
+                       RoutePlanner.flightNumber(from: bos, to: sfo))
+        XCTAssertNotEqual(RoutePlanner.flightNumber(from: bos, to: sfo),
+                          RoutePlanner.flightNumber(from: sfo, to: bos))
+    }
+
+    func testFlightNumberOverrideStampsFirstLeg() {
+        let itinerary = RoutePlanner.itinerary(from: bos, to: yqr, flightNumberOverride: "AC 745")
+        XCTAssertEqual(itinerary.legs[0].flightNumber, "AC 745")
+        XCTAssertNotEqual(itinerary.legs[1].flightNumber, "AC 745",
+                          "Second leg keeps its own real number")
+    }
+
+    // MARK: Every pair resolves
+
+    func testEveryAirportPairProducesAValidItinerary() {
+        for origin in Airport.all {
+            for destination in Airport.all where destination != origin {
+                let itinerary = RoutePlanner.itinerary(from: origin, to: destination)
+                XCTAssertFalse(itinerary.legs.isEmpty, "\(origin.code)→\(destination.code)")
+                XCTAssertEqual(itinerary.origin, origin)
+                XCTAssertEqual(itinerary.destination, destination)
+                // Real-world sanity: 45 minutes to 8 hours of focus.
+                XCTAssertGreaterThanOrEqual(itinerary.totalFocusDuration, 45 * 60,
+                                            "\(origin.code)→\(destination.code)")
+                XCTAssertLessThanOrEqual(itinerary.totalFocusDuration, 8 * 3600,
+                                         "\(origin.code)→\(destination.code)")
+                for leg in itinerary.legs {
+                    XCTAssertNotEqual(leg.origin, leg.destination)
+                    XCTAssertFalse(leg.flightNumber.isEmpty)
+                }
+            }
         }
     }
 
-    func testLegDurationsNeverDropBelowNinetyMinutes() {
-        let itinerary = RoutePlanner.itinerary(from: lax, to: jfk)
-        XCTAssertEqual(itinerary.legs.count, 2)
-        for leg in itinerary.legs {
-            XCTAssertGreaterThanOrEqual(leg.duration, 90 * 60)
-        }
-    }
-
-    func testFlightNumberIsDeterministic() {
-        let a = RoutePlanner.flightNumber(from: bos, to: sfo)
-        let b = RoutePlanner.flightNumber(from: bos, to: sfo)
-        XCTAssertEqual(a, b)
-        XCTAssertTrue(a.hasPrefix("VA "))
-        XCTAssertNotEqual(
-            RoutePlanner.flightNumber(from: bos, to: sfo),
-            RoutePlanner.flightNumber(from: sfo, to: bos)
-        )
-    }
-
-    func testThresholdBoundaryAt1500Miles() {
-        XCTAssertEqual(RoutePlanner.longHaulThresholdMiles, 1500)
-        // BOS–MIA is typically ~1,250 mi (short); BOS–YVR is long.
-        XCTAssertFalse(RoutePlanner.isLongHaul(from: bos, to: Airport.byCode("MIA")))
-        XCTAssertTrue(RoutePlanner.isLongHaul(from: bos, to: Airport.byCode("YVR")))
-        _ = yyz // keep airport set "used" for clarity in suite
+    func testEstimatedMinutesFallbackIsSane() {
+        XCTAssertEqual(RoutePlanner.estimatedMinutes(forMiles: 0), 45)
+        let transcon = RoutePlanner.estimatedMinutes(forMiles: 2700)
+        XCTAssertGreaterThan(transcon, 300)
+        XCTAssertLessThan(transcon, 480)
     }
 }

@@ -7,6 +7,9 @@ import Observation
 struct ScheduledFlight: Codable, Equatable {
     let destinationCode: String
     let departure: Date
+    /// Real flight number of the booked departure ("AC 741"). Optional so
+    /// flights persisted by older builds still decode.
+    var flightNumber: String?
 
     static let boardingLead: TimeInterval = 10 * 60
     static let boardingClose: TimeInterval = 15 * 60
@@ -31,7 +34,7 @@ struct ScheduledFlight: Codable, Equatable {
 
 /// Persists the single scheduled flight and manages its boarding notification.
 @Observable
-final class FlightScheduler {
+final class FlightScheduler: NSObject, UNUserNotificationCenterDelegate {
     static let shared = FlightScheduler()
 
     private static let storageKey = "scheduledFlight"
@@ -39,15 +42,30 @@ final class FlightScheduler {
 
     private(set) var scheduled: ScheduledFlight?
 
-    private init() {
+    private override init() {
+        super.init()
         if let data = UserDefaults.standard.data(forKey: Self.storageKey),
            let flight = try? JSONDecoder().decode(ScheduledFlight.self, from: data) {
             scheduled = flight
         }
+        // Without a delegate, iOS silently swallows the boarding call whenever
+        // the app happens to be foregrounded when it fires.
+        UNUserNotificationCenter.current().delegate = self
     }
 
-    func schedule(destination: Airport, departure: Date, origin: Airport) {
-        let flight = ScheduledFlight(destinationCode: destination.code, departure: departure)
+    nonisolated func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        completionHandler([.banner, .sound])
+    }
+
+    func schedule(destination: Airport, departure: Date, origin: Airport,
+                  flightNumber: String? = nil) {
+        let flight = ScheduledFlight(destinationCode: destination.code,
+                                     departure: departure,
+                                     flightNumber: flightNumber)
         scheduled = flight
         persist()
 
@@ -56,7 +74,7 @@ final class FlightScheduler {
         center.requestAuthorization(options: [.alert, .sound]) { granted, _ in
             guard granted else { return }
             let content = UNMutableNotificationContent()
-            let number = RoutePlanner.flightNumber(from: origin, to: destination)
+            let number = flightNumber ?? RoutePlanner.flightNumber(from: origin, to: destination)
             content.title = "Now boarding — \(number) to \(destination.city)"
             content.body = "Your flight departs in 10 minutes. Boarding closes 15 minutes after departure."
             content.sound = .default

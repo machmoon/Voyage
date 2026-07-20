@@ -223,37 +223,137 @@ final class CabinAudioEngine {
             ? [(830.6, 0.0), (659.3, 0.35), (554.4, 0.70)]   // G#5, E5, C#5
             : [(659.3, 0.0), (523.3, 0.4)]                    // E5, C5
         guard let last = notes.last,
-              let buffer = makeBuffer(duration: last.1 + 1.2, build: { i, t, sr in
+              let buffer = makeBuffer(duration: last.1 + 1.8, build: { i, t, sr in
             var sample: Float = 0
             for (freq, start) in notes {
                 let local = t - start
                 if local >= 0 {
-                    let env = expf(-3.2 * Float(local))
-                    sample += sinf(2 * .pi * Float(freq) * Float(local)) * env * 0.16
-                    // soft second harmonic for a glockenspiel feel
-                    sample += sinf(4 * .pi * Float(freq) * Float(local)) * env * 0.04
+                    // Soft mallet attack into a long, warm decay; a barely
+                    // detuned pair beats gently like a real cabin chime bar.
+                    let attack = 1 - expf(-90 * Float(local))
+                    let env = attack * expf(-2.4 * Float(local))
+                    let f = Float(freq)
+                    sample += sinf(2 * .pi * f * Float(local)) * env * 0.13
+                    sample += sinf(2 * .pi * f * 1.003 * Float(local)) * env * 0.05
+                    sample += sinf(4 * .pi * f * Float(local)) * env * 0.02
                 }
             }
             _ = i; _ = sr
             return sample
         }) else { return }
-        holdEngine(for: last.1 + 1.4)
+        holdEngine(for: last.1 + 2.0)
         schedule(buffer)
     }
 
-    /// Sharp paper-tear burst for the boarding-pass rip.
+    /// Paper-tear "zipper" for the boarding-pass rip: bright crackle whose
+    /// fiber-snap rate accelerates through the tear, then dies off.
     func playRip() {
+        guard SettingsStore.shared.ambienceEnabled || SettingsStore.shared.announcementsEnabled else { return }
         cancelPendingTeardown()
         startEngineIfNeeded()
-        holdEngine(for: 0.7)
-        guard let buffer = makeBuffer(duration: 0.45, build: { i, t, sr in
-            let progress = Float(t / 0.45)
-            let env = (1 - progress) * (1 - progress)
+        holdEngine(for: 0.8)
+        guard let buffer = makeBuffer(duration: 0.55, build: { i, t, sr in
+            let progress = Float(t / 0.55)
+            let env = powf(1 - progress, 1.4)
+            // Perforations popping: the snap rate speeds up as the tear runs.
+            let zipRate = 60.0 + 220.0 * Double(progress)
+            let zip = 0.35 + 0.65 * abs(sinf(Float(2 * .pi * zipRate * t)))
             // High-passed crackle: difference of consecutive white samples.
             let white = Float.random(in: -1...1)
             let crackle = white - (i % 2 == 0 ? 0.5 : -0.5) * Float.random(in: 0...1)
             _ = sr
-            return crackle * env * 0.5
+            return crackle * zip * env * 0.5
+        }) else { return }
+        schedule(buffer)
+    }
+
+    /// Dot-matrix gate printer chattering out the boarding pass: gated
+    /// print-head buzz over a soft feed-motor hum, with a paper-advance
+    /// click each line.
+    func playPrinter(duration: Double) {
+        guard SettingsStore.shared.ambienceEnabled || SettingsStore.shared.announcementsEnabled else { return }
+        cancelPendingTeardown()
+        startEngineIfNeeded()
+        holdEngine(for: duration + 0.3)
+        guard let buffer = makeBuffer(duration: duration, build: { _, t, _ in
+            let progress = Float(t / duration)
+            let env = min(1, Float(t) / 0.08) * min(1, (1 - progress) / 0.12 + 0.001)
+            // Print head: noise gated at line rate.
+            let gate: Float = sinf(Float(2 * .pi * 24 * t)) > -0.1 ? 1 : 0.05
+            let head = Float.random(in: -1...1) * 0.10 * gate
+            // Head whine + feed motor.
+            let whine = sinf(Float(2 * .pi * 880 * t)) * 0.020 * gate
+            let motor = sinf(Float(2 * .pi * 118 * t)) * 0.035
+            // Paper-advance click every line.
+            let line = t.truncatingRemainder(dividingBy: 1.0 / 24 * 6)
+            let click: Float = line < 0.004 ? Float.random(in: -0.25...0.25) : 0
+            return (head + whine + motor + click) * min(1, env)
+        }) else { return }
+        schedule(buffer)
+    }
+
+    /// One perforation fiber snapping — played per ratchet step while the
+    /// stub is pulled, so the tear is heard as it happens.
+    func playTearTick() {
+        guard SettingsStore.shared.ambienceEnabled || SettingsStore.shared.announcementsEnabled else { return }
+        cancelPendingTeardown()
+        startEngineIfNeeded()
+        holdEngine(for: 0.15)
+        guard let buffer = makeBuffer(duration: 0.06, build: { i, t, _ in
+            let env = expf(-70 * Float(t))
+            let white = Float.random(in: -1...1)
+            let crackle = white - (i % 2 == 0 ? 0.5 : -0.5) * Float.random(in: 0...1)
+            return crackle * env * 0.22
+        }) else { return }
+        schedule(buffer)
+    }
+
+    /// Engines spooling to takeoff power: a rising turbine whine over the
+    /// swelling ambience bed.
+    func playTakeoffSpool() {
+        guard SettingsStore.shared.ambienceEnabled else { return }
+        cancelPendingTeardown()
+        startEngineIfNeeded()
+        holdEngine(for: 3.2)
+        guard let buffer = makeBuffer(duration: 3.0, build: { _, t, _ in
+            let progress = Float(t / 3.0)
+            // Fade in, hold, release into the (now louder) engine bed.
+            let env = min(1, Float(t) / 0.8) * (t > 2.4 ? Float((3.0 - t) / 0.6) : 1)
+            // Turbine whine sweeping up as N1 rises.
+            let freq = 140.0 + 420.0 * Double(progress * progress)
+            let phase = 2 * .pi * (140.0 * t + 210.0 * t * t * t / 9.0)
+            let whine = sinf(Float(phase)) * 0.05 + sinf(Float(phase * 2.01)) * 0.02
+            _ = freq
+            // Low shove underneath.
+            let rumble = sinf(Float(2 * .pi * 38 * t)) * 0.06 * progress
+            return (whine + rumble) * env
+        }) else { return }
+        schedule(buffer)
+    }
+
+    /// Touchdown: main-gear thump, nose-gear thump, and a short tire chirp.
+    func playTouchdown() {
+        guard SettingsStore.shared.ambienceEnabled else { return }
+        cancelPendingTeardown()
+        startEngineIfNeeded()
+        holdEngine(for: 1.6)
+        guard let buffer = makeBuffer(duration: 1.4, build: { _, t, _ in
+            var sample: Float = 0
+            // Two gear thumps: mains at 0, nose at 0.55s.
+            for (start, gain) in [(0.0, Float(0.7)), (0.55, Float(0.45))] {
+                let local = t - start
+                if local >= 0 {
+                    let env = expf(-11 * Float(local))
+                    sample += sinf(2 * .pi * 46 * Float(local)) * env * gain
+                    if local < 0.02 { sample += Float.random(in: -0.35...0.35) * gain }
+                }
+            }
+            // Tire chirp right at the mains.
+            if t < 0.22 {
+                let env = expf(-16 * Float(t))
+                sample += Float.random(in: -1...1) * env * 0.18
+            }
+            return sample
         }) else { return }
         schedule(buffer)
     }

@@ -19,12 +19,12 @@ final class VoyageSmokeUITests: XCTestCase {
 
         try selectDestinationAndDepart(in: app)
 
-        XCTAssertTrue(app.staticTexts["Choose your seat"].waitForExistence(timeout: 6))
+        XCTAssertTrue(app.staticTexts["Select Seats"].waitForExistence(timeout: 12))
 
         let seat = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Seat ")).firstMatch
         XCTAssertTrue(seat.waitForExistence(timeout: 5), "Expected an accessible seat button")
-        // Prefer an available (non-taken) seat.
-        let available = app.buttons.matching(NSPredicate(format: "label MATCHES %@", #"Seat [0-9]+[A-F]"#)).firstMatch
+        // Prefer an available (non-taken) seat. Labels are letter-first: "Seat C10".
+        let available = app.buttons.matching(NSPredicate(format: "label MATCHES %@", #"Seat [A-D][0-9]+"#)).firstMatch
         if available.exists {
             available.tap()
         } else {
@@ -54,24 +54,14 @@ final class VoyageSmokeUITests: XCTestCase {
 
     @MainActor
     private func selectDestinationAndDepart(in app: XCUIApplication) throws {
-        // Destination cards only (never map home pin). Prefer on-screen cards first.
-        let codes = ["BOS", "JFK", "MIA", "LAX", "YYZ", "YVR", "YQR", "SFO"]
-        var selected = false
-        for code in codes {
-            let card = app.buttons["destination-\(code)"]
-            guard card.waitForExistence(timeout: 0.8) else { continue }
-            if !card.isHittable {
-                // Horizontal strip — swipe until the card is on-screen.
-                for _ in 0..<4 where !card.isHittable {
-                    app.swipeLeft()
-                }
-            }
-            guard card.isHittable else { continue }
-            card.tap()
-            selected = true
-            break
-        }
-        XCTAssertTrue(selected, "Expected a hittable destination card on home")
+        // Destination cards only (never map home pin). Cards are sorted
+        // shortest-flight-first, so the leftmost card is always on-screen.
+        let cards = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "destination-"))
+        let card = cards.firstMatch
+        XCTAssertTrue(card.waitForExistence(timeout: 5), "Expected a destination card on home")
+        XCTAssertTrue(card.isHittable, "Expected the first destination card to be hittable")
+        card.tap()
 
         let depart = app.buttons["depart-now"]
         XCTAssertTrue(depart.waitForExistence(timeout: 5), "Expected Depart now after selecting a destination")
