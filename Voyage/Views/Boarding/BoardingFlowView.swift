@@ -1,13 +1,13 @@
 import SwiftUI
 
-/// The pre-flight ritual: seat → check a bag → boarding pass rip → flight mode.
-/// Ends by telling the session to depart.
+/// The pre-flight ritual, three beats: seat → check a bag → boarding pass.
+/// Ripping the pass IS the departure — no extra confirmation page after.
 struct BoardingFlowView: View {
     @Bindable var session: FlightSession
     let onCancel: () -> Void
 
     enum Step: Int, Comparable {
-        case seat, bag, pass, flightMode
+        case seat, bag, pass
         static func < (lhs: Step, rhs: Step) -> Bool { lhs.rawValue < rhs.rawValue }
     }
 
@@ -18,10 +18,13 @@ struct BoardingFlowView: View {
     var body: some View {
         ZStack {
             Group {
-                if isCabinStep {
-                    Theme.cabinCanvas
-                } else {
+                switch step {
+                case .seat:
+                    Theme.seatMapBackground
+                case .bag:
                     Color(.systemGroupedBackground)
+                case .pass:
+                    Theme.boardingBackdrop
                 }
             }
             .ignoresSafeArea()
@@ -38,15 +41,16 @@ struct BoardingFlowView: View {
         HStack {
             if step < .pass {
                 Button(action: onCancel) {
-                    Image(systemName: "xmark")
+                    Image(systemName: isCabinStep ? "chevron.left" : "xmark")
                         .font(.subheadline.weight(.bold))
-                        .foregroundStyle(isCabinStep ? Theme.cabinSecondary : .secondary)
+                        .foregroundStyle(isCabinStep ? Theme.seatMapInk : .secondary)
                         .frame(width: 34, height: 34)
                         .background(
-                            isCabinStep ? Theme.cabinAisle : Theme.cardBackground,
+                            isCabinStep ? Theme.seatMapInk.opacity(0.06) : Theme.cardBackground,
                             in: Circle()
                         )
                 }
+                .accessibilityLabel("Back")
             }
             Spacer()
             stepIndicator
@@ -57,12 +61,12 @@ struct BoardingFlowView: View {
 
     private var stepIndicator: some View {
         HStack(spacing: 6) {
-            ForEach(0..<4) { i in
+            ForEach(0..<3) { i in
                 Capsule()
                     .fill(
                         i <= step.rawValue
-                            ? (isCabinStep ? session.itinerary.destination.accentColor : Color.accentColor)
-                            : (isCabinStep ? Theme.cabinMetal : Color(.systemFill))
+                            ? (isCabinStep ? Theme.seatSelectedGreen : Theme.accent)
+                            : (isCabinStep ? Theme.seatMapInk.opacity(0.15) : Color(.systemFill))
                     )
                     .frame(width: i == step.rawValue ? 22 : 8, height: 6)
             }
@@ -85,11 +89,6 @@ struct BoardingFlowView: View {
             .transition(stepTransition)
         case .pass:
             BoardingPassView(session: session) {
-                advance(to: .flightMode)
-            }
-            .transition(stepTransition)
-        case .flightMode:
-            FlightModeView(session: session) {
                 session.departFirstLeg()
             }
             .transition(stepTransition)

@@ -9,6 +9,30 @@ final class Announcer: NSObject, AVSpeechSynthesizerDelegate {
     // always messaged from the main actor / speech callbacks.
     private nonisolated(unsafe) let synthesizer = AVSpeechSynthesizer()
 
+    /// Best installed English voice — premium > enhanced > default, with a
+    /// preference for en-US. The compact default voice sounds robotic; most
+    /// devices ship at least one enhanced Siri-quality voice.
+    private nonisolated(unsafe) lazy var paVoice: AVSpeechSynthesisVoice? = {
+        let english = AVSpeechSynthesisVoice.speechVoices()
+            .filter { $0.language.hasPrefix("en") }
+
+        func score(_ voice: AVSpeechSynthesisVoice) -> Int {
+            var s = 0
+            switch voice.quality {
+            case .premium: s += 40
+            case .enhanced: s += 20
+            default: break
+            }
+            if voice.language == "en-US" { s += 10 }
+            // Novelty voices make terrible captains.
+            if voice.identifier.contains("speech.synthesis") { s -= 100 }
+            return s
+        }
+
+        return english.max { score($0) < score($1) }
+            ?? AVSpeechSynthesisVoice(language: "en-US")
+    }()
+
     private override init() {
         super.init()
         synthesizer.delegate = self
@@ -47,10 +71,10 @@ final class Announcer: NSObject, AVSpeechSynthesizerDelegate {
 
         let utterance = AVSpeechUtterance(string: script.text)
         utterance.preUtteranceDelay = 1.1   // let the chime ring first
-        utterance.rate = 0.48
-        utterance.pitchMultiplier = 0.92
-        utterance.volume = 0.9
-        if let voice = AVSpeechSynthesisVoice(language: "en-US") {
+        utterance.rate = 0.5
+        utterance.pitchMultiplier = 0.96
+        utterance.volume = 0.75             // PA sits behind glass, not in your ear
+        if let voice = paVoice {
             utterance.voice = voice
         }
         synthesizer.speak(utterance)

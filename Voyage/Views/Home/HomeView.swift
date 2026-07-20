@@ -30,8 +30,14 @@ struct HomeView: View {
 
     private var origin: Airport { settings.homeAirport }
 
+    /// Destinations ordered shortest flight first, so the card row reads
+    /// like a departure board sorted by time.
     private var destinations: [Airport] {
         Airport.all.filter { $0 != origin }
+            .sorted {
+                RoutePlanner.itinerary(from: origin, to: $0).totalFocusDuration
+                    < RoutePlanner.itinerary(from: origin, to: $1).totalFocusDuration
+            }
     }
 
     private var selectedItinerary: Itinerary? {
@@ -55,10 +61,13 @@ struct HomeView: View {
         }
         .sheet(isPresented: $showingSchedule) {
             if let destination = selectedDestination {
-                ScheduleSheet(origin: origin, destination: destination) { departure in
-                    scheduler.schedule(destination: destination, departure: departure, origin: origin)
+                ScheduleSheet(origin: origin, destination: destination) { option in
+                    scheduler.schedule(destination: destination,
+                                       departure: option.departure,
+                                       origin: origin,
+                                       flightNumber: option.flightNumber)
                 }
-                .presentationDetents([.height(360)])
+                .presentationDetents([.height(520)])
             }
         }
         .sheet(isPresented: $showingLogbook) {
@@ -97,7 +106,7 @@ struct HomeView: View {
                     MapPolyline(coordinates: [leg.origin.coordinate, leg.destination.coordinate],
                                 contourStyle: .geodesic)
                         .stroke(
-                            itinerary.destination.accentColor,
+                            Theme.accent,
                             style: StrokeStyle(lineWidth: 3, lineCap: .round, dash: [7, 5])
                         )
                 }
@@ -117,7 +126,7 @@ struct HomeView: View {
             VStack(spacing: 3) {
                 ZStack {
                     Circle()
-                        .fill(isOrigin ? Color.white : (isSelected ? airport.accentColor : .black.opacity(0.55)))
+                        .fill(isOrigin ? Color.white : (isSelected ? Theme.accent : .black.opacity(0.55)))
                         .frame(width: isOrigin || isSelected ? 26 : 20, height: isOrigin || isSelected ? 26 : 20)
                         .overlay(Circle().strokeBorder(.white.opacity(0.9), lineWidth: 1.5))
                     Image(systemName: isOrigin ? "house.fill" : "airplane.arrival")
@@ -210,15 +219,13 @@ struct HomeView: View {
         HStack(spacing: 12) {
             Image(systemName: status == .boarding ? "figure.walk.departure" : "clock.badge.checkmark")
                 .font(.title3)
-                .foregroundStyle(flight.destination.accentColor)
+                .foregroundStyle(Theme.accent)
             VStack(alignment: .leading, spacing: 2) {
                 Text(status == .boarding
                      ? "Now boarding · \(flight.destination.city)"
-                     : "Scheduled · \(flight.destination.city)")
+                     : "Upcoming flight · \(flight.destination.city)")
                     .font(.subheadline.weight(.semibold))
-                Text(status == .boarding
-                     ? "Gate closes \(flight.boardingCloses.formatted(date: .omitted, time: .shortened))"
-                     : "Departs \(flight.departure.formatted(date: .omitted, time: .shortened))")
+                Text(scheduledDetail(flight, status: status))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -228,7 +235,7 @@ struct HomeView: View {
                     boardScheduled(flight)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(flight.destination.accentColor)
+                .tint(Theme.accent)
                 .font(.subheadline.weight(.bold))
             } else {
                 Button {
@@ -245,9 +252,19 @@ struct HomeView: View {
         .padding(.horizontal, 20)
     }
 
+    private func scheduledDetail(_ flight: ScheduledFlight, status: ScheduledFlight.Status) -> String {
+        let number = flight.flightNumber.map { "\($0) · " } ?? ""
+        if status == .boarding {
+            return number + "Gate closes \(flight.boardingCloses.formatted(date: .omitted, time: .shortened))"
+        }
+        let day = Calendar.current.isDateInToday(flight.departure) ? "" : " tomorrow"
+        return number + "Departs\(day) \(flight.departure.formatted(date: .omitted, time: .shortened))"
+    }
+
     private func boardScheduled(_ flight: ScheduledFlight) {
+        let number = flight.flightNumber
         scheduler.cancel()
-        depart(to: flight.destination)
+        depart(to: flight.destination, flightNumber: number)
     }
 
     // MARK: Booking panel
@@ -281,32 +298,35 @@ struct HomeView: View {
         .padding(.bottom, 12)
     }
 
+    /// Two calm lines: the route on top, the focus math underneath.
+    /// Never wraps mid-pill.
     private func routeSummary(_ itinerary: Itinerary) -> some View {
-        HStack(spacing: 10) {
-            Text(itinerary.origin.code)
-                .font(.system(size: 17, weight: .heavy, design: .monospaced))
-            Image(systemName: "airplane")
-                .font(.caption)
-            if let via = itinerary.connection {
-                Text(via.code)
-                    .font(.system(size: 13, weight: .semibold, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.6))
+        VStack(spacing: 3) {
+            HStack(spacing: 8) {
+                Text(itinerary.origin.code)
+                    .font(.system(size: 16, weight: .heavy, design: .monospaced))
                 Image(systemName: "airplane")
-                    .font(.caption)
-            }
-            Text(itinerary.destination.code)
-                .font(.system(size: 17, weight: .heavy, design: .monospaced))
-            Text("·")
-            Text(itinerary.totalFocusDuration.shortDurationText + " focus")
-                .font(.subheadline.weight(.medium))
-            if itinerary.isConnection {
-                Text("+ lounge break")
-                    .font(.caption)
+                    .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.7))
+                if let via = itinerary.connection {
+                    Text(via.code)
+                        .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.6))
+                    Image(systemName: "airplane")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.7))
+                }
+                Text(itinerary.destination.code)
+                    .font(.system(size: 16, weight: .heavy, design: .monospaced))
             }
+            Text(itinerary.totalFocusDuration.shortDurationText + " focus"
+                 + (itinerary.isConnection ? " · lounge break" : ""))
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.white.opacity(0.7))
         }
         .foregroundStyle(.white)
-        .padding(.horizontal, 16)
+        .fixedSize()
+        .padding(.horizontal, 18)
         .padding(.vertical, 9)
         .background(.black.opacity(0.45), in: Capsule())
     }
@@ -325,9 +345,11 @@ struct HomeView: View {
                     Text(airport.code)
                         .font(.system(size: 20, weight: .heavy, design: .monospaced))
                     Spacer()
-                    Circle()
-                        .fill(airport.accentColor)
-                        .frame(width: 8, height: 8)
+                    if isSelected {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundStyle(Theme.accent)
+                    }
                 }
                 Text(airport.city)
                     .font(.caption.weight(.medium))
@@ -340,33 +362,35 @@ struct HomeView: View {
                     } ?? itinerary.totalFocusDuration.shortDurationText)
                         .font(.system(size: 10, weight: .semibold))
                 }
-                .foregroundStyle(.secondary)
+                .opacity(0.65)
             }
             .padding(12)
             .frame(width: 132, alignment: .leading)
-            .background(isSelected ? AnyShapeStyle(.regularMaterial) : AnyShapeStyle(.ultraThinMaterial),
-                        in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .strokeBorder(isSelected ? airport.accentColor : .clear, lineWidth: 2)
+            .background(
+                isSelected ? AnyShapeStyle(.white) : AnyShapeStyle(.ultraThinMaterial),
+                in: RoundedRectangle(cornerRadius: 16, style: .continuous)
             )
+            .shadow(color: .black.opacity(isSelected ? 0.25 : 0), radius: 10, y: 4)
         }
         .buttonStyle(.plain)
-        .foregroundStyle(isSelected ? Color.primary : Color.white)
+        .foregroundStyle(isSelected ? .black : .white)
         .accessibilityIdentifier("destination-\(airport.code)")
     }
 
+    /// Pill buttons matching the app's capsule language: quiet glass
+    /// "Schedule", solid white "Depart now".
     private var departButtons: some View {
         HStack(spacing: 10) {
             Button {
                 showingSchedule = true
             } label: {
-                Label("Schedule", systemImage: "calendar.badge.clock")
+                Label("Schedule", systemImage: "clock")
                     .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
+                    .padding(.vertical, 15)
+                    .background(.ultraThinMaterial, in: Capsule())
             }
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
 
             Button {
                 if let destination = selectedDestination {
@@ -375,20 +399,19 @@ struct HomeView: View {
             } label: {
                 Label("Depart now", systemImage: "airplane.departure")
                     .font(.subheadline.weight(.bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.black)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
+                    .padding(.vertical, 15)
+                    .background(.white, in: Capsule())
+                    .shadow(color: .black.opacity(0.25), radius: 10, y: 4)
             }
             .accessibilityIdentifier("depart-now")
-            .background(
-                selectedDestination?.accentColor ?? .accentColor,
-                in: RoundedRectangle(cornerRadius: 16, style: .continuous)
-            )
         }
     }
 
-    private func depart(to destination: Airport) {
-        let itinerary = RoutePlanner.itinerary(from: origin, to: destination)
+    private func depart(to destination: Airport, flightNumber: String? = nil) {
+        let itinerary = RoutePlanner.itinerary(from: origin, to: destination,
+                                               flightNumberOverride: flightNumber)
         let session = FlightSession(itinerary: itinerary,
                                     modelContext: modelContext,
                                     tier: LogbookStats.tier(entries))

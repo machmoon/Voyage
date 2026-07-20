@@ -1,15 +1,23 @@
 import SwiftUI
 
-/// The study screen: an airplane window onto the animated scene,
-/// the countdown, and a toggleable flight-info pill.
+/// The study screen. Two views of the same flight: the airplane window,
+/// or a live flight-tracker map of the route. Opens with a cabin-lights
+/// departure curtain instead of a hard cut from the boarding flow.
 struct InFlightView: View {
     @Bindable var session: FlightSession
 
+    enum StudyView: String, CaseIterable {
+        case window = "Window"
+        case map = "Map"
+    }
+
+    @State private var studyView: StudyView = .window
     @State private var showInfoPill = true
     @State private var showExitConfirm = false
     @State private var settings = SettingsStore.shared
-    /// Defer the TimelineView/Canvas window one run-loop after the
-    /// preflight → inFlight transition so heavy drawing doesn't race the stage swap.
+    /// Cabin-lights curtain shown while the stage transition settles —
+    /// doubles as the polish moment and as cover for arming the Canvas.
+    @State private var curtainVisible = true
     @State private var windowSceneArmed = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -20,11 +28,10 @@ struct InFlightView: View {
 
     /// Subtle nose-up pitch while punching through the cloud deck.
     private var climbWindowPitch: Double {
-        guard !reduceMotion, session.phase == .climb else { return 0 }
+        guard !reduceMotion, session.phase == .climb, studyView == .window else { return 0 }
         let climbSpan = max(0.001, FlightSession.climbEndsAt - FlightSession.takeoffRollDuration)
         let intoClimb = max(0, session.legElapsed - FlightSession.takeoffRollDuration)
         let t = min(1, intoClimb / climbSpan)
-        // Peak right after rotation, ease toward level by cruise.
         return -5.5 * (1.0 - t * 0.75)
     }
 
@@ -49,28 +56,29 @@ struct InFlightView: View {
                     .padding(.horizontal, 20)
                     .padding(.top, 6)
 
-                Spacer(minLength: 16)
+                Spacer(minLength: 14)
 
-                airplaneWindow
-                    .padding(.horizontal, 44)
+                studyContent
 
-                Spacer(minLength: 20)
+                Spacer(minLength: 18)
 
                 countdown
 
                 if showInfoPill {
                     flightInfoPill
-                        .padding(.top, 22)
+                        .padding(.top, 20)
                         .transition(.scale(scale: 0.9).combined(with: .opacity))
                 }
 
                 if !session.intentions.isEmpty {
                     intentionsStrip
-                        .padding(.top, 18)
+                        .padding(.top, 16)
                 }
 
-                Spacer(minLength: 26)
+                Spacer(minLength: 24)
             }
+
+            departureCurtain
         }
         .statusBarHidden()
         .confirmationDialog("Leave this flight?", isPresented: $showExitConfirm, titleVisibility: .visible) {
@@ -82,13 +90,49 @@ struct InFlightView: View {
             Text("Diverting ends the session. Miles are only earned for completed legs.")
         }
         .task {
-            // Yield one frame so RootView can finish the stage transition first.
+            // Let RootView finish the stage swap behind the curtain,
+            // then arm the Canvas and raise the lights. QA short flights
+            // compress the moment so the 3s takeoff roll isn't missed.
+            let quick = reduceMotion || FlightSession.shortFlightsEnabled
             await Task.yield()
             windowSceneArmed = true
+            try? await Task.sleep(for: .milliseconds(quick ? 250 : 1400))
+            withAnimation(.smooth(duration: quick ? 0.3 : 1.3)) {
+                curtainVisible = false
+            }
+        }
+    }
+
+    // MARK: Departure curtain
+
+    @ViewBuilder
+    private var departureCurtain: some View {
+        if curtainVisible {
+            ZStack {
+                Color.black.ignoresSafeArea()
+                VStack(spacing: 10) {
+                    Image(systemName: "airplane")
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.85))
+                    Text("\(session.currentLeg.origin.code) → \(session.currentLeg.destination.code)")
+                        .font(.system(size: 15, weight: .heavy, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.9))
+                    Text("Cabin lights dimmed for departure")
+                        .font(.footnote)
+                        .foregroundStyle(.white.opacity(0.45))
+                }
+            }
+            .transition(.opacity)
+            .zIndex(10)
+            .accessibilityHidden(true)
         }
     }
 
     // MARK: Top bar
+
+    private var cabinSoundOn: Bool {
+        settings.ambienceEnabled || settings.announcementsEnabled
+    }
 
     private var topBar: some View {
         HStack {
@@ -102,14 +146,20 @@ struct InFlightView: View {
                     .background(.white.opacity(0.08), in: Capsule())
             }
             Spacer()
+            viewSwitcher
+            Spacer()
             HStack(spacing: 8) {
+                // One switch for all cabin sound: ambience bed and PA together.
                 cabinToggle(
-                    icon: settings.ambienceEnabled ? "speaker.wave.2.fill" : "speaker.slash.fill"
+                    icon: cabinSoundOn ? "speaker.wave.2.fill" : "speaker.slash.fill"
                 ) {
-                    settings.ambienceEnabled.toggle()
-                    if settings.ambienceEnabled {
+                    let on = !cabinSoundOn
+                    settings.ambienceEnabled = on
+                    settings.announcementsEnabled = on
+                    if on {
                         CabinAudioEngine.shared.startAmbience(profile: session.ambienceProfile)
                     } else {
+                        Announcer.shared.stop()
                         CabinAudioEngine.shared.stopAmbience()
                     }
                 }
@@ -118,6 +168,31 @@ struct InFlightView: View {
                 }
             }
         }
+    }
+
+    private var viewSwitcher: some View {
+        HStack(spacing: 2) {
+            ForEach(StudyView.allCases, id: \.self) { view in
+                let isOn = studyView == view
+                Button {
+                    Haptics.tap()
+                    withAnimation(.smooth(duration: 0.35)) { studyView = view }
+                } label: {
+                    Label(view.rawValue,
+                          systemImage: view == .window ? "airplane" : "map")
+                        .labelStyle(.iconOnly)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(isOn ? .black : .white.opacity(0.6))
+                        .frame(width: 40, height: 26)
+                        .background(isOn ? AnyShapeStyle(.white.opacity(0.9)) : AnyShapeStyle(.clear),
+                                    in: Capsule())
+                }
+                .accessibilityLabel("\(view.rawValue) view")
+                .accessibilityAddTraits(isOn ? .isSelected : [])
+            }
+        }
+        .padding(3)
+        .background(.white.opacity(0.08), in: Capsule())
     }
 
     private func cabinToggle(icon: String, action: @escaping () -> Void) -> some View {
@@ -133,7 +208,21 @@ struct InFlightView: View {
         }
     }
 
-    // MARK: Window
+    // MARK: Study content
+
+    @ViewBuilder
+    private var studyContent: some View {
+        switch studyView {
+        case .window:
+            airplaneWindow
+                .padding(.horizontal, 44)
+                .transition(.opacity.combined(with: .scale(scale: 0.98)))
+        case .map:
+            mapCard
+                .padding(.horizontal, 20)
+                .transition(.opacity.combined(with: .scale(scale: 0.98)))
+        }
+    }
 
     private var airplaneWindow: some View {
         let shape = RoundedRectangle(cornerRadius: 110, style: .continuous)
@@ -143,9 +232,10 @@ struct InFlightView: View {
                     phase: session.phase,
                     altitudeFraction: Double(session.altitudeFeet) / 36_000.0,
                     isNight: isNight,
-                    condition: session.destinationCondition,
+                    condition: session.windowCondition,
                     showSunset: session.hasSunsetScene,
-                    showAurora: session.hasAuroraScene
+                    showAurora: session.hasAuroraScene,
+                    showWing: session.hasWingView
                 )
             } else {
                 Color(hex: isNight ? "0B0910" : "1A1E2A")
@@ -179,6 +269,17 @@ struct InFlightView: View {
             perspective: 0.45
         )
         .animation(reduceMotion ? nil : .easeInOut(duration: 1.2), value: session.phase)
+    }
+
+    private var mapCard: some View {
+        FlightMapView(session: session)
+            .aspectRatio(0.78, contentMode: .fit)
+            .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .strokeBorder(.white.opacity(0.12), lineWidth: 1)
+            )
+            .shadow(color: .black.opacity(0.45), radius: 20, y: 8)
     }
 
     // MARK: Countdown
