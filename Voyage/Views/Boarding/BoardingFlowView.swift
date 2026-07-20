@@ -65,7 +65,7 @@ struct BoardingFlowView: View {
                 Capsule()
                     .fill(
                         i <= step.rawValue
-                            ? (isCabinStep ? Theme.seatSelectedGreen : Theme.accent)
+                            ? Theme.accent
                             : (isCabinStep ? Theme.seatMapInk.opacity(0.15) : Color(.systemFill))
                     )
                     .frame(width: i == step.rawValue ? 22 : 8, height: 6)

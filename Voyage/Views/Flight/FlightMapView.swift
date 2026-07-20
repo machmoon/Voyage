@@ -2,7 +2,7 @@ import SwiftUI
 import MapKit
 
 /// The second study view: a live flight-tracker map of the route.
-/// Shows the flown portion solid and the remainder dashed, with the
+/// Shows the flown portion solid and the remainder faded, with the
 /// aircraft at its real great-circle position. Two camera modes
 /// (whole route / follow the plane) and two map styles (terrain / satellite).
 struct FlightMapView: View {
@@ -72,7 +72,7 @@ struct FlightMapView: View {
         }
 
         if isCurrentLeg {
-            // Flown portion: solid; remaining: dashed.
+            // Flown portion: solid; remaining: faded.
             let split = session.legProgress
             let flown = GreatCircle.points(from: leg.origin.coordinate,
                                            to: leg.destination.coordinate,
@@ -86,16 +86,14 @@ struct FlightMapView: View {
             }
             if remaining.count > 1 {
                 MapPolyline(coordinates: Array(remaining))
-                    .stroke(accent.opacity(0.55),
-                            style: StrokeStyle(lineWidth: 3, lineCap: .round, dash: [7, 6]))
+                    .stroke(accent.opacity(0.4),
+                            style: StrokeStyle(lineWidth: 3, lineCap: .round))
             }
         } else {
             MapPolyline(coordinates: [leg.origin.coordinate, leg.destination.coordinate],
                         contourStyle: .geodesic)
-                .stroke(isFlown ? accent : accent.opacity(0.45),
-                        style: isFlown
-                            ? StrokeStyle(lineWidth: 4, lineCap: .round)
-                            : StrokeStyle(lineWidth: 3, lineCap: .round, dash: [7, 6]))
+                .stroke(isFlown ? accent : accent.opacity(0.4),
+                        style: StrokeStyle(lineWidth: isFlown ? 4 : 3, lineCap: .round))
         }
     }
 

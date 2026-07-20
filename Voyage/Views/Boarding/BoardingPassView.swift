@@ -122,7 +122,13 @@ struct BoardingPassView: View {
         .transition(.opacity)
     }
 
-    /// Slim printer mouth the pass feeds out of.
+    /// Gaps between line feeds — irregular, like a real gate printer that
+    /// pauses on dense lines. The sound engine plays a burst per feed from
+    /// this same schedule, so what you hear is what you see.
+    static let feedSchedule: [Double] = [0.20, 0.15, 0.15, 0.30, 0.16, 0.16, 0.32, 0.18, 0.22]
+
+    /// Slim printer mouth the pass feeds out of, with a print-head glow
+    /// while it's working.
     private var printerSlot: some View {
         Capsule()
             .fill(.black.opacity(0.55))
@@ -130,24 +136,32 @@ struct BoardingPassView: View {
             .overlay(
                 Capsule().strokeBorder(.white.opacity(0.12), lineWidth: 0.5)
             )
+            .overlay(
+                Capsule()
+                    .fill(Theme.accent.opacity(printed ? 0 : (printProgress > 0 ? 0.85 : 0)))
+                    .frame(width: 44, height: 3)
+                    .blur(radius: 2)
+                    .animation(.smooth(duration: 0.5), value: printed)
+            )
             .padding(.horizontal, 36)
             .accessibilityHidden(true)
     }
 
-    /// Discrete line feeds — advance, breathe, advance — like a real gate
-    /// printer, with the chatter and a tick per line.
+    /// Discrete line feeds — advance, settle, advance — driven by
+    /// `feedSchedule`, with a haptic tick per line and the printer audio
+    /// running off the identical timing.
     private func startPrinting() {
         guard !printed else { return }
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(350))
-            let lines = 8
-            CabinAudioEngine.shared.playPrinter(duration: Double(lines) * 0.21)
-            for line in 1...lines {
-                withAnimation(.linear(duration: 0.15)) {
-                    printProgress = CGFloat(line) / CGFloat(lines)
+            let schedule = Self.feedSchedule
+            CabinAudioEngine.shared.playPrinter(feedSchedule: schedule)
+            for (line, gap) in schedule.enumerated() {
+                withAnimation(.spring(duration: 0.13, bounce: 0.2)) {
+                    printProgress = CGFloat(line + 1) / CGFloat(schedule.count)
                 }
                 Haptics.softTick()
-                try? await Task.sleep(for: .milliseconds(210))
+                try? await Task.sleep(for: .milliseconds(Int(gap * 1000)))
             }
             printed = true
         }
@@ -293,12 +307,12 @@ struct BoardingPassView: View {
 
     private var stubPiece: some View {
         let progress = min(1, max(0, tearTranslation) / tearThreshold)
-        // The paper tracks the finger exactly; a real tear starts at one
-        // corner, so the stub shears open from the leading edge first.
+        // The paper tracks the finger exactly; a whisper of shear from the
+        // leading corner, nothing theatrical.
         let dragY = ripped ? 420 : max(0, tearTranslation)
-        let angle = ripped ? 12.0 : Double(progress * 5)
+        let angle = ripped ? 5.0 : Double(progress * 2.5)
         // Paper curls toward you as it's peeled off the perforation.
-        let curl = ripped ? 52.0 : Double(progress * 26)
+        let curl = ripped ? 42.0 : Double(progress * 20)
 
         return stubContent
             .padding(.horizontal, 22)

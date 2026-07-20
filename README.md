@@ -1,24 +1,22 @@
-# Voyage ✈️
+# Voyage iOS
+The official Voyage iOS app — every study session is a flight.
 
-**Every study session is a flight.** Book a real route on a 3D globe, pick a seat, tear your boarding pass, and focus through a live airplane-window view until you land. Leave mid-flight and the plane diverts — your streak feels it.
+License: [MIT License](LICENSE)
+Source repo: https://github.com/machmoon/Voyage
+Planning (bugs & features): [PLAN.md](PLAN.md) and [GitHub Issues](https://github.com/machmoon/Voyage/issues)
 
 <p>
-  <img src="QA/qa-01-home.png" width="180" alt="Globe home">
-  <img src="QA/qa-03-seats.png" width="180" alt="Seat map">
-  <img src="QA/qa-04-boarding-pass-pre-tear.png" width="180" alt="Boarding pass">
-  <img src="QA/qa-07-inflight-climb-clouds.png" width="180" alt="Window view">
+  <img src="QA/qa-01-home.png" width="170" alt="Globe home">
+  <img src="QA/qa-03-seats.png" width="170" alt="Seat map">
+  <img src="QA/qa-04-boarding-pass-pre-tear.png" width="170" alt="Boarding pass">
+  <img src="QA/qa-07-inflight-climb-clouds.png" width="170" alt="Window view">
 </p>
 
-## Features
+Book a real route on a 3D globe, pick a seat, tear your boarding pass, and focus through a live airplane-window view until you land. Leave mid-flight and the plane diverts.
 
-- **Real routes, real timings** — block times from actual airline schedules (eastbound is shorter; thank the jet stream). Routes without a mainstream nonstop connect with a lounge break between legs.
-- **Two study views** — a procedurally drawn airplane window (weather, day/night, wing seats get the wing) or a live flight-tracker map with the plane at its true great-circle position.
-- **Real weather** — WeatherKit when entitled, free Open-Meteo fallback otherwise; the window shows conditions at both ends of the leg.
-- **All-procedural sound** — engine ambience, cabin chimes, gear thunks, printer, tear, and spoken PA announcements. No audio assets.
-- **Logbook** — SwiftData passport stamps, great-circle miles, and tiers that unlock cosmetics (premium cabin, sunset/aurora scenes).
-- **No dependencies** — pure SwiftUI, iOS 17+.
+## Building and Running
 
-## Quick start
+Note: Your Xcode version must be at least 15.0 (iOS 17 SDK).
 
 ```bash
 git clone https://github.com/machmoon/Voyage.git
@@ -26,51 +24,77 @@ cd Voyage
 open Voyage.xcodeproj
 ```
 
-Select the **Voyage** scheme, pick any iPhone simulator, hit **⌘R**. That's it.
+After opening the project, you should be able to run the app on the iOS Simulator (using the Voyage scheme and target). Select any iPhone simulator and press Cmd+R. There are no third-party dependencies and nothing else to install. If you encounter any issues, please don't hesitate to let us know via a bug report.
 
-> The `.xcodeproj` is generated from `project.yml` by [XcodeGen](https://github.com/yonaskolb/XcodeGen). If you add/remove files outside Xcode, run `xcodegen generate`.
-
-### Running on a device
-
-Set your team under target → *Signing & Capabilities* (a free Apple ID works), then trust the certificate on-device under Settings → General → VPN & Device Management.
-
-## Development
+`Voyage.xcodeproj` is **generated** by [XcodeGen](https://github.com/yonaskolb/XcodeGen) from `project.yml`. Never hand-edit the pbxproj. After editing `project.yml`, or adding or removing source files outside Xcode, regenerate it:
 
 ```bash
-# Build
-xcodebuild -project Voyage.xcodeproj -scheme Voyage \
-  -destination 'platform=iOS Simulator,name=iPhone 17' build
+xcodegen generate
+```
 
-# All tests (unit + UI screenshot tour)
+To run on a physical iPhone, set your team under target → Signing & Capabilities (a free Apple ID works), then trust the developer certificate on the device under Settings → General → VPN & Device Management.
+
+## Required Dependencies
+
+If you'd rather know exactly what the project expects:
+
+- **Xcode** — The easiest way to get Xcode is from the App Store, but you can also download it from developer.apple.com if you have an Apple ID registered with an Apple Developer account.
+- **XcodeGen** (optional) — Only needed when you change `project.yml` or the file layout. Install with `brew install xcodegen`.
+- **Metal toolchain** — `Voyage/Support/Shaders.metal` (the window's atmospheric-haze shader) requires it; if a fresh Xcode install can't compile `.metal` files, run `xcodebuild -downloadComponent MetalToolchain`.
+
+## Contributing
+
+Issues and pull requests are welcome. Read [PLAN.md](PLAN.md) first — it describes the MVP scope, the active workstreams, and their acceptance criteria. Anything outside that scope should start as an issue, not a PR.
+
+## Development Guidelines
+
+These are general guidelines rather than hard rules.
+
+### Coding Guidelines
+
+- Swift — [swift.org API Design Guidelines](https://www.swift.org/documentation/api-design-guidelines/)
+- SwiftUI-only UI, no third-party dependencies, iOS 17+.
+- Time is injected, never read directly: `FlightSession` takes a `VoyageClock`. Preserve this when adding any time-dependent behavior — it's what lets unit tests fly a whole route instantly with `ManualClock`.
+- One palette: functional UI uses `Theme.accent`; per-city colors appear only on logbook stamps and the arrival moment. All sound is procedurally generated in `Voyage/Audio/` — no bundled audio assets.
+
+### Formatting
+
+We use Xcode's default 4 space indentation.
+
+## Testing
+
+The Voyage scheme is configured to execute the project's iOS unit and UI tests, which can be run using the Cmd+U hotkey or the Product → Test menu bar action, or from the command line:
+
+```bash
+# Everything
 xcodebuild -project Voyage.xcodeproj -scheme Voyage \
   -destination 'platform=iOS Simulator,name=iPhone 17' test
+
+# Unit tests only
+xcodebuild ... test -only-testing:VoyageTests
 ```
 
-**Short flights for QA:** launch with `-VoyageShortFlights` to compress takeoff/climb to seconds:
+In order for the UI tests to pass, the simulator's language and region should be en-US (the tests pass `-AppleLanguages (en)` themselves). Unit tests are offline by design: a `XCTestConfigurationFilePath` guard keeps `WeatherService` from touching the network, and audio settings are muted in `setUp`.
 
-```bash
-xcrun simctl launch booted com.patliu.voyage -VoyageShortFlights
-```
+## Schemes and Targets
 
-## Architecture in one minute
+**Voyage** — The app. Debug builds behave identically to Release; there are no server environments, everything is on-device.
 
-```
-Voyage/
-  App/        @main entry + RootView (routes on session stage)
-  Models/     Airports, RouteCatalog (real block times, carriers, timetables),
-              RoutePlanner, GreatCircle math, SwiftData logbook
-  Flight/     FlightSession — the state machine that owns everything:
-              phases, timing, audio cues, strict mode, logbook writes
-  Views/      Home (globe + booking) · Boarding (seat → bag → pass)
-              Flight (window + map) · Landing · Logbook
-  Audio/      Procedural engine bed, chimes, one-shots, speech-synth PA
-  Support/    Clock injection, weather fallback chain, scheduler, theme
-```
+Useful launch arguments (Scheme → Run → Arguments, or `xcrun simctl launch booted com.patliu.voyage <arg>`):
 
-`FlightSession` never reads the wall clock directly — time is injected (`VoyageClock`), so unit tests step through an entire flight instantly with a `ManualClock`.
+- `-VoyageShortFlights` — compresses the takeoff roll to ~3s and climb to ~8s so the runway/cloud window scenes can be reviewed without waiting ~90 seconds of real time. The screenshot tour uses this.
 
-## Notes
+**VoyageTests** — Unit tests: route catalog and planner, great-circle math, weather-code mapping, and `FlightSession` phase/diversion logic driven by `ManualClock`.
 
-- Location is requested once, only to pick your nearest home airport (override in Settings).
-- Backgrounding mid-flight starts a 30-second grace period; overstay and the flight diverts. Completed legs still earn miles.
-- Scheduled flights fire a local boarding notification 10 minutes before departure.
+**VoyageUITests** — Two suites:
+
+- `VoyageSmokeUITests` — launch → book → seat → bag → boarding pass.
+- `ScreenshotTourUITests` — flies a full compressed flight and writes the `QA/*.png` screenshots committed in this repo. Rerun it after UI changes and review the diffs; it is the project's visual regression net.
+
+## QA Screenshots
+
+`QA/*.png` is committed on purpose: it's the current visual state of every major screen, regenerated by the screenshot tour. Logs (`QA/*.log`, `QA/*.txt`, `QA/uitest/`) are gitignored.
+
+## Contact Us
+
+If you have any questions or comments, open a [GitHub issue](https://github.com/machmoon/Voyage/issues). We'll also gladly accept any bug reports.

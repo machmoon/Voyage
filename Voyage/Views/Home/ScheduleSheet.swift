@@ -109,11 +109,11 @@ struct ScheduleSheet: View {
     // MARK: Footer
 
     private var footer: some View {
-        VStack(spacing: 10) {
-            Label("Boarding call 10 minutes before departure. Boarding closes 15 minutes after — then the flight leaves without you.",
-                  systemImage: "bell.badge")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+        VStack(spacing: 12) {
+            Text("Boarding opens 10 min before departure · closes 15 min after")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                .multilineTextAlignment(.center)
                 .padding(.horizontal, 24)
 
             Button {
@@ -128,17 +128,17 @@ struct ScheduleSheet: View {
                     .font(.headline)
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
+                    .padding(.vertical, 15)
                     .background(
-                        selected == nil ? Color.gray.opacity(0.4) : Theme.accent,
-                        in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        selected == nil ? AnyShapeStyle(Color.gray.opacity(0.4)) : AnyShapeStyle(Theme.accent),
+                        in: Capsule()
                     )
             }
             .disabled(selected == nil)
             .padding(.horizontal, 20)
             .padding(.bottom, 12)
         }
-        .padding(.top, 6)
+        .padding(.top, 10)
         .background(.regularMaterial)
     }
 }

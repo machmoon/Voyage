@@ -49,6 +49,9 @@ final class CabinAudioEngine {
     private let engine = AVAudioEngine()
     private var sourceNode: AVAudioSourceNode?
     private let effectsPlayer = AVAudioPlayerNode()
+    /// Dedicated player for filtered PA speech (its own format/sample rate).
+    private var paPlayer: AVAudioPlayerNode?
+    private var paFormat: AVAudioFormat?
     private var sampleRate: Double = 44100
     private var isRunning = false
 
@@ -203,6 +206,7 @@ final class CabinAudioEngine {
                 return
             }
             self.effectsPlayer.stop()
+            self.paPlayer?.stop()
             self.engine.stop()
             self.isRunning = false
             try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
@@ -210,6 +214,48 @@ final class CabinAudioEngine {
         }
         teardownWorkItem = work
         DispatchQueue.main.asyncAfter(deadline: .now() + max(0.05, delay), execute: work)
+    }
+
+    // MARK: - PA speech
+
+    /// Plays pre-filtered PA speech buffers through their own player node.
+    /// `completion` fires on the main queue when the last buffer finishes.
+    func playPA(buffers: [AVAudioPCMBuffer], completion: @escaping () -> Void) {
+        guard let first = buffers.first else { completion(); return }
+        cancelPendingTeardown()
+        startEngineIfNeeded()
+        guard isRunning else { completion(); return }
+
+        let format = first.format
+        if paPlayer == nil || paFormat != format {
+            if let old = paPlayer {
+                old.stop()
+                engine.detach(old)
+            }
+            let node = AVAudioPlayerNode()
+            engine.attach(node)
+            engine.connect(node, to: engine.mainMixerNode, format: format)
+            paPlayer = node
+            paFormat = format
+        }
+        guard let player = paPlayer else { completion(); return }
+
+        let totalFrames = buffers.reduce(0) { $0 + Double($1.frameLength) }
+        holdEngine(for: totalFrames / format.sampleRate + 0.5)
+
+        for (index, buffer) in buffers.enumerated() {
+            let isLast = index == buffers.count - 1
+            player.scheduleBuffer(buffer, completionCallbackType: .dataPlayedBack) { _ in
+                if isLast {
+                    DispatchQueue.main.async(execute: completion)
+                }
+            }
+        }
+        player.play()
+    }
+
+    func stopPA() {
+        paPlayer?.stop()
     }
 
     // MARK: - One-shot effects
@@ -267,27 +313,56 @@ final class CabinAudioEngine {
         schedule(buffer)
     }
 
-    /// Dot-matrix gate printer chattering out the boarding pass: gated
-    /// print-head buzz over a soft feed-motor hum, with a paper-advance
-    /// click each line.
-    func playPrinter(duration: Double) {
+    /// Gate printer chattering out the boarding pass. One buzz burst per
+    /// line feed (the view animates from the same schedule), a soft feed
+    /// motor underneath, and the classic double confirmation beep when the
+    /// pass is done.
+    func playPrinter(feedSchedule: [Double]) {
         guard SettingsStore.shared.ambienceEnabled || SettingsStore.shared.announcementsEnabled else { return }
         cancelPendingTeardown()
         startEngineIfNeeded()
-        holdEngine(for: duration + 0.3)
-        guard let buffer = makeBuffer(duration: duration, build: { _, t, _ in
-            let progress = Float(t / duration)
-            let env = min(1, Float(t) / 0.08) * min(1, (1 - progress) / 0.12 + 0.001)
-            // Print head: noise gated at line rate.
-            let gate: Float = sinf(Float(2 * .pi * 24 * t)) > -0.1 ? 1 : 0.05
-            let head = Float.random(in: -1...1) * 0.10 * gate
-            // Head whine + feed motor.
-            let whine = sinf(Float(2 * .pi * 880 * t)) * 0.020 * gate
-            let motor = sinf(Float(2 * .pi * 118 * t)) * 0.035
-            // Paper-advance click every line.
-            let line = t.truncatingRemainder(dividingBy: 1.0 / 24 * 6)
-            let click: Float = line < 0.004 ? Float.random(in: -0.25...0.25) : 0
-            return (head + whine + motor + click) * min(1, env)
+
+        // Cumulative burst start times from the gap schedule.
+        var bursts: [Double] = []
+        var cursor = 0.0
+        for gap in feedSchedule {
+            bursts.append(cursor)
+            cursor += gap
+        }
+        let beepStart = cursor + 0.12
+        let total = beepStart + 0.5
+        holdEngine(for: total + 0.2)
+
+        guard let buffer = makeBuffer(duration: total, build: { _, t, _ in
+            var sample: Float = 0
+
+            // Feed motor hum while lines are printing.
+            if t < cursor {
+                sample += sinf(Float(2 * .pi * 112 * t)) * 0.022
+            }
+
+            // Line-feed bursts: 90 ms of stepper buzz each.
+            for start in bursts {
+                let local = t - start
+                if local >= 0 && local < 0.09 {
+                    let env = sinf(Float(local / 0.09) * .pi)   // smooth in/out
+                    // Stepper buzz: 160 Hz square-ish + head noise.
+                    let square: Float = sinf(Float(2 * .pi * 160 * local)) > 0 ? 1 : -1
+                    sample += square * 0.055 * env
+                    sample += Float.random(in: -1...1) * 0.075 * env
+                    sample += sinf(Float(2 * .pi * 950 * local)) * 0.018 * env
+                }
+            }
+
+            // Done: two short 1.25 kHz beeps, like every gate printer alive.
+            for beep in [beepStart, beepStart + 0.22] {
+                let local = t - beep
+                if local >= 0 && local < 0.12 {
+                    let env = min(1, Float(local) / 0.008) * expf(-26 * Float(max(0, local - 0.07)))
+                    sample += sinf(Float(2 * .pi * 1250 * local)) * 0.085 * env
+                }
+            }
+            return sample
         }) else { return }
         schedule(buffer)
     }

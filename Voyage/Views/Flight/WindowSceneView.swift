@@ -94,10 +94,23 @@ struct WindowSceneView: View {
                     drawWing(context, scene)
                 }
             }
+            .rotationEffect(.degrees(bankAngle(at: timeline.date)))
+            .scaleEffect(1 + abs(bankAngle(at: timeline.date)) * 0.014)
             .overlay { hazeOverlay(time: timeline.date.timeIntervalSinceReferenceDate) }
         }
         .onChange(of: phase) { _, _ in phaseStart = Date() }
         .onAppear { phaseStart = Date() }
+    }
+
+    /// The aircraft rotates and banks away on climb-out: the horizon tips a
+    /// few degrees, easing back to level as we approach altitude. The slight
+    /// scale-up hides the window corners while rotated.
+    private func bankAngle(at date: Date) -> Double {
+        guard !reduceMotion, phase == .climb else { return 0 }
+        let tPhase = max(0, date.timeIntervalSince(phaseStart))
+        let rise = min(1, tPhase / 1.4)
+        let levelOff = 1 - min(1, max(0, altitudeFraction) / 0.85)
+        return -6.0 * rise * levelOff
     }
 
     // MARK: Frame pacing
@@ -760,50 +773,86 @@ struct WindowSceneView: View {
 
     // MARK: Wing
 
+    /// Over-wing view, drawn like the real thing: a broad foreshortened
+    /// surface with a near-horizontal leading edge, flap-track fairings
+    /// trailing off it, and an upturned winglet with the nav light.
     private func drawWing(_ context: GraphicsContext, _ s: SceneModel) {
         let w = s.size.width, h = s.size.height
         // Gentle flex; a touch more in weather.
-        let turbulence = s.condition.isPrecipitating ? 3.4 : 1.6
+        let turbulence = s.condition.isPrecipitating ? 3.0 : 1.4
         let flex = sin(s.time * 1.1) * turbulence
 
-        let rootY = h * 0.98
-        let tipX = w * 0.88
-        let tipY = h * 0.66 + flex
+        let rootLead = CGPoint(x: -6, y: h * 0.74)
+        let tip = CGPoint(x: w * 0.84, y: h * 0.615 + flex)
 
+        // Wing surface.
         var wing = Path()
-        wing.move(to: CGPoint(x: -4, y: rootY - h * 0.16))          // leading edge root
-        wing.addQuadCurve(to: CGPoint(x: tipX, y: tipY),
-                          control: CGPoint(x: w * 0.42, y: h * 0.70))
-        wing.addLine(to: CGPoint(x: tipX, y: tipY + 7))              // tip chord
-        wing.addQuadCurve(to: CGPoint(x: -4, y: h + 8),
-                          control: CGPoint(x: w * 0.38, y: h * 0.95))
+        wing.move(to: rootLead)
+        wing.addQuadCurve(to: tip, control: CGPoint(x: w * 0.40, y: h * 0.665))
+        wing.addLine(to: CGPoint(x: tip.x + w * 0.02, y: tip.y + 6))
+        wing.addQuadCurve(to: CGPoint(x: -6, y: h * 1.08),
+                          control: CGPoint(x: w * 0.34, y: h * 0.93))
         wing.closeSubpath()
 
-        let top: Color = s.isNight ? Color(hex: "10131C") : Color(hex: "9AA4B2")
-        let bottom: Color = s.isNight ? Color(hex: "070910") : Color(hex: "5F6975")
+        let top: Color = s.isNight ? Color(hex: "12151E") : Color(hex: "A8B1BD")
+        let bottom: Color = s.isNight ? Color(hex: "080A11") : Color(hex: "6B7480")
         context.fill(wing, with: .linearGradient(
             Gradient(colors: [top, bottom]),
-            startPoint: CGPoint(x: 0, y: tipY - 20),
+            startPoint: CGPoint(x: 0, y: tip.y - 16),
             endPoint: CGPoint(x: 0, y: h)))
+
+        // Flap-track fairings: slender pods trailing back off the surface.
+        let fairing: Color = s.isNight ? Color(hex: "060810") : Color(hex: "525B66")
+        for f in [0.28, 0.5, 0.7] {
+            let baseX = rootLead.x + (tip.x - rootLead.x) * f
+            let baseY = rootLead.y + (tip.y - rootLead.y) * f + h * (0.10 - 0.03 * f)
+            var pod = Path()
+            pod.move(to: CGPoint(x: baseX - 14, y: baseY))
+            pod.addQuadCurve(to: CGPoint(x: baseX + 30, y: baseY + 15),
+                             control: CGPoint(x: baseX + 12, y: baseY + 2))
+            pod.addQuadCurve(to: CGPoint(x: baseX - 14, y: baseY + 8),
+                             control: CGPoint(x: baseX + 8, y: baseY + 12))
+            pod.closeSubpath()
+            context.fill(pod, with: .color(fairing.opacity(0.85)))
+        }
+
+        // Spoiler panel line along the surface.
+        var panel = Path()
+        panel.move(to: CGPoint(x: 0, y: h * 0.84))
+        panel.addQuadCurve(to: CGPoint(x: tip.x * 0.9, y: tip.y + h * 0.045),
+                           control: CGPoint(x: w * 0.38, y: h * 0.76))
+        context.stroke(panel, with: .color(.black.opacity(s.isNight ? 0.35 : 0.16)), lineWidth: 1)
 
         // Leading-edge glint.
         var edge = Path()
-        edge.move(to: CGPoint(x: -4, y: rootY - h * 0.16))
-        edge.addQuadCurve(to: CGPoint(x: tipX, y: tipY),
-                          control: CGPoint(x: w * 0.42, y: h * 0.70))
-        context.stroke(edge, with: .color(.white.opacity(s.isNight ? 0.10 : 0.5)), lineWidth: 1.4)
+        edge.move(to: rootLead)
+        edge.addQuadCurve(to: tip, control: CGPoint(x: w * 0.40, y: h * 0.665))
+        context.stroke(edge, with: .color(.white.opacity(s.isNight ? 0.12 : 0.55)), lineWidth: 1.6)
 
-        // Navigation light (green, starboard) + white strobe at the tip.
+        // Winglet: a slim blade curving up from the tip.
+        var winglet = Path()
+        winglet.move(to: CGPoint(x: tip.x - 4, y: tip.y + 2))
+        winglet.addQuadCurve(to: CGPoint(x: tip.x + w * 0.055, y: tip.y - h * 0.085),
+                             control: CGPoint(x: tip.x + w * 0.045, y: tip.y - h * 0.02))
+        winglet.addLine(to: CGPoint(x: tip.x + w * 0.075, y: tip.y - h * 0.082))
+        winglet.addQuadCurve(to: CGPoint(x: tip.x + w * 0.02, y: tip.y + 6),
+                             control: CGPoint(x: tip.x + w * 0.065, y: tip.y - h * 0.01))
+        winglet.closeSubpath()
+        context.fill(winglet, with: .color(s.isNight ? Color(hex: "0D101A") : Color(hex: "8892A0")))
+
+        // Navigation light (green, starboard) + white strobe at the winglet tip.
+        let navX = tip.x + w * 0.062
+        let navY = tip.y - h * 0.085
         let navOn = sin(s.time * 2.6) > -0.2
         let navAlpha = navOn ? 0.95 : 0.35
-        context.fill(Path(ellipseIn: CGRect(x: tipX - 3, y: tipY - 2, width: 5, height: 5)),
+        context.fill(Path(ellipseIn: CGRect(x: navX - 2.5, y: navY - 2.5, width: 5, height: 5)),
                      with: .color(Color(hex: "3AE86B").opacity(navAlpha)))
-        context.fill(Path(ellipseIn: CGRect(x: tipX - 9, y: tipY - 8, width: 17, height: 17)),
+        context.fill(Path(ellipseIn: CGRect(x: navX - 8, y: navY - 8, width: 16, height: 16)),
                      with: .color(Color(hex: "3AE86B").opacity(navAlpha * 0.2)))
 
         let strobePhase = s.time.truncatingRemainder(dividingBy: 1.4)
         if strobePhase < 0.06 || (strobePhase > 0.12 && strobePhase < 0.18) {
-            context.fill(Path(ellipseIn: CGRect(x: tipX - 12, y: tipY - 12, width: 24, height: 24)),
+            context.fill(Path(ellipseIn: CGRect(x: navX - 11, y: navY - 11, width: 22, height: 22)),
                          with: .color(.white.opacity(0.75)))
         }
     }
