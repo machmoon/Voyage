@@ -15,16 +15,30 @@ final class Announcer: NSObject, AVSpeechSynthesizerDelegate {
     private nonisolated(unsafe) var pendingBuffers: [AVAudioPCMBuffer] = []
     private nonisolated(unsafe) var renderGeneration = 0
 
-    /// Best installed English voice — premium > enhanced > default, with a
-    /// preference for en-US and a flight-attendant-leaning female voice.
-    /// The compact default voice sounds robotic; most devices ship at least
-    /// one enhanced Siri-quality voice.
-    private nonisolated(unsafe) lazy var paVoice: AVSpeechSynthesisVoice? = {
+    /// The user's chosen voice, or the best installed English voice —
+    /// Siri voices first (iOS exposes them once the user has downloaded
+    /// them), then premium > enhanced, with a preference for en-US and a
+    /// flight-attendant-leaning female voice. The compact default voice
+    /// sounds robotic and always loses.
+    private nonisolated var paVoice: AVSpeechSynthesisVoice? {
+        if let id = SettingsStore.shared.paVoiceIdentifier,
+           let chosen = AVSpeechSynthesisVoice(identifier: id) {
+            return chosen
+        }
+        return Self.bestInstalledVoice()
+    }
+
+    nonisolated static func bestInstalledVoice() -> AVSpeechSynthesisVoice? {
         let english = AVSpeechSynthesisVoice.speechVoices()
             .filter { $0.language.hasPrefix("en") }
 
         func score(_ voice: AVSpeechSynthesisVoice) -> Int {
             var s = 0
+            // Siri's voices are the gold standard when the system exposes them.
+            if voice.identifier.lowercased().contains("siri")
+                || voice.name.lowercased().contains("siri") {
+                s += 60
+            }
             switch voice.quality {
             case .premium: s += 40
             case .enhanced: s += 20
@@ -39,7 +53,7 @@ final class Announcer: NSObject, AVSpeechSynthesizerDelegate {
 
         return english.max { score($0) < score($1) }
             ?? AVSpeechSynthesisVoice(language: "en-US")
-    }()
+    }
 
     private override init() {
         super.init()

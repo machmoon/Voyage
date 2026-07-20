@@ -185,20 +185,30 @@ struct HomeView: View {
         .padding(.top, 8)
     }
 
+    /// The number a student actually protects: the day streak. Tier lives
+    /// in the logbook; miles ride along in small type.
     private var statusChip: some View {
-        let tier = LogbookStats.tier(entries)
+        let streak = LogbookStats.streakDays(entries)
         let miles = Int(LogbookStats.totalMiles(entries))
-        return VStack(alignment: .trailing, spacing: 1) {
-            Text(tier.rawValue.uppercased())
-                .font(.system(size: 10, weight: .heavy))
-                .kerning(1.2)
-            Text("\(miles.formatted()) mi")
-                .font(.system(size: 11, weight: .medium, design: .monospaced))
+        return HStack(spacing: 7) {
+            Image(systemName: "flame.fill")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(streak > 0 ? Color(hex: "FFA33B") : .white.opacity(0.4))
+            VStack(alignment: .leading, spacing: 0) {
+                Text(streak > 0 ? "\(streak)-day streak" : "Fly today")
+                    .font(.system(size: 12, weight: .bold))
+                    .lineLimit(1)
+                    .fixedSize()
+                Text("\(miles.formatted()) mi")
+                    .font(.system(size: 10, weight: .medium, design: .monospaced))
+                    .opacity(0.7)
+            }
         }
         .foregroundStyle(.white)
         .padding(.horizontal, 12)
-        .padding(.vertical, 7)
+        .padding(.vertical, 6)
         .background(.ultraThinMaterial, in: Capsule())
+        .accessibilityLabel(streak > 0 ? "\(streak) day streak, \(miles) miles" : "No streak yet — fly today")
     }
 
     private func iconButton(_ systemName: String, action: @escaping () -> Void) -> some View {
@@ -216,6 +226,22 @@ struct HomeView: View {
     @ViewBuilder
     private func scheduledBanner(_ flight: ScheduledFlight) -> some View {
         let status = flight.status(at: nowTick)
+        VStack(spacing: 8) {
+            scheduledBannerRow(flight, status: status)
+            if scheduler.notificationsDenied && status != .boarding {
+                Text("Notifications are off — the boarding call can't ring. Enable them in Settings.")
+                    .font(.caption2)
+                    .foregroundStyle(.orange)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .padding(14)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .padding(.horizontal, 20)
+    }
+
+    private func scheduledBannerRow(_ flight: ScheduledFlight,
+                                    status: ScheduledFlight.Status) -> some View {
         HStack(spacing: 12) {
             Image(systemName: status == .boarding ? "figure.walk.departure" : "clock.badge.checkmark")
                 .font(.title3)
@@ -247,9 +273,6 @@ struct HomeView: View {
                 }
             }
         }
-        .padding(14)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .padding(.horizontal, 20)
     }
 
     private func scheduledDetail(_ flight: ScheduledFlight, status: ScheduledFlight.Status) -> String {

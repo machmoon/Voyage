@@ -300,6 +300,13 @@ struct InFlightView: View {
                 .font(.caption)
                 .foregroundStyle(.white.opacity(0.4))
 
+            // The countdown is tappable — say so.
+            Image(systemName: showInfoPill ? "chevron.compact.up" : "chevron.compact.down")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.3))
+                .padding(.top, 2)
+                .accessibilityHidden(true)
+
             if session.legIndex == 0, let via = session.itinerary.connection {
                 Text("\(session.totalRemaining.shortDurationText) total · lounge break at \(via.code)")
                     .font(.caption2)
@@ -379,21 +386,23 @@ struct InFlightView: View {
     // MARK: Intentions
 
     private var intentionsStrip: some View {
-        HStack(spacing: 8) {
-            ForEach(session.intentions, id: \.self) { intention in
-                HStack(spacing: 5) {
-                    Image(systemName: "suitcase.fill")
-                        .font(.system(size: 8))
-                    Text(intention)
-                        .font(.system(size: 11, weight: .medium))
-                        .lineLimit(1)
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(session.intentions, id: \.self) { intention in
+                    HStack(spacing: 5) {
+                        Image(systemName: "suitcase.fill")
+                            .font(.system(size: 8))
+                        Text(intention)
+                            .font(.system(size: 11, weight: .medium))
+                            .lineLimit(1)
+                    }
+                    .foregroundStyle(.white.opacity(0.5))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(.white.opacity(0.06), in: Capsule())
                 }
-                .foregroundStyle(.white.opacity(0.5))
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(.white.opacity(0.06), in: Capsule())
             }
+            .padding(.horizontal, 24)
         }
-        .padding(.horizontal, 24)
     }
 }

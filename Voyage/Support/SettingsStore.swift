@@ -16,6 +16,11 @@ final class SettingsStore {
         didSet { defaults.set(announcementsEnabled, forKey: "announcementsEnabled") }
     }
 
+    /// Chosen PA voice identifier; nil means "automatic (best installed)".
+    var paVoiceIdentifier: String? {
+        didSet { defaults.set(paVoiceIdentifier, forKey: "paVoiceIdentifier") }
+    }
+
     /// Manually chosen home airport code; nil means "use nearest from location".
     var originOverrideCode: String? {
         didSet { defaults.set(originOverrideCode, forKey: "originOverrideCode") }
@@ -33,6 +38,7 @@ final class SettingsStore {
     private init() {
         ambienceEnabled = defaults.object(forKey: "ambienceEnabled") as? Bool ?? true
         announcementsEnabled = defaults.object(forKey: "announcementsEnabled") as? Bool ?? true
+        paVoiceIdentifier = defaults.string(forKey: "paVoiceIdentifier")
         originOverrideCode = defaults.string(forKey: "originOverrideCode")
         resolvedOriginCode = defaults.string(forKey: "resolvedOriginCode") ?? "BOS"
     }
