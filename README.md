@@ -11,7 +11,7 @@ Planning (bugs & features): [PLAN.md](PLAN.md) and [GitHub Issues](https://githu
   <img src="QA/qa-07-inflight-climb-clouds.png" width="170" alt="Window view">
 </p>
 
-Book a real route on a 3D globe, pick a seat, tear your boarding pass, and focus through a live airplane-window view until you land. Leave mid-flight and the plane diverts.
+Book a real flight and get to studying :0
 
 ## Building and Running
 
