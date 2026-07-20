@@ -87,8 +87,9 @@ final class CabinAudioEngine {
 
     func stopAmbience() {
         targetGain = 0
-        // Let the bed (and any in-flight one-shot) finish before teardown.
-        scheduleTeardown(after: 0.6)
+        // The render loop glides gain to zero over ~1.2 s — wait for the
+        // fade to finish so a diversion doesn't cut like a power failure.
+        scheduleTeardown(after: 1.6)
     }
 
     func setProfile(_ profile: Profile) {

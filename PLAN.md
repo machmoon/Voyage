@@ -58,3 +58,13 @@ Six workstreams. Each has an owner role, scope, and acceptance criteria. No work
 ### Sequencing
 
 WS1 → WS2 (same surfaces), WS3 ∥ WS4 ∥ WS5 independent, WS6 continuous. Target: two weeks to MVP-complete.
+
+### Status (2026-07-20)
+
+- **WS1 (arrival payoff)** — largely pre-existing: baggage claim persists intentions, passport stamp has thunk + haptic. Interactive tints unified on `Theme.accent`.
+- **WS2 (streaks on Home)** — ✅ shipped: flame chip with day streak + miles on Home.
+- **WS3 (Live Activity)** — ✅ shipped: `VoyageWidgets` extension, lock-screen card + Dynamic Island, updates on phase transitions only.
+- **WS4 (flight receipt)** — open.
+- **WS5 (audio bed v2)** — partial: PA now offline-rendered through a cabin-speaker filter; engine-tone layer still open.
+- **WS6 (quality gate)** — screenshot tour is the visual regression net; arrival-flow coverage still open.
+Also shipped from the field report: recent-bag quick-add chips, countdown affordance chevron, intentions strip scrolling, notifications-denied banner caption, graceful divert audio fade, Siri-preferring + user-selectable PA voice.

@@ -169,7 +169,7 @@ private struct BaggageClaimView: View {
                 VStack(spacing: 6) {
                     Image(systemName: "arrow.triangle.2.circlepath")
                         .font(.system(size: 28))
-                        .foregroundStyle(session.itinerary.destination.accentColor)
+                        .foregroundStyle(Theme.accent)
                     Text("Baggage claim")
                         .font(.title2.bold())
                         .foregroundStyle(.white)
@@ -214,7 +214,7 @@ private struct BaggageClaimView: View {
             HStack(spacing: 14) {
                 Image(systemName: "suitcase.rolling.fill")
                     .font(.title3)
-                    .foregroundStyle(isClaimed ? session.itinerary.destination.accentColor : .white.opacity(0.35))
+                    .foregroundStyle(isClaimed ? Theme.accent : .white.opacity(0.35))
                 Text(intention)
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(.white.opacity(isClaimed ? 0.95 : 0.7))
@@ -223,7 +223,7 @@ private struct BaggageClaimView: View {
                 Spacer()
                 Image(systemName: isClaimed ? "checkmark.circle.fill" : "circle")
                     .font(.title3)
-                    .foregroundStyle(isClaimed ? .green : .white.opacity(0.25))
+                    .foregroundStyle(isClaimed ? Theme.accent : .white.opacity(0.25))
             }
             .padding(16)
             .background(.white.opacity(isClaimed ? 0.1 : 0.05),

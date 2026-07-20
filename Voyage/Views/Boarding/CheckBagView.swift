@@ -1,16 +1,37 @@
 import SwiftUI
+import SwiftData
 
 /// Optional intentions step: "check a bag" with up to three things
-/// you're working on this flight. Fully skippable.
+/// you're working on this flight. Fully skippable; recent bags come back
+/// as one-tap chips so regulars never retype them.
 struct CheckBagView: View {
     @Bindable var session: FlightSession
     let onContinue: () -> Void
 
     @State private var items = ["", "", ""]
     @FocusState private var focusedIndex: Int?
+    @Query(sort: \LogbookEntry.date, order: .reverse) private var entries: [LogbookEntry]
 
     private var packedCount: Int {
         items.filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }.count
+    }
+
+    /// Up to six distinct intentions from recent flights, newest first,
+    /// excluding ones already packed this time.
+    private var recentBags: [String] {
+        var seen = Set(items.map { $0.trimmingCharacters(in: .whitespaces).lowercased() })
+        var result: [String] = []
+        for entry in entries.prefix(20) {
+            for intention in entry.intentions {
+                let key = intention.lowercased()
+                if !seen.contains(key) {
+                    seen.insert(key)
+                    result.append(intention)
+                    if result.count == 6 { return result }
+                }
+            }
+        }
+        return result
     }
 
     var body: some View {
@@ -37,6 +58,11 @@ struct CheckBagView: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 28)
+
+            if !recentBags.isEmpty {
+                recentBagsRow
+                    .padding(.top, 14)
+            }
 
             Spacer()
 
@@ -68,6 +94,33 @@ struct CheckBagView: View {
             .padding(.bottom, 10)
         }
         .onAppear { focusedIndex = 0 }
+    }
+
+    /// One-tap chips for bags you've flown with before.
+    private var recentBagsRow: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(recentBags, id: \.self) { bag in
+                    Button {
+                        guard let slot = items.firstIndex(where: {
+                            $0.trimmingCharacters(in: .whitespaces).isEmpty
+                        }) else { return }
+                        Haptics.tap()
+                        items[slot] = bag
+                    } label: {
+                        Label(bag, systemImage: "plus")
+                            .font(.caption.weight(.medium))
+                            .lineLimit(1)
+                            .foregroundStyle(Theme.accent)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 7)
+                            .background(Theme.accent.opacity(0.12), in: Capsule())
+                    }
+                }
+            }
+            .padding(.horizontal, 20)
+        }
+        .accessibilityLabel("Recent bags")
     }
 
     private func bagField(_ index: Int) -> some View {

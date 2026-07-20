@@ -1,8 +1,29 @@
 import SwiftUI
+import AVFoundation
 
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var settings = SettingsStore.shared
+
+    /// Installed English voices, best first (same ranking the PA uses).
+    private var paVoices: [AVSpeechSynthesisVoice] {
+        AVSpeechSynthesisVoice.speechVoices()
+            .filter { $0.language.hasPrefix("en") && !$0.identifier.contains("speech.synthesis") }
+            .sorted { lhs, rhs in
+                if lhs.quality != rhs.quality { return lhs.quality.rawValue > rhs.quality.rawValue }
+                return lhs.name < rhs.name
+            }
+    }
+
+    private func voiceLabel(_ voice: AVSpeechSynthesisVoice) -> String {
+        let quality: String
+        switch voice.quality {
+        case .premium: quality = " · Premium"
+        case .enhanced: quality = " · Enhanced"
+        default: quality = ""
+        }
+        return "\(voice.name)\(quality)"
+    }
 
     var body: some View {
         NavigationStack {
@@ -20,10 +41,21 @@ struct SettingsView: View {
                     )) {
                         Label("PA announcements", systemImage: "megaphone.fill")
                     }
+                    Picker(selection: Binding(
+                        get: { settings.paVoiceIdentifier ?? "auto" },
+                        set: { settings.paVoiceIdentifier = $0 == "auto" ? nil : $0 }
+                    )) {
+                        Text("Automatic (best installed)").tag("auto")
+                        ForEach(paVoices, id: \.identifier) { voice in
+                            Text(voiceLabel(voice)).tag(voice.identifier)
+                        }
+                    } label: {
+                        Label("PA voice", systemImage: "person.wave.2.fill")
+                    }
                 } header: {
                     Text("Sound")
                 } footer: {
-                    Text("Engine rumble is generated live — no loops, no downloads. Announcements come from your captain and cabin crew.")
+                    Text("Engine rumble is generated live — no loops, no downloads. For the best PA, download a Siri or Enhanced voice in iOS Settings → Accessibility → Spoken Content → Voices; Voyage will pick it up automatically.")
                 }
 
                 Section {

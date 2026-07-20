@@ -276,6 +276,7 @@ final class FlightSession {
         now = t
         firedEvents = []
         fetchLegWeather()
+        FlightActivityController.shared.start(session: self)
         // Ambience after a beat so a just-played rip one-shot never races
         // engine start / graph rebuild on the same turn as stage transition.
         CabinAudioEngine.shared.startAmbience(profile: .taxi)
@@ -350,6 +351,8 @@ final class FlightSession {
         guard !firedEvents.contains(event) else { return }
         firedEvents.insert(event)
         action()
+        // Phase transitions are the only mid-leg Live Activity updates.
+        FlightActivityController.shared.update(session: self)
     }
 
     private func fireDueEvents() {
@@ -425,6 +428,7 @@ final class FlightSession {
 
         if legIndex == itinerary.legs.count - 1 {
             stage = .arrived
+            FlightActivityController.shared.end(session: self)
             CabinAudioEngine.shared.setProfile(.taxi)
             let timeText = clock.now.formatted(date: .omitted, time: .shortened)
             Announcer.shared.announce(
@@ -440,6 +444,7 @@ final class FlightSession {
         } else {
             stage = .layover
             connectionDeparts = now.addingTimeInterval(itinerary.layoverDuration)
+            FlightActivityController.shared.update(session: self)
             let minutes = Int(itinerary.layoverDuration / 60)
             Announcer.shared.announce(
                 .layover(city: currentLeg.destination.city, minutes: minutes),
@@ -508,6 +513,7 @@ final class FlightSession {
     private func stopEverything() {
         Announcer.shared.stop()
         CabinAudioEngine.shared.stopAmbience()
+        FlightActivityController.shared.end(session: self)
         graceWorkItem?.cancel()
         graceWorkItem = nil
     }

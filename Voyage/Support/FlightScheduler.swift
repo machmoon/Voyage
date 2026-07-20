@@ -41,6 +41,9 @@ final class FlightScheduler: NSObject, UNUserNotificationCenterDelegate {
     private static let notificationID = "voyage.boarding"
 
     private(set) var scheduled: ScheduledFlight?
+    /// True when the user has notifications denied — the boarding call
+    /// can't ring, and the UI should say so instead of silently failing.
+    private(set) var notificationsDenied = false
 
     private override init() {
         super.init()
@@ -72,6 +75,7 @@ final class FlightScheduler: NSObject, UNUserNotificationCenterDelegate {
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: [Self.notificationID])
         center.requestAuthorization(options: [.alert, .sound]) { granted, _ in
+            DispatchQueue.main.async { self.notificationsDenied = !granted }
             guard granted else { return }
             let content = UNMutableNotificationContent()
             let number = flightNumber ?? RoutePlanner.flightNumber(from: origin, to: destination)
@@ -93,10 +97,16 @@ final class FlightScheduler: NSObject, UNUserNotificationCenterDelegate {
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [Self.notificationID])
     }
 
-    /// Drops the stored flight if its boarding window has passed.
+    /// Drops the stored flight if its boarding window has passed, and
+    /// refreshes whether the boarding call can actually ring.
     func pruneExpired() {
         if let flight = scheduled, flight.status() == .expired {
             cancel()
+        }
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            DispatchQueue.main.async {
+                self.notificationsDenied = settings.authorizationStatus == .denied
+            }
         }
     }
 
