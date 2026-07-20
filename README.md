@@ -1,5 +1,4 @@
 # Voyage iOS
-The official Voyage iOS app — every study session is a flight.
 
 License: [MIT License](LICENSE)
 Source repo: https://github.com/machmoon/Voyage
