@@ -1,0 +1,16 @@
+// This checked-in file is the Voyage target's base configuration. Create an
+// untracked Config.local.xcconfig beside it and put the real key there.
+// Voyage/Support/Info.plist should contain:
+//
+//   <key>GoogleMapsAPIKey</key>
+//   <string>$(GOOGLE_MAPS_API_KEY)</string>
+//
+// Restrict the deployed key to the com.patliu.voyage bundle identifier and to
+// Maps 3D SDK for iOS in Google Cloud Console. API keys embedded in an iOS app
+// are not secrets; application/API restrictions are the security boundary.
+// Configure billing-budget and Maps Platform quota alerts before distribution.
+
+GOOGLE_MAPS_API_KEY =
+
+// Optional so clean checkouts and CI without streamed scenery still build.
+#include? "Config.local.xcconfig"

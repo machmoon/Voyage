@@ -1,0 +1,5 @@
+# Copy this file to .dev.vars for local development. The schedule provider is
+# optional; without both values, /v1/schedules returns unavailable=true so the
+# app can use its bundled RouteCatalog.
+SCHEDULE_PROVIDER_URL="https://provider.example/api/flights"
+SCHEDULE_PROVIDER_KEY="replace-me"
