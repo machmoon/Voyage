@@ -19,7 +19,7 @@ final class VoyageSmokeUITests: XCTestCase {
 
         try selectDestinationAndDepart(in: app)
 
-        XCTAssertTrue(app.staticTexts["Select Seats"].waitForExistence(timeout: 12))
+        XCTAssertTrue(app.staticTexts["Choose your seat"].waitForExistence(timeout: 12))
 
         let seat = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Seat ")).firstMatch
         XCTAssertTrue(seat.waitForExistence(timeout: 5), "Expected an accessible seat button")
@@ -35,19 +35,123 @@ final class VoyageSmokeUITests: XCTestCase {
         XCTAssertTrue(takeSeat.waitForExistence(timeout: 3))
         takeSeat.tap()
 
-        let skip = app.buttons["Travel light — skip"]
-        XCTAssertTrue(skip.waitForExistence(timeout: 5))
-        skip.tap()
+        let continueWithoutBags = app.buttons["Skip for now"]
+        XCTAssertTrue(continueWithoutBags.waitForExistence(timeout: 5))
+        continueWithoutBags.tap()
 
-        let tearHint = app.staticTexts["Pull the stub down to tear & board"]
-        let tearButton = app.buttons["Tear and board"]
-        let passReady = tearHint.waitForExistence(timeout: 8) || tearButton.waitForExistence(timeout: 1)
-        XCTAssertTrue(passReady, "Expected boarding pass tear hint or Tear and board control")
+        let stub = app.otherElements["boarding-pass-stub"]
+        XCTAssertTrue(stub.waitForExistence(timeout: 8), "Expected boarding pass stub")
 
         // Capture boarding-pass screen for QA artifacts.
         let screenshot = XCUIScreen.main.screenshot()
         let attachment = XCTAttachment(screenshot: screenshot)
         attachment.name = "boarding-pass"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
+    @MainActor
+    func testScheduleBoardIsReadableAndMultiCarrier() throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+
+        dismissLocationPromptIfPresent()
+        XCTAssertTrue(app.staticTexts["VOYAGE"].waitForExistence(timeout: 10))
+
+        let card = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "destination-"))
+            .firstMatch
+        XCTAssertTrue(card.waitForExistence(timeout: 5))
+        card.tap()
+
+        let schedule = app.buttons["Schedule focus"]
+        XCTAssertTrue(schedule.waitForExistence(timeout: 5))
+        schedule.tap()
+
+        XCTAssertTrue(app.staticTexts["Schedule your focus"].waitForExistence(timeout: 5))
+        let departureRows = app.buttons.matching(
+            NSPredicate(format: "label MATCHES %@", #"[A-Z0-9]{2} [0-9]+, departs .*"#))
+        XCTAssertGreaterThanOrEqual(departureRows.count, 5)
+
+        let screenshot = XCUIScreen.main.screenshot()
+        let url = URL(fileURLWithPath: "/Users/patliu/Desktop/Coding/Voyage/QA/design-schedule.png")
+        try screenshot.pngRepresentation.write(to: url)
+        let attachment = XCTAttachment(screenshot: screenshot)
+        attachment.name = "redesigned-schedule"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
+    @MainActor
+    func testPassportCollectionLayout() throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+
+        dismissLocationPromptIfPresent()
+        XCTAssertTrue(app.staticTexts["VOYAGE"].waitForExistence(timeout: 10))
+
+        let logbook = app.buttons["Open logbook"]
+        XCTAssertTrue(logbook.waitForExistence(timeout: 5))
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.84, dy: 0.09)).tap()
+
+        let passport = app.segmentedControls.buttons["Passport"]
+        XCTAssertTrue(passport.waitForExistence(timeout: 5))
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.74, dy: 0.19)).tap()
+
+        XCTAssertTrue(app.staticTexts["Voyage Passport"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Destination stamps"].exists)
+
+        let screenshot = XCUIScreen.main.screenshot()
+        try screenshot.pngRepresentation.write(to: URL(fileURLWithPath: "/tmp/voyage-passport-redesign.png"))
+        let attachment = XCTAttachment(screenshot: screenshot)
+        attachment.name = "passport-redesign"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
+    @MainActor
+    func testWeeklyReplayDesignAndPlayback() throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+
+        dismissLocationPromptIfPresent()
+        XCTAssertTrue(app.staticTexts["VOYAGE"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["Open logbook"].waitForExistence(timeout: 5))
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.84, dy: 0.09)).tap()
+
+        let replayWeek = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "Replay")
+        ).firstMatch
+        XCTAssertTrue(replayWeek.waitForExistence(timeout: 5))
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.50, dy: 0.48)).tap()
+
+        XCTAssertTrue(app.buttons["Pause trip replay"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.buttons["Recenter replay route"].exists)
+        XCTAssertTrue(app.buttons["Playback speed, 1 times"].exists)
+        let progressSlider = app.sliders["Trip replay progress"]
+        XCTAssertTrue(progressSlider.waitForExistence(timeout: 5))
+        let startingValue = String(describing: progressSlider.value)
+
+        let playback = expectation(description: "Replay advances")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { playback.fulfill() }
+        wait(for: [playback], timeout: 2)
+
+        XCTAssertNotEqual(String(describing: progressSlider.value), startingValue,
+                          "Replay progress should continue advancing while the UI remains responsive")
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.50, dy: 0.84)).tap()
+        XCTAssertTrue(app.buttons["Play trip replay"].waitForExistence(timeout: 3))
+
+        let settledFrame = expectation(description: "Replay controls settle")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { settledFrame.fulfill() }
+        wait(for: [settledFrame], timeout: 1)
+
+        let screenshot = XCUIScreen.main.screenshot()
+        try screenshot.pngRepresentation.write(to: URL(fileURLWithPath: "/tmp/voyage-replay-design.png"))
+        let attachment = XCTAttachment(screenshot: screenshot)
+        attachment.name = "weekly-replay-design"
         attachment.lifetime = .keepAlways
         add(attachment)
     }

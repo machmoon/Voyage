@@ -91,23 +91,11 @@ struct LayoverLoungeView: View {
     }
 
     private var suggestions: some View {
-        HStack(spacing: 14) {
-            loungeChip("figure.walk", "Stretch")
-            loungeChip("waterbottle.fill", "Hydrate")
-            loungeChip("eye.fill", "Rest your eyes")
-        }
-    }
-
-    private func loungeChip(_ icon: String, _ text: String) -> some View {
-        VStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.system(size: 18))
-            Text(text)
-                .font(.caption2.weight(.medium))
-        }
-        .foregroundStyle(.white.opacity(0.55))
-        .frame(width: 92, height: 74)
-        .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        Text("Suggested: stretch, hydrate, rest your eyes")
+            .font(.caption.weight(.medium))
+            .foregroundStyle(.white.opacity(0.45))
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, 32)
     }
 
     private var boardButton: some View {

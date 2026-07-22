@@ -1,11 +1,13 @@
 import SwiftUI
 
-/// Everything visible through a **side-facing** airplane window, drawn
-/// procedurally: the airport rushing past on the takeoff roll, punching
-/// through the cloud deck on climb, an undercast far below at cruise
-/// (with the wing, if you're seated over it), real-weather skies, and
-/// runway lights streaking past at touchdown.
-struct WindowSceneView: View {
+/// Everything visible through a side-facing airplane window. Authored airport
+/// worlds handle supported departures; the procedural renderer supplies
+/// weather, cruise terrain, and airports that do not yet have a bespoke plate.
+/// Retained only as the deterministic offline artwork implementation. The
+/// active passenger window is `WindowSceneView` in RealWorldWindowSceneView;
+/// it no longer chooses phase-specific renderers or drives its own camera.
+struct LegacyWindowSceneView: View {
+    let airport: Airport
     let phase: LegPhase
     /// 0 = on the ground, 1 = cruise altitude.
     let altitudeFraction: Double
@@ -14,19 +16,90 @@ struct WindowSceneView: View {
     let showSunset: Bool
     let showAurora: Bool
     var showWing: Bool = false
+    var isLeftSide: Bool = false
+    var legElapsed: TimeInterval = 0
+    var phaseElapsed: TimeInterval = 0
+    var aircraft: AircraftProfile = .voyageClassic
+    var weatherSnapshot: WeatherSnapshot?
 
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    /// Wall-clock moment the current phase began — gives every frame a
-    /// smooth, continuous per-phase elapsed time for kinematics.
-    @State private var phaseStart = Date()
-
     var body: some View {
-        TimelineView(.animation(minimumInterval: frameInterval, paused: isPaused)) { timeline in
+        let frame = AirportWorldSimulation(
+            airport: airport,
+            aircraft: aircraft,
+            seat: isLeftSide ? "A1" : "C1",
+            weather: weatherSnapshot
+        ).frame(
+            phase: phase,
+            legElapsed: legElapsed,
+            altitudeFeet: Int(max(0, altitudeFraction) * 36_000)
+        )
+        WindowWorldRenderer(
+            frame: frame,
+            phase: phase,
+            isNight: isNight,
+            condition: condition,
+            reduceMotion: reduceMotion
+        ) {
+            ZStack {
+                proceduralScene
+                if realSceneryActive {
+                    realSceneryLayer
+                }
+            }
+        }
+    }
+
+    // MARK: Real scenery (satellite flyover)
+
+    /// Real imagery only makes sense near the ground, online, at an airport
+    /// with runway choreography, and in weather you could actually see
+    /// through. Everything else stays procedural.
+    private var realSceneryActive: Bool {
+        SettingsStore.shared.realSceneryEnabled
+            && RealSceneryReachability.shared.isOnline
+            && airport.runway != nil
+            && phase != .cruise
+            && realSceneryOpacity > 0.02
+            && (condition == .clear || condition == .partlyCloudy || condition == .cloudy)
+    }
+
+    /// Crossfade to the procedural renderer as the ground stops reading:
+    /// fully real below ~15% of cruise altitude, fully procedural by ~30%.
+    private var realSceneryOpacity: Double {
+        let t = (altitudeFraction - 0.15) / 0.15
+        return 1 - min(1, max(0, t))
+    }
+
+    private var realSceneryLayer: some View {
+        RealWorldSceneView(
+            airport: airport,
+            phase: phase,
+            altitudeFraction: altitudeFraction,
+            isLeftSide: isLeftSide
+        )
+        .overlay {
+            // Satellite tiles are daytime-only; retint them for the scene.
+            if isNight {
+                Color(hex: "0A1226").opacity(0.62).blendMode(.multiply)
+            } else if condition == .cloudy {
+                Color(hex: "AEB6C2").opacity(0.22)
+            }
+        }
+        .saturation(isNight ? 0.45 : 1)
+        .opacity(realSceneryOpacity)
+        .allowsHitTesting(false)
+    }
+
+    // MARK: Procedural scene
+
+    private var proceduralScene: some View {
+            TimelineView(.animation(minimumInterval: frameInterval, paused: isPaused)) { timeline in
             Canvas { context, size in
-                let t = timeline.date.timeIntervalSinceReferenceDate
-                let tPhase = max(0, timeline.date.timeIntervalSince(phaseStart))
+                let t = legElapsed
+                let tPhase = phaseElapsed
                 let scene = SceneModel(
                     phase: phase,
                     altitude: altitudeFraction,
@@ -94,21 +167,18 @@ struct WindowSceneView: View {
                     drawWing(context, scene)
                 }
             }
-            .rotationEffect(.degrees(bankAngle(at: timeline.date)))
-            .scaleEffect(1 + abs(bankAngle(at: timeline.date)) * 0.014)
-            .overlay { hazeOverlay(time: timeline.date.timeIntervalSinceReferenceDate) }
-        }
-        .onChange(of: phase) { _, _ in phaseStart = Date() }
-        .onAppear { phaseStart = Date() }
+            .rotationEffect(.degrees(bankAngle))
+            .scaleEffect(1 + abs(bankAngle) * 0.014)
+            .overlay { hazeOverlay(time: legElapsed) }
+            }
     }
 
     /// The aircraft rotates and banks away on climb-out: the horizon tips a
     /// few degrees, easing back to level as we approach altitude. The slight
     /// scale-up hides the window corners while rotated.
-    private func bankAngle(at date: Date) -> Double {
+    private var bankAngle: Double {
         guard !reduceMotion, phase == .climb else { return 0 }
-        let tPhase = max(0, date.timeIntervalSince(phaseStart))
-        let rise = min(1, tPhase / 1.4)
+        let rise = min(1, phaseElapsed / 1.4)
         let levelOff = 1 - min(1, max(0, altitudeFraction) / 0.85)
         return -6.0 * rise * levelOff
     }
@@ -128,7 +198,9 @@ struct WindowSceneView: View {
     private var goldenHour: Bool {
         if showSunset && phase == .cruise { return true }
         guard !isNight else { return false }
-        let hour = Calendar.current.component(.hour, from: Date())
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = airport.timeZone
+        let hour = calendar.component(.hour, from: Date())
         return hour >= 17 && hour < 20 || hour >= 5 && hour < 8
     }
 
@@ -183,7 +255,6 @@ struct WindowSceneView: View {
             case .landing:
                 let t = tPhase
                 let brake = max(0.5, FlightSession.landingDuration * 0.85)
-                let v = max(130.0, vMax - (vMax - 130.0) * min(1, t / brake))
                 // Integrate the linear deceleration.
                 let tc = min(t, brake)
                 var d = vMax * tc - (vMax - 130.0) * tc * tc / (2 * brake)

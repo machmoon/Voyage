@@ -1,27 +1,32 @@
 import SwiftUI
 
-/// The boarding pass prints down into view (with the dot-matrix sound to
-/// match), then a drag-to-tear gesture along the perforation starts the
-/// flight. Tearing IS departing — this is the commitment moment.
+/// Gate kiosk prints the boarding pass, then you tear the stub to board.
+/// Printing and tearing are two distinct beats — print completes before
+/// the perforation invites a horizontal rip.
 struct BoardingPassView: View {
     @Bindable var session: FlightSession
+    let onRipStarted: () -> Void
     let onBoarded: () -> Void
 
-    @State private var printed = false
-    /// 0→1 feed progress: the pass emerges below the slot in line-feed steps.
+    private enum Phase {
+        case printing, ready, torn
+    }
+
+    @State private var phase: Phase = .printing
     @State private var printProgress: CGFloat = 0
-    /// Positive = stub pulled down away from the body (vertical tear).
-    @State private var tearTranslation: CGFloat = 0
-    @State private var ripped = false
+    @State private var visibleLines = 0
+    @State private var tearProgress: CGFloat = 0
     @State private var lastRatchetStep = 0
-    /// Torn paper fibers that burst from the perforation on rip.
-    @State private var shreds: [PaperShred] = []
-    /// Flipped one frame after the shreds are inserted so their fall animates.
-    @State private var shredsFlying = false
+    @State private var perforationPulse = false
+    @State private var seamFlash = false
+    @State private var paperBurst = false
+    @State private var passRetired = false
+    @State private var departureWashVisible = false
+    @State private var confirmationVisible = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var leg: FlightLeg { session.itinerary.legs[0] }
 
-    /// Operating carrier from the flight number's airline code ("UA 1546").
     private var carrierName: String {
         let code = leg.flightNumber.prefix { !$0.isWhitespace }
         return Carrier(rawValue: String(code))?.name.uppercased() ?? "VOYAGE AIR"
@@ -38,227 +43,286 @@ struct BoardingPassView: View {
         return (1...2).contains(row) ? "FIRST" : "MAIN"
     }
 
-    /// Distance the stub must travel before the tear commits.
-    private let tearThreshold: CGFloat = 72
+    private let tearThreshold: CGFloat = 108
+
+    private var normalizedTearProgress: CGFloat {
+        min(1, max(0, tearProgress / tearThreshold))
+    }
 
     var body: some View {
         ZStack {
-            // Solid backdrop so the perforation punch-outs match exactly.
-            Theme.boardingBackdrop
-                .ignoresSafeArea()
+            Theme.boardingBackdrop.ignoresSafeArea()
+            departureWash
 
             VStack(spacing: 0) {
-                Spacer(minLength: 12)
+                Spacer(minLength: 8)
 
-                printerSlot
-                    .zIndex(2)
+                printerKiosk
+                    .padding(.horizontal, 28)
+                    .padding(.bottom, 6)
 
-                // Everything above the slot is inside the machine; the pass
-                // feeds out beneath it, one line at a time. Clipping only
-                // lasts while printing so the torn stub can fall freely after.
                 Group {
-                    if printed {
-                        passCard
-                            .padding(.horizontal, 28)
-                    } else {
+                    if phase == .printing {
                         passCard
                             .padding(.horizontal, 28)
                             .offset(y: -560 * (1 - printProgress))
                             .clipped()
+                    } else {
+                        passCard
+                            .padding(.horizontal, 28)
                     }
                 }
-                .overlay { shredBurst }
+                .scaleEffect(passRetired ? 0.94 : 1, anchor: .top)
+                .offset(y: passRetired ? -44 : 0)
+                .opacity(passRetired ? 0 : 1)
+                .blur(radius: passRetired && !reduceMotion ? 2 : 0)
+                .animation(.easeIn(duration: reduceMotion ? 0.12 : 0.32), value: passRetired)
 
                 Spacer()
 
-                if printed && !ripped {
-                    airplaneModeReminder
-                        .padding(.bottom, 14)
-
-                    Button {
-                        rip()
-                    } label: {
-                        Text("Tear & board")
-                            .font(.footnote.weight(.semibold))
-                            .foregroundStyle(.white.opacity(0.9))
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
-                            .background(.white.opacity(0.12), in: Capsule())
-                    }
-                    .accessibilityLabel("Tear and board")
-                    .accessibilityHint("Tears the boarding pass stub and departs")
+                if phase == .ready {
+                    tearHint
+                        .padding(.bottom, 24)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                } else {
+                    footerCaptionView
+                        .padding(.bottom, 24)
                 }
+            }
+            .opacity(confirmationVisible ? 0 : 1)
 
-                Text(ripped ? "Boarding…" : "Pull the stub down to tear & board")
-                    .font(.footnote.weight(.medium))
-                    .foregroundStyle(.white.opacity(printed ? 0.65 : 0))
-                    .padding(.top, 14)
-                    .padding(.bottom, 24)
-                    .animation(.smooth(duration: 0.4), value: printed)
+            if confirmationVisible {
+                departureConfirmation
+                    .transition(.scale(scale: 0.92).combined(with: .opacity))
             }
         }
         .onAppear { startPrinting() }
         .accessibilityElement(children: .contain)
         .accessibilityAction(named: Text("Tear & board")) {
-            guard printed, !ripped else { return }
+            guard phase == .ready else { return }
             rip()
         }
     }
 
-    /// iOS can't flip Airplane Mode for you — this keeps the ritual visible
-    /// right where you commit, instead of on a page of its own.
-    private var airplaneModeReminder: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "airplane")
-                .font(.system(size: 11, weight: .bold))
-                .foregroundStyle(Theme.accent)
-            Text("Airplane Mode on — nothing interrupts this flight")
-                .font(.caption.weight(.medium))
-                .foregroundStyle(.white.opacity(0.75))
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .background(.white.opacity(0.07), in: Capsule())
-        .transition(.opacity)
-    }
+    // MARK: Printer kiosk
 
-    /// Gaps between line feeds — irregular, like a real gate printer that
-    /// pauses on dense lines. The sound engine plays a burst per feed from
-    /// this same schedule, so what you hear is what you see.
-    static let feedSchedule: [Double] = [0.20, 0.15, 0.15, 0.30, 0.16, 0.16, 0.32, 0.18, 0.22]
+    private var printerKiosk: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 10) {
+                Circle()
+                    .fill(printerLED)
+                    .frame(width: 8, height: 8)
+                Text(printerStatus)
+                    .font(.system(size: 11, weight: .heavy, design: .monospaced))
+                    .kerning(1.2)
+                    .foregroundStyle(.white.opacity(0.75))
+                Spacer()
+                Image(systemName: "printer.fill")
+                    .font(.system(size: 14))
+                    .foregroundStyle(.white.opacity(0.45))
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(Theme.surfaceElevated, in: UnevenRoundedRectangle(
+                topLeadingRadius: 14, bottomLeadingRadius: 0,
+                bottomTrailingRadius: 0, topTrailingRadius: 14, style: .continuous))
 
-    /// Slim printer mouth the pass feeds out of, with a print-head glow
-    /// while it's working.
-    private var printerSlot: some View {
-        Capsule()
-            .fill(.black.opacity(0.55))
-            .frame(height: 5)
-            .overlay(
-                Capsule().strokeBorder(.white.opacity(0.12), lineWidth: 0.5)
-            )
-            .overlay(
+            // Paper slot
+            ZStack {
                 Capsule()
-                    .fill(Theme.accent.opacity(printed ? 0 : (printProgress > 0 ? 0.85 : 0)))
-                    .frame(width: 44, height: 3)
-                    .blur(radius: 2)
-                    .animation(.smooth(duration: 0.5), value: printed)
-            )
-            .padding(.horizontal, 36)
-            .accessibilityHidden(true)
+                    .fill(.black.opacity(0.7))
+                    .frame(height: 6)
+                Capsule()
+                    .fill(Theme.accent.opacity(phase == .printing ? 0.9 : 0))
+                    .frame(width: phase == .printing ? 52 : 0, height: 3)
+                    .animation(.smooth(duration: 0.35), value: phase)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 6)
+            .background(Theme.surfaceDark)
+        }
+        .accessibilityHidden(true)
     }
 
-    /// Discrete line feeds — advance, settle, advance — driven by
-    /// `feedSchedule`, with a haptic tick per line and the printer audio
-    /// running off the identical timing.
+    private var printerLED: Color {
+        switch phase {
+        case .printing: return Theme.statusAmber
+        case .ready: return Theme.accent
+        case .torn: return Theme.accent
+        }
+    }
+
+    private var printerStatus: String {
+        switch phase {
+        case .printing: return "PRINTING"
+        case .ready: return "READY — TEAR STUB"
+        case .torn: return "CLEARED TO BOARD"
+        }
+    }
+
+    private var footerCaption: String {
+        switch phase {
+        case .printing: return "Printing your boarding pass…"
+        case .ready: return "Tear the ticket to start your focus session"
+        case .torn: return "Boarding…"
+        }
+    }
+
+    private var tearHint: some View {
+        Button(action: rip) {
+            HStack(spacing: 10) {
+                Image(systemName: "hand.draw.fill")
+                    .font(.footnote)
+                Text("Slide to start focus")
+                    .font(.footnote.weight(.semibold))
+                Image(systemName: "chevron.right.2")
+                    .font(.caption2.weight(.heavy))
+            }
+            .foregroundStyle(.white.opacity(0.92))
+            .padding(.horizontal, 18)
+            .padding(.vertical, 10)
+            .background(Theme.accent.opacity(0.18), in: Capsule())
+            .overlay {
+                Capsule()
+                    .strokeBorder(Theme.accent.opacity(0.3), lineWidth: 1)
+            }
+        }
+        .buttonStyle(.plain)
+        .opacity(1 - normalizedTearProgress * 0.55)
+        .scaleEffect(1 - normalizedTearProgress * 0.025)
+        .accessibilityHint("You can also swipe the lower ticket stub to the right")
+    }
+
+    static let feedSchedule: [Double] = [0.22, 0.14, 0.14, 0.28, 0.15, 0.15, 0.30, 0.16, 0.20]
+
     private func startPrinting() {
-        guard !printed else { return }
+        guard phase == .printing else { return }
+        CabinAudioEngine.shared.playPrinter(feedSchedule: Self.feedSchedule)
         Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(350))
+            try? await Task.sleep(for: .milliseconds(400))
             let schedule = Self.feedSchedule
-            CabinAudioEngine.shared.playPrinter(feedSchedule: schedule)
             for (line, gap) in schedule.enumerated() {
-                withAnimation(.spring(duration: 0.13, bounce: 0.2)) {
+                visibleLines = line + 1
+                withAnimation(.spring(duration: 0.14, bounce: 0.15)) {
                     printProgress = CGFloat(line + 1) / CGFloat(schedule.count)
                 }
                 Haptics.softTick()
                 try? await Task.sleep(for: .milliseconds(Int(gap * 1000)))
             }
-            printed = true
+            Haptics.success()
+            withAnimation(.smooth(duration: 0.45)) {
+                phase = .ready
+            }
+            withAnimation(.easeInOut(duration: 0.85).repeatForever(autoreverses: true)) {
+                perforationPulse = true
+            }
         }
     }
 
-    // MARK: Pass card — two separate paper pieces
+    // MARK: Pass card
 
     private var passCard: some View {
         VStack(spacing: 0) {
             bodyPiece
+                .overlay(alignment: .bottom) {
+                    seamEffects
+                        .offset(y: 15)
+                }
             stubPiece
         }
-        // The pass is printed paper — always light, even in dark mode.
         .environment(\.colorScheme, .light)
     }
 
-    /// Main ticket body with its own fill/shadow. After a rip, the bottom
-    /// edge becomes ragged where the stub tore away.
     private var bodyPiece: some View {
         VStack(spacing: 0) {
             passBody
-            if !ripped {
+            if phase != .torn {
                 perforation
             } else {
                 Color.clear.frame(height: 8)
             }
         }
         .background(Color(.systemBackground))
-        .clipShape(PassBodyPaper(torn: ripped))
+        .clipShape(PassBodyPaper(torn: phase == .torn))
         .compositingGroup()
-        .shadow(color: .black.opacity(ripped ? 0.35 : 0.45), radius: ripped ? 16 : 22, y: 12)
-        // Paper recoils upward slightly when the stub lets go.
-        .offset(y: ripped ? -7 : 0)
-        .animation(.spring(duration: 0.45, bounce: 0.55), value: ripped)
+        .shadow(color: .black.opacity(phase == .torn ? 0.35 : 0.45), radius: phase == .torn ? 16 : 22, y: 12)
+        .offset(y: phase == .torn ? -6 : 0)
+        .animation(.easeOut(duration: 0.35), value: phase == .torn)
     }
 
-    /// Classic paper ticket: ink on white, no colored chrome.
     private var passBody: some View {
         VStack(spacing: 18) {
-            HStack(alignment: .firstTextBaseline) {
-                VStack(alignment: .leading, spacing: 2) {
-                    FieldLabel("Boarding pass")
-                    Text(carrierName)
-                        .font(.system(size: 15, weight: .heavy))
-                        .kerning(2)
-                }
-                Spacer()
-                Text(leg.flightNumber)
-                    .font(.system(size: 14, weight: .bold, design: .monospaced))
-                    .foregroundStyle(.secondary)
-            }
-
-            Divider()
-
-            HStack(alignment: .center) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(session.itinerary.origin.code)
-                        .font(.system(size: 38, weight: .heavy, design: .monospaced))
-                    Text(session.itinerary.origin.city)
-                        .font(.caption)
+            if visibleLines >= 1 {
+                HStack(alignment: .firstTextBaseline) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        FieldLabel("Boarding pass")
+                        Text(carrierName)
+                            .font(.system(size: 15, weight: .heavy))
+                            .kerning(2)
+                    }
+                    Spacer()
+                    Text(leg.flightNumber)
+                        .font(.system(size: 14, weight: .bold, design: .monospaced))
                         .foregroundStyle(.secondary)
                 }
-                Spacer()
-                VStack(spacing: 3) {
-                    Image(systemName: "airplane")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(Theme.accent)
-                    if let via = session.itinerary.connection {
-                        Text("via \(via.code)")
-                            .font(.system(size: 9, weight: .bold))
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+
+            if visibleLines >= 2 {
+                Divider()
+            }
+
+            if visibleLines >= 3 {
+                HStack(alignment: .center) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(session.itinerary.origin.code)
+                            .font(.system(size: 38, weight: .heavy, design: .monospaced))
+                        Text(session.itinerary.origin.city)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    VStack(spacing: 3) {
+                        Image(systemName: "airplane")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(Theme.accent)
+                        if let via = session.itinerary.connection {
+                            Text("via \(via.code)")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    Spacer()
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text(session.itinerary.destination.code)
+                            .font(.system(size: 38, weight: .heavy, design: .monospaced))
+                        Text(session.itinerary.destination.city)
+                            .font(.caption)
                             .foregroundStyle(.secondary)
                     }
                 }
-                Spacer()
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text(session.itinerary.destination.code)
-                        .font(.system(size: 38, weight: .heavy, design: .monospaced))
-                    Text(session.itinerary.destination.city)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                .transition(.opacity)
+            }
+
+            if visibleLines >= 4 {
+                HStack(spacing: 0) {
+                    passField("Passenger", "FOCUSED FLYER")
+                    passField("Class", cabinClass)
+                    passField("Gate", gate)
                 }
             }
 
-            HStack(spacing: 0) {
-                passField("Passenger", "FOCUSED FLYER")
-                passField("Class", cabinClass)
-                passField("Gate", gate)
-            }
-
-            HStack(spacing: 0) {
-                passField("Board", "NOW")
-                passField("Focus", session.itinerary.totalFocusDuration.shortDurationText)
-                passField("Bags", session.intentions.isEmpty ? "—" : "\(session.intentions.count)")
+            if visibleLines >= 5 {
+                HStack(spacing: 0) {
+                    passField("Board", "NOW")
+                    passField("Focus", session.itinerary.totalFocusDuration.shortDurationText)
+                    passField("Bags", session.intentions.isEmpty ? "—" : "\(session.intentions.count)")
+                }
             }
         }
         .padding(22)
-        .padding(.bottom, ripped ? 4 : 0)
+        .padding(.bottom, phase == .torn ? 4 : 0)
+        .animation(.snappy(duration: 0.25), value: visibleLines)
     }
 
     private func passField(_ label: String, _ value: String) -> some View {
@@ -272,88 +336,81 @@ struct BoardingPassView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// Real perforation: side notches plus a row of punched holes, all
-    /// filled with the backdrop color so they read as actual cutouts.
     private var perforation: some View {
-        HStack(spacing: 0) {
-            halfNotch(leading: true)
-            GeometryReader { geo in
-                let holeCount = max(8, Int(geo.size.width / 16))
-                let spacing = geo.size.width / CGFloat(holeCount)
-                HStack(spacing: 0) {
-                    ForEach(0..<holeCount, id: \.self) { _ in
-                        Circle()
-                            .fill(Theme.boardingBackdrop)
-                            .frame(width: 4.5, height: 4.5)
-                            .frame(width: spacing)
-                    }
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                TearLine()
+                    .stroke(
+                        phase == .ready
+                            ? Theme.accent.opacity(perforationPulse ? 0.95 : 0.28)
+                            : Theme.boardingBackdrop.opacity(0.58),
+                        style: StrokeStyle(
+                            lineWidth: 1.6,
+                            lineCap: .round,
+                            dash: [7, 7]
+                        )
+                    )
+                    .shadow(
+                        color: Theme.accent.opacity(phase == .ready && perforationPulse ? 0.7 : 0),
+                        radius: phase == .ready && perforationPulse ? 4 : 0
+                    )
+
+                if normalizedTearProgress > 0 {
+                    TearLine()
+                        .stroke(
+                            Theme.accent,
+                            style: StrokeStyle(
+                                lineWidth: 1.8,
+                                lineCap: .round,
+                                dash: [7, 7]
+                            )
+                        )
+                        .frame(width: geo.size.width * normalizedTearProgress, alignment: .leading)
+                        .clipped()
                 }
-                .frame(height: geo.size.height)
             }
-            halfNotch(leading: false)
         }
-        .frame(height: 22)
+        .frame(height: 18)
+        .padding(.horizontal, 22)
         .background(Color(.systemBackground))
+        .accessibilityHidden(true)
     }
 
-    private func halfNotch(leading: Bool) -> some View {
-        Circle()
-            .fill(Theme.boardingBackdrop)
-            .frame(width: 22, height: 22)
-            .offset(x: leading ? -11 : 11)
-    }
-
-    // MARK: Stub + tear gesture
+    // MARK: Stub + horizontal tear
 
     private var stubPiece: some View {
-        let progress = min(1, max(0, tearTranslation) / tearThreshold)
-        // The paper tracks the finger exactly; a whisper of shear from the
-        // leading corner, nothing theatrical.
-        let dragY = ripped ? 420 : max(0, tearTranslation)
-        let angle = ripped ? 5.0 : Double(progress * 2.5)
-        // Paper curls toward you as it's peeled off the perforation.
-        let curl = ripped ? 42.0 : Double(progress * 20)
+        let progress = normalizedTearProgress
+        let dragX = max(0, tearProgress)
+        let angle = phase == .torn ? 8.0 : Double(progress * 4)
+        let curl = phase == .torn ? 38.0 : Double(progress * 18)
+        let exitProgress = min(1, max(0, (tearProgress - tearThreshold) / 260))
 
         return stubContent
             .padding(.horizontal, 22)
             .padding(.top, 10)
             .padding(.bottom, 20)
             .background(Color(.systemBackground))
-            .clipShape(
-                UnevenRoundedRectangle(
-                    topLeadingRadius: 0,
-                    bottomLeadingRadius: 18,
-                    bottomTrailingRadius: 18,
-                    topTrailingRadius: 0,
-                    style: .continuous
-                )
-            )
-            // Matching top tear when separating so the stub looks like torn paper.
-            .overlay(alignment: .top) {
-                if tearTranslation > 2 || ripped {
-                    TornEdge()
-                        .fill(Color(.systemBackground))
-                        .frame(height: 8)
-                        .rotationEffect(.degrees(180))
-                        .offset(y: -4)
-                        .allowsHitTesting(false)
-                }
-            }
+            .clipShape(StubPaper(torn: tearProgress > 2 || phase == .torn))
             .compositingGroup()
             .shadow(
-                color: .black.opacity(progress > 0 || ripped ? 0.28 + 0.22 * progress : 0.08),
-                radius: progress > 0 || ripped ? 10 + 8 * progress : 2,
-                y: progress > 0 || ripped ? 6 + 6 * progress : 1
+                color: .black.opacity(progress > 0 || phase == .torn ? 0.28 + 0.22 * progress : 0.08),
+                radius: progress > 0 || phase == .torn ? 10 + 8 * progress : 2,
+                y: progress > 0 || phase == .torn ? 6 + 6 * progress : 1
             )
             .contentShape(Rectangle())
-            .rotation3DEffect(.degrees(curl), axis: (x: 1, y: 0, z: 0),
-                              anchor: .top, perspective: 0.55)
-            .offset(y: dragY)
-            .rotationEffect(.degrees(angle), anchor: .topLeading)
-            .opacity(ripped ? 0 : 1)
+            .rotation3DEffect(.degrees(curl), axis: (x: 0, y: 1, z: 0),
+                              anchor: .leading, perspective: 0.55)
+            .offset(x: dragX)
+            .rotationEffect(.degrees(angle - progress * 2), anchor: .leading)
+            .scaleEffect(x: 1 - progress * 0.018, y: 1, anchor: .leading)
+            .opacity((visibleLines >= 6 ? 1 : 0.3) * (1 - exitProgress))
+            .blur(radius: exitProgress * 1.5)
             .gesture(tearGesture())
-            .animation(ripped ? .easeIn(duration: 0.45) : nil, value: ripped)
-            .accessibilityHidden(ripped)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Boarding pass stub")
+            .accessibilityHint("Swipe right to tear and board")
+            .accessibilityIdentifier("boarding-pass-stub")
+            .accessibilityHidden(phase == .torn)
     }
 
     private var stubContent: some View {
@@ -364,10 +421,12 @@ struct BoardingPassView: View {
                     .font(.system(size: 22, weight: .heavy, design: .monospaced))
             }
             Spacer()
-            BarcodeView(seed: leg.flightNumber + session.seat)
-                .frame(width: 150, height: 44)
-            Image(systemName: "hand.draw.fill")
-                .font(.footnote)
+            if visibleLines >= 7 {
+                BarcodeView(seed: leg.flightNumber + session.seat)
+                    .frame(width: 150, height: 44)
+            }
+            Image(systemName: "chevron.right")
+                .font(.footnote.weight(.bold))
                 .foregroundStyle(.tertiary)
                 .accessibilityHidden(true)
         }
@@ -376,92 +435,185 @@ struct BoardingPassView: View {
     private func tearGesture() -> some Gesture {
         DragGesture()
             .onChanged { value in
-                guard printed, !ripped else { return }
-                // Vertical tear along the perforation: only the downward pull counts.
-                tearTranslation = max(0, value.translation.height)
+                guard phase == .ready else { return }
+                guard abs(value.translation.width) > abs(value.translation.height) * 0.55 else { return }
+                tearProgress = max(0, value.translation.width)
 
-                let step = Int(tearTranslation / (tearThreshold * 0.12))
+                let step = Int(tearProgress / (tearThreshold * 0.10))
                 if step != lastRatchetStep {
-                    // Fibers popping one perforation at a time (pull only).
                     if step > lastRatchetStep {
                         CabinAudioEngine.shared.playTearTick()
                     }
                     lastRatchetStep = step
                     Haptics.ratchet()
                 }
-                if tearTranslation > tearThreshold {
+                if tearProgress > tearThreshold {
                     rip()
                 }
             }
-            .onEnded { _ in
-                guard !ripped else { return }
+            .onEnded { value in
+                guard phase == .ready else { return }
+                if value.predictedEndTranslation.width > tearThreshold * 0.9 {
+                    rip()
+                    return
+                }
                 withAnimation(.spring(duration: 0.4)) {
-                    tearTranslation = 0
+                    tearProgress = 0
                 }
                 lastRatchetStep = 0
             }
     }
 
     private func rip() {
-        guard !ripped else { return }
-        ripped = true
+        guard phase == .ready else { return }
+        onRipStarted()
+        withAnimation(.spring(duration: reduceMotion ? 0.16 : 0.46, bounce: reduceMotion ? 0 : 0.12)) {
+            phase = .torn
+            perforationPulse = false
+            tearProgress = reduceMotion ? tearThreshold * 2 : 520
+            seamFlash = true
+        }
         Haptics.rip()
         CabinAudioEngine.shared.playRip()
-        // Paper fibers burst from the perforation line.
-        var rng = SeededRandom(seed: UInt64(abs(session.seat.hashValue)) | 1)
-        shreds = (0..<9).map { _ in PaperShred(rng: &rng) }
-        DispatchQueue.main.async { shredsFlying = true }
         Task { @MainActor in
-            // Let the stub fly off before departing; also gives the rip
-            // one-shot time to finish before depart starts ambience.
-            try? await Task.sleep(for: .milliseconds(750))
+            await Task.yield()
+            withAnimation(.easeOut(duration: reduceMotion ? 0.12 : 0.62)) {
+                paperBurst = true
+            }
+            try? await Task.sleep(for: .milliseconds(reduceMotion ? 60 : 150))
+            withAnimation(.easeOut(duration: reduceMotion ? 0.1 : 0.28)) {
+                seamFlash = false
+            }
+            withAnimation(.smooth(duration: reduceMotion ? 0.12 : 0.34)) {
+                passRetired = true
+                departureWashVisible = true
+                confirmationVisible = true
+            }
+            Haptics.success()
+            try? await Task.sleep(for: .milliseconds(reduceMotion ? 180 : 560))
             onBoarded()
         }
     }
 
-    // MARK: Shred burst
+    private var seamEffects: some View {
+        ZStack {
+            Capsule()
+                .fill(Theme.accent)
+                .frame(width: seamFlash ? 300 : 12, height: 2)
+                .blur(radius: seamFlash ? 5 : 0)
+                .opacity(seamFlash ? 0.9 : 0)
 
-    @ViewBuilder
-    private var shredBurst: some View {
-        GeometryReader { geo in
-            // The perforation sits just above the stub, ~76 pt from the bottom.
-            let seamY = geo.size.height - 76
-            ForEach(shreds) { shred in
-                Capsule()
-                    .fill(.white.opacity(shredsFlying ? 0 : 0.9))
-                    .frame(width: shred.size, height: shred.size * 0.45)
-                    .rotationEffect(.degrees(shredsFlying ? shred.spin : 0))
-                    .position(x: geo.size.width * shred.x, y: seamY)
-                    .offset(y: shredsFlying ? shred.fall : 0)
-                    .animation(.easeIn(duration: 0.7).delay(shred.delay), value: shredsFlying)
-            }
+            paperFibers
         }
+        .frame(height: 32)
         .allowsHitTesting(false)
         .accessibilityHidden(true)
     }
-}
 
-/// One torn paper fiber: randomized size, lane, fall, and tumble.
-private struct PaperShred: Identifiable {
-    let id = UUID()
-    let x: Double
-    let size: Double
-    let fall: Double
-    let spin: Double
-    let delay: Double
+    private var paperFibers: some View {
+        GeometryReader { geo in
+            ForEach(0..<11, id: \.self) { index in
+                let lane = CGFloat(index) / 10
+                let drift = CGFloat(16 + (index % 4) * 11)
+                let fall = CGFloat(18 + (index % 5) * 9)
+                Capsule()
+                    .fill(.white.opacity(0.86))
+                    .frame(width: CGFloat(4 + index % 3 * 2), height: 2)
+                    .position(x: geo.size.width * (0.06 + lane * 0.88), y: 10)
+                    .offset(x: paperBurst ? drift : 0, y: paperBurst ? fall : 0)
+                    .rotationEffect(.degrees(paperBurst ? Double(70 + index * 31) : 0))
+                    .opacity(paperBurst ? 0 : (phase == .torn ? 0.9 : 0))
+            }
+        }
+    }
 
-    init(rng: inout SeededRandom) {
-        x = 0.08 + rng.next() * 0.84
-        size = 5 + rng.next() * 7
-        fall = 60 + rng.next() * 160
-        spin = (rng.next() - 0.5) * 240
-        delay = rng.next() * 0.08
+    private var departureWash: some View {
+        ZStack {
+            LinearGradient(
+                colors: [Color(hex: "0D1531"), Color(hex: "050713")],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+
+            RadialGradient(
+                colors: [Theme.accent.opacity(0.32), Theme.accent.opacity(0.06), .clear],
+                center: .center,
+                startRadius: 12,
+                endRadius: 330
+            )
+            .scaleEffect(departureWashVisible ? 1.25 : 0.2)
+        }
+        .opacity(departureWashVisible ? 1 : 0)
+        .animation(.easeOut(duration: reduceMotion ? 0.12 : 0.42), value: departureWashVisible)
+        .ignoresSafeArea()
+        .accessibilityHidden(true)
+    }
+
+    private var departureConfirmation: some View {
+        VStack(spacing: 22) {
+            ZStack {
+                Circle()
+                    .fill(Theme.accent.opacity(0.14))
+                    .frame(width: 82, height: 82)
+                Circle()
+                    .strokeBorder(Theme.accent.opacity(0.3), lineWidth: 1)
+                    .frame(width: 66, height: 66)
+                Image(systemName: "airplane.departure")
+                    .font(.system(size: 26, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
+
+            VStack(spacing: 8) {
+                Text("CLEARED FOR DEPARTURE")
+                    .font(.system(size: 11, weight: .heavy, design: .monospaced))
+                    .kerning(1.7)
+                    .foregroundStyle(Theme.accent.opacity(0.95))
+
+                HStack(spacing: 14) {
+                    Text(leg.origin.code)
+                    routeTrack
+                    Text(leg.destination.code)
+                }
+                .font(.system(size: 28, weight: .heavy, design: .monospaced))
+                .foregroundStyle(.white)
+
+                Text("\(leg.duration.shortDurationText) focus flight")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.white.opacity(0.52))
+            }
+        }
+        .padding(.horizontal, 28)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(
+            "Cleared for departure from \(leg.origin.code) to \(leg.destination.code)"
+        )
+    }
+
+    private var routeTrack: some View {
+        ZStack {
+            Capsule()
+                .fill(.white.opacity(0.2))
+                .frame(width: 74, height: 2)
+            Circle()
+                .fill(.white.opacity(0.9))
+                .frame(width: 5, height: 5)
+                .offset(x: -35)
+            Image(systemName: "airplane")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(.white)
+        }
+        .frame(width: 76)
+    }
+
+    @ViewBuilder
+    private var footerCaptionView: some View {
+        Text(footerCaption)
+            .font(.footnote.weight(.medium))
+            .foregroundStyle(.white.opacity(phase == .printing ? 0.45 : 0.65))
+            .animation(.smooth(duration: 0.4), value: phase)
     }
 }
 
-// MARK: - Paper shapes
-
-/// Main pass silhouette: rounded top, flat or ragged bottom.
 private struct PassBodyPaper: Shape {
     var torn: Bool
 
@@ -475,12 +627,11 @@ private struct PassBodyPaper: Shape {
         path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
 
         if torn {
-            // Ragged tear along the bottom edge.
-            let teeth = 14
+            let teeth = 9
             let step = rect.width / CGFloat(teeth)
             for i in 0..<teeth {
                 let x = rect.maxX - CGFloat(i + 1) * step
-                let dip: CGFloat = (i % 2 == 0) ? 7 : 2
+                let dip: CGFloat = (i % 2 == 0) ? 4 : 1
                 path.addLine(to: CGPoint(x: x + step * 0.5, y: rect.maxY + dip))
                 path.addLine(to: CGPoint(x: x, y: rect.maxY + (i % 2 == 0 ? 1 : 6)))
             }
@@ -496,7 +647,38 @@ private struct PassBodyPaper: Shape {
     }
 }
 
-/// Thin jagged strip used as a torn-paper accent on the body/stub seam.
+private struct StubPaper: Shape {
+    var torn: Bool
+
+    func path(in rect: CGRect) -> Path {
+        let r: CGFloat = 22
+        var path = Path()
+        path.move(to: CGPoint(x: rect.minX, y: rect.minY))
+
+        if torn {
+            let teeth = 9
+            let step = rect.width / CGFloat(teeth)
+            for i in 0..<teeth {
+                let x = rect.minX + CGFloat(i) * step
+                let dip: CGFloat = (i % 2 == 0) ? 4 : 1
+                path.addLine(to: CGPoint(x: x + step * 0.5, y: rect.minY + dip))
+                path.addLine(to: CGPoint(x: x + step, y: rect.minY + (i % 2 == 0 ? 1 : 6)))
+            }
+        } else {
+            path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
+        }
+
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - r))
+        path.addQuadCurve(to: CGPoint(x: rect.maxX - r, y: rect.maxY),
+                          control: CGPoint(x: rect.maxX, y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.minX + r, y: rect.maxY))
+        path.addQuadCurve(to: CGPoint(x: rect.minX, y: rect.maxY - r),
+                          control: CGPoint(x: rect.minX, y: rect.maxY))
+        path.closeSubpath()
+        return path
+    }
+}
+
 private struct TornEdge: Shape {
     func path(in rect: CGRect) -> Path {
         var path = Path()
@@ -517,7 +699,17 @@ private struct TornEdge: Shape {
     }
 }
 
-/// Fake 1D barcode drawn from a deterministic seed.
+/// A single centered perforation path. Dash spacing is handled by the stroke,
+/// so the tear guide stays even at every ticket width.
+private struct TearLine: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.minX, y: rect.midY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.midY))
+        return path
+    }
+}
+
 struct BarcodeView: View {
     let seed: String
 

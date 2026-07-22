@@ -73,6 +73,25 @@ final class FlyerTierTests: XCTestCase {
         XCTAssertEqual(LogbookStats.streakDays(entries, calendar: calendar), 0)
     }
 
+    func testWeeklyReplaySelectsCompletedFlightsAndSortsChronologically() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let reference = Date(timeIntervalSince1970: 1_774_137_600)
+        let week = try XCTUnwrap(calendar.dateInterval(of: .weekOfYear, for: reference))
+        let early = try XCTUnwrap(calendar.date(byAdding: .day, value: 1, to: week.start))
+        let late = try XCTUnwrap(calendar.date(byAdding: .day, value: 4, to: week.start))
+        let previousWeek = try XCTUnwrap(calendar.date(byAdding: .day, value: -1, to: week.start))
+
+        let selected = LogbookStats.completedFlights([
+            makeEntry(miles: 20, completed: true, date: late),
+            makeEntry(miles: 30, completed: false, date: early),
+            makeEntry(miles: 40, completed: true, date: previousWeek),
+            makeEntry(miles: 10, completed: true, date: early),
+        ], inWeekContaining: reference, calendar: calendar)
+
+        XCTAssertEqual(selected.map(\.date), [early, late])
+    }
+
     // MARK: Helpers
 
     private func makeEntry(miles: Double, completed: Bool, date: Date = .now) -> LogbookEntry {

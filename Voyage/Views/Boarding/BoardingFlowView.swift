@@ -12,6 +12,7 @@ struct BoardingFlowView: View {
     }
 
     @State private var step: Step = .seat
+    @State private var isDeparting = false
 
     private var isCabinStep: Bool { step == .seat }
 
@@ -22,7 +23,7 @@ struct BoardingFlowView: View {
                 case .seat:
                     Theme.seatMapBackground
                 case .bag:
-                    Color(.systemGroupedBackground)
+                    Theme.seatMapBackground
                 case .pass:
                     Theme.boardingBackdrop
                 }
@@ -32,6 +33,8 @@ struct BoardingFlowView: View {
 
             VStack(spacing: 0) {
                 topBar
+                    .opacity(isDeparting ? 0 : 1)
+                    .allowsHitTesting(!isDeparting)
                 content
             }
         }
@@ -39,16 +42,17 @@ struct BoardingFlowView: View {
 
     private var topBar: some View {
         HStack {
-            if step < .pass {
+            if step == .seat {
                 Button(action: onCancel) {
-                    Image(systemName: isCabinStep ? "chevron.left" : "xmark")
-                        .font(.subheadline.weight(.bold))
-                        .foregroundStyle(isCabinStep ? Theme.seatMapInk : .secondary)
-                        .frame(width: 34, height: 34)
-                        .background(
-                            isCabinStep ? Theme.seatMapInk.opacity(0.06) : Theme.cardBackground,
-                            in: Circle()
-                        )
+                    backButtonIcon("chevron.left", ink: Theme.seatMapInk, background: Theme.seatMapInk.opacity(0.06))
+                }
+                .accessibilityLabel("Cancel booking")
+            } else {
+                Button { retreat(by: -1) } label: {
+                    backButtonIcon("chevron.left",
+                                   ink: step == .seat ? Theme.seatMapInk : (step == .bag ? .secondary : .white.opacity(0.9)),
+                                   background: step == .seat ? Theme.seatMapInk.opacity(0.06)
+                                       : (step == .bag ? Theme.cardBackground : .white.opacity(0.12)))
                 }
                 .accessibilityLabel("Back")
             }
@@ -57,6 +61,19 @@ struct BoardingFlowView: View {
         }
         .padding(.horizontal, 20)
         .padding(.top, 8)
+    }
+
+    private func backButtonIcon(_ systemName: String, ink: Color, background: Color) -> some View {
+        Image(systemName: systemName)
+            .font(.subheadline.weight(.bold))
+            .foregroundStyle(ink)
+            .frame(width: 34, height: 34)
+            .background(background, in: Circle())
+    }
+
+    private func retreat(by delta: Int) {
+        guard let previous = Step(rawValue: step.rawValue + delta) else { return }
+        withAnimation(.smooth(duration: 0.45)) { step = previous }
     }
 
     private var stepIndicator: some View {
@@ -88,9 +105,17 @@ struct BoardingFlowView: View {
             }
             .transition(stepTransition)
         case .pass:
-            BoardingPassView(session: session) {
-                session.departFirstLeg()
-            }
+            BoardingPassView(
+                session: session,
+                onRipStarted: {
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        isDeparting = true
+                    }
+                },
+                onBoarded: {
+                    session.departFirstLeg()
+                }
+            )
             .transition(stepTransition)
         }
     }

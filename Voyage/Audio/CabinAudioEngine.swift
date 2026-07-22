@@ -1,45 +1,37 @@
 import AVFoundation
 
-/// Procedurally generated cabin soundscape: filtered noise for engine
-/// rumble (with a swell during the takeoff roll), plus synthesized cabin
-/// chimes and one-shot effects. No audio assets required.
+/// A restrained, procedural cabin soundscape.
+///
+/// The ambience is a pre-rendered loop instead of realtime-generated noise.
+/// That keeps audio work off the render callback and avoids the crackle and
+/// dropped frames the previous source-node implementation could cause. All
+/// sound is generated on device; Voyage ships no recordings or audio assets.
 final class CabinAudioEngine {
-
-    /// How the engine bed should sound in each part of the flight.
     enum Profile {
-        case silent
-        case boarding      // faint APU hum
-        case taxi
-        case takeoffRoll   // full-power swell
-        case climb
-        case cruise
-        case descent
-        case landingRoll   // spoilers + reversers roar
+        case silent, boarding, taxi, takeoffRoll, climb, cruise, descent, landingRoll
 
-        var gain: Float {
+        var volume: Float {
             switch self {
             case .silent: return 0
-            case .boarding: return 0.05
-            case .taxi: return 0.10
-            case .takeoffRoll: return 0.42
-            case .climb: return 0.26
-            case .cruise: return 0.16
-            case .descent: return 0.20
-            case .landingRoll: return 0.45
+            case .boarding: return 0.035
+            case .taxi: return 0.065
+            case .takeoffRoll: return 0.18
+            case .climb: return 0.125
+            case .cruise: return 0.075
+            case .descent: return 0.09
+            case .landingRoll: return 0.17
             }
         }
 
-        /// 0...1 brightness of the noise (how much high end survives).
-        var brightness: Float {
+        var cutoff: Float {
             switch self {
-            case .silent: return 0.02
-            case .boarding: return 0.03
-            case .taxi: return 0.06
-            case .takeoffRoll: return 0.30
-            case .climb: return 0.16
-            case .cruise: return 0.10
-            case .descent: return 0.13
-            case .landingRoll: return 0.45
+            case .silent, .boarding: return 480
+            case .taxi: return 680
+            case .takeoffRoll: return 1_500
+            case .climb: return 1_050
+            case .cruise: return 760
+            case .descent: return 900
+            case .landingRoll: return 1_750
             }
         }
     }
@@ -47,427 +39,411 @@ final class CabinAudioEngine {
     static let shared = CabinAudioEngine()
 
     private let engine = AVAudioEngine()
-    private var sourceNode: AVAudioSourceNode?
+    private let ambiencePlayer = AVAudioPlayerNode()
+    private let ambienceFilter = AVAudioUnitEQ(numberOfBands: 1)
     private let effectsPlayer = AVAudioPlayerNode()
-    /// Dedicated player for filtered PA speech (its own format/sample rate).
-    private var paPlayer: AVAudioPlayerNode?
-    private var paFormat: AVAudioFormat?
-    private var sampleRate: Double = 44100
-    private var isRunning = false
-
-    // Parameters read by the render thread, written from the main thread.
-    // Smoothing inside the render loop makes races inaudible.
-    private var targetGain: Float = 0
-    private var targetBrightness: Float = 0.05
-    private var duckFactor: Float = 1.0
-
-    // Render-thread state.
-    private var currentGain: Float = 0
-    private var currentBrightness: Float = 0.05
-    private var lp1: Float = 0
-    private var lp2: Float = 0
-    private var rumblePhase: Float = 0
-
-    /// One-shots keep the engine alive until this deadline so `stopAmbience`
-    /// cannot tear the graph down mid-buffer (rip → depart race).
-    private var oneShotHoldUntil: Date = .distantPast
-    private var teardownWorkItem: DispatchWorkItem?
+    /// Announcements run through their own band-limited chain so a clean studio
+    /// recording arrives sounding like it came out of a ceiling speaker.
+    private let announcementPlayer = AVAudioPlayerNode()
+    private let paFilter = AVAudioUnitEQ(numberOfBands: 3)
+    private var ambienceBuffer: AVAudioPCMBuffer?
+    private var graphBuilt = false
+    private var ambienceScheduled = false
+    private var profile: Profile = .silent
+    private var ducked = false
+    private var rampGeneration = 0
+    private var announcementGeneration = 0
 
     private init() {}
 
-    // MARK: - Lifecycle
+    var ambienceRunning: Bool {
+        engine.isRunning && ambiencePlayer.isPlaying && profile != .silent
+    }
 
-    /// Configures the session and starts the engine if ambience is enabled.
     func startAmbience(profile: Profile) {
-        cancelPendingTeardown()
         guard SettingsStore.shared.ambienceEnabled else { return }
-        setProfile(profile)
         startEngineIfNeeded()
+        setProfile(profile)
     }
 
     func stopAmbience() {
-        targetGain = 0
-        // The render loop glides gain to zero over ~1.2 s — wait for the
-        // fade to finish so a diversion doesn't cut like a power failure.
-        scheduleTeardown(after: 1.6)
+        profile = .silent
+        rampAmbience(to: 0, duration: 0.7)
     }
 
     func setProfile(_ profile: Profile) {
-        // One-shot effects (chime, thunk) may keep the engine alive while
-        // ambience is switched off — keep the bed silent in that case.
-        targetGain = SettingsStore.shared.ambienceEnabled ? profile.gain : 0
-        targetBrightness = profile.brightness
-    }
-
-    /// Lower the bed while the PA speaks.
-    func setDucked(_ ducked: Bool) {
-        duckFactor = ducked ? 0.35 : 1.0
-    }
-
-    var ambienceRunning: Bool { isRunning }
-
-    private func startEngineIfNeeded() {
-        guard !isRunning else { return }
-        do {
-            let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playback, mode: .default)
-            try session.setActive(true)
-
-            if sourceNode == nil {
-                buildGraph()
-            }
-            engine.prepare()
-            try engine.start()
-            if !effectsPlayer.isPlaying {
-                effectsPlayer.play()
-            }
-            isRunning = true
-        } catch {
-            // Audio is a garnish — never let it take the app down.
-            isRunning = false
-        }
-    }
-
-    private func buildGraph() {
-        let output = engine.outputNode
-        let hwRate = output.outputFormat(forBus: 0).sampleRate
-        sampleRate = hwRate > 0 ? hwRate : 44_100
-        guard let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1) else {
+        self.profile = profile
+        guard SettingsStore.shared.ambienceEnabled else {
+            rampAmbience(to: 0, duration: 0.25)
             return
         }
-
-        let node = AVAudioSourceNode { [weak self] (_, _, frameCount, audioBufferList) -> OSStatus in
-            guard let self else { return noErr }
-            let ablPointer = UnsafeMutableAudioBufferListPointer(audioBufferList)
-            let gainStep: Float = 1.0 / Float(self.sampleRate * 1.2)   // ~1.2 s full swell
-            let brightStep: Float = 1.0 / Float(self.sampleRate * 0.8)
-
-            for frame in 0..<Int(frameCount) {
-                // Glide toward targets so profile changes sound like thrust changes.
-                let goalGain = self.targetGain * self.duckFactor
-                if self.currentGain < goalGain {
-                    self.currentGain = min(self.currentGain + gainStep, goalGain)
-                } else {
-                    self.currentGain = max(self.currentGain - gainStep, goalGain)
-                }
-                if self.currentBrightness < self.targetBrightness {
-                    self.currentBrightness = min(self.currentBrightness + brightStep, self.targetBrightness)
-                } else {
-                    self.currentBrightness = max(self.currentBrightness - brightStep, self.targetBrightness)
-                }
-
-                let white = Float.random(in: -1...1)
-                // Two cascaded one-pole low-passes; brightness moves the cutoff.
-                let alpha = 0.02 + self.currentBrightness * 0.25
-                self.lp1 += alpha * (white - self.lp1)
-                self.lp2 += alpha * (self.lp1 - self.lp2)
-
-                // Slow amplitude wobble so the rumble breathes a little.
-                self.rumblePhase += 0.35 / Float(self.sampleRate)
-                if self.rumblePhase > 1 { self.rumblePhase -= 1 }
-                let wobble = 0.92 + 0.08 * sin(self.rumblePhase * 2 * .pi)
-
-                let sample = self.lp2 * 3.2 * self.currentGain * wobble
-                for buffer in ablPointer {
-                    guard let data = buffer.mData else { continue }
-                    data.assumingMemoryBound(to: Float.self)[frame] = sample
-                }
-            }
-            return noErr
-        }
-
-        engine.attach(node)
-        engine.attach(effectsPlayer)
-        engine.connect(node, to: engine.mainMixerNode, format: format)
-        engine.connect(effectsPlayer, to: engine.mainMixerNode, format: format)
-        sourceNode = node
-    }
-
-    private func cancelPendingTeardown() {
-        teardownWorkItem?.cancel()
-        teardownWorkItem = nil
-    }
-
-    private func holdEngine(for duration: TimeInterval) {
-        let until = Date().addingTimeInterval(duration)
-        if until > oneShotHoldUntil {
-            oneShotHoldUntil = until
-        }
-        cancelPendingTeardown()
-    }
-
-    private func scheduleTeardown(after delay: TimeInterval) {
-        cancelPendingTeardown()
-        let work = DispatchWorkItem { [weak self] in
-            guard let self else { return }
-            guard self.targetGain == 0 else { return }
-            let remaining = self.oneShotHoldUntil.timeIntervalSinceNow
-            if remaining > 0.01 {
-                self.scheduleTeardown(after: remaining)
-                return
-            }
-            self.effectsPlayer.stop()
-            self.paPlayer?.stop()
-            self.engine.stop()
-            self.isRunning = false
-            try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
-            self.teardownWorkItem = nil
-        }
-        teardownWorkItem = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + max(0.05, delay), execute: work)
-    }
-
-    // MARK: - PA speech
-
-    /// Plays pre-filtered PA speech buffers through their own player node.
-    /// `completion` fires on the main queue when the last buffer finishes.
-    func playPA(buffers: [AVAudioPCMBuffer], completion: @escaping () -> Void) {
-        guard let first = buffers.first else { completion(); return }
-        cancelPendingTeardown()
         startEngineIfNeeded()
-        guard isRunning else { completion(); return }
+        ambienceFilter.bands[0].frequency = profile.cutoff
+        rampAmbience(to: profile.volume * (ducked ? 0.28 : 1), duration: 0.65)
+    }
 
-        let format = first.format
-        if paPlayer == nil || paFormat != format {
-            if let old = paPlayer {
-                old.stop()
-                engine.detach(old)
+    func setDucked(_ ducked: Bool) {
+        self.ducked = ducked
+        let target = SettingsStore.shared.ambienceEnabled
+            ? profile.volume * (ducked ? 0.28 : 1)
+            : 0
+        rampAmbience(to: target, duration: ducked ? 0.2 : 0.55)
+    }
+
+    // MARK: Cabin PA
+
+    /// Plays a pre-rendered announcement through the PA chain.
+    ///
+    /// Returns `false` when the clip cannot be played, which is the caller's
+    /// signal to fall back to on-device speech. Announcements are never
+    /// synthesized over the network during a flight.
+    func playAnnouncement(url: URL, completion: @escaping () -> Void) -> Bool {
+        startEngineIfNeeded()
+        guard engine.isRunning,
+              let file = try? AVAudioFile(forReading: url),
+              file.processingFormat.sampleRate == 44_100,
+              file.processingFormat.channelCount == 1,
+              let buffer = AVAudioPCMBuffer(pcmFormat: file.processingFormat,
+                                            frameCapacity: AVAudioFrameCount(file.length)),
+              (try? file.read(into: buffer)) != nil,
+              buffer.frameLength > 0
+        else { return false }
+
+        announcementGeneration += 1
+        let generation = announcementGeneration
+        announcementPlayer.stop()
+        announcementPlayer.play()
+        setDucked(true)
+        announcementPlayer.scheduleBuffer(buffer, completionCallbackType: .dataPlayedBack) { [weak self] _ in
+            DispatchQueue.main.async {
+                // A newer announcement already took the speaker; leave its ducking alone.
+                guard let self, self.announcementGeneration == generation else { return }
+                self.setDucked(false)
+                completion()
             }
-            let node = AVAudioPlayerNode()
-            engine.attach(node)
-            engine.connect(node, to: engine.mainMixerNode, format: format)
-            paPlayer = node
-            paFormat = format
         }
-        guard let player = paPlayer else { completion(); return }
-
-        let totalFrames = buffers.reduce(0) { $0 + Double($1.frameLength) }
-        holdEngine(for: totalFrames / format.sampleRate + 0.5)
-
-        for (index, buffer) in buffers.enumerated() {
-            let isLast = index == buffers.count - 1
-            player.scheduleBuffer(buffer, completionCallbackType: .dataPlayedBack) { _ in
-                if isLast {
-                    DispatchQueue.main.async(execute: completion)
-                }
-            }
-        }
-        player.play()
+        return true
     }
 
     func stopPA() {
-        paPlayer?.stop()
+        announcementGeneration += 1
+        announcementPlayer.stop()
+        setDucked(false)
     }
 
-    // MARK: - One-shot effects
+    // MARK: Direct-manipulation and flight cues
 
-    /// Two-tone cabin chime ("bing-bong"). Platinum flyers get a richer triple chime.
     func playChime(premium: Bool = false) {
-        guard SettingsStore.shared.ambienceEnabled || SettingsStore.shared.announcementsEnabled else { return }
-        cancelPendingTeardown()
-        startEngineIfNeeded()
+        guard soundEffectsEnabled else { return }
         let notes: [(Double, Double)] = premium
-            ? [(830.6, 0.0), (659.3, 0.35), (554.4, 0.70)]   // G#5, E5, C#5
-            : [(659.3, 0.0), (523.3, 0.4)]                    // E5, C5
-        guard let last = notes.last,
-              let buffer = makeBuffer(duration: last.1 + 1.8, build: { i, t, sr in
-            var sample: Float = 0
-            for (freq, start) in notes {
-                let local = t - start
-                if local >= 0 {
-                    // Soft mallet attack into a long, warm decay; a barely
-                    // detuned pair beats gently like a real cabin chime bar.
-                    let attack = 1 - expf(-90 * Float(local))
-                    let env = attack * expf(-2.4 * Float(local))
-                    let f = Float(freq)
-                    sample += sinf(2 * .pi * f * Float(local)) * env * 0.13
-                    sample += sinf(2 * .pi * f * 1.003 * Float(local)) * env * 0.05
-                    sample += sinf(4 * .pi * f * Float(local)) * env * 0.02
-                }
+            ? [(784, 0), (659, 0.28), (523, 0.56)]
+            : [(659, 0), (523, 0.34)]
+        play(duration: premium ? 1.45 : 1.2) { _, t, _ in
+            notes.reduce(0) { sample, note in
+                let local = t - note.1
+                guard local >= 0 else { return sample }
+                let envelope = (1 - exp(-70 * local)) * exp(-3.1 * local)
+                return sample
+                    + Float(sin(2 * .pi * note.0 * local) * envelope * 0.095)
+                    + Float(sin(2 * .pi * note.0 * 2.01 * local) * envelope * 0.018)
             }
-            _ = i; _ = sr
-            return sample
-        }) else { return }
-        holdEngine(for: last.1 + 2.0)
-        schedule(buffer)
+        }
     }
 
-    /// Paper-tear "zipper" for the boarding-pass rip: bright crackle whose
-    /// fiber-snap rate accelerates through the tear, then dies off.
     func playRip() {
-        guard SettingsStore.shared.ambienceEnabled || SettingsStore.shared.announcementsEnabled else { return }
-        cancelPendingTeardown()
-        startEngineIfNeeded()
-        holdEngine(for: 0.8)
-        guard let buffer = makeBuffer(duration: 0.55, build: { i, t, sr in
-            let progress = Float(t / 0.55)
-            let env = powf(1 - progress, 1.4)
-            // Perforations popping: the snap rate speeds up as the tear runs.
-            let zipRate = 60.0 + 220.0 * Double(progress)
-            let zip = 0.35 + 0.65 * abs(sinf(Float(2 * .pi * zipRate * t)))
-            // High-passed crackle: difference of consecutive white samples.
-            let white = Float.random(in: -1...1)
-            let crackle = white - (i % 2 == 0 ? 0.5 : -0.5) * Float.random(in: 0...1)
-            _ = sr
-            return crackle * zip * env * 0.5
-        }) else { return }
-        schedule(buffer)
+        guard soundEffectsEnabled else { return }
+        var previous: Float = 0
+        play(duration: 0.38) { i, t, _ in
+            let progress = Float(t / 0.38)
+            let noise = Self.noise(i &* 19 &+ 31)
+            let high = noise - previous * 0.84
+            previous = noise
+            let zipper = 0.45 + 0.55 * abs(sin(Float(t) * (260 + 520 * progress)))
+            return high * zipper * pow(1 - progress, 0.75) * 0.24
+        }
     }
 
-    /// Gate printer chattering out the boarding pass. One buzz burst per
-    /// line feed (the view animates from the same schedule), a soft feed
-    /// motor underneath, and the classic double confirmation beep when the
-    /// pass is done.
     func playPrinter(feedSchedule: [Double]) {
-        guard SettingsStore.shared.ambienceEnabled || SettingsStore.shared.announcementsEnabled else { return }
-        cancelPendingTeardown()
-        startEngineIfNeeded()
-
-        // Cumulative burst start times from the gap schedule.
-        var bursts: [Double] = []
+        guard soundEffectsEnabled else { return }
+        var starts: [Double] = []
         var cursor = 0.0
         for gap in feedSchedule {
-            bursts.append(cursor)
+            starts.append(cursor)
             cursor += gap
         }
-        let beepStart = cursor + 0.12
-        let total = beepStart + 0.5
-        holdEngine(for: total + 0.2)
-
-        guard let buffer = makeBuffer(duration: total, build: { _, t, _ in
-            var sample: Float = 0
-
-            // Feed motor hum while lines are printing.
-            if t < cursor {
-                sample += sinf(Float(2 * .pi * 112 * t)) * 0.022
-            }
-
-            // Line-feed bursts: 90 ms of stepper buzz each.
-            for start in bursts {
+        let completion = cursor + 0.12
+        play(duration: completion + 0.42) { i, t, _ in
+            var sample: Float = t < cursor ? Float(sin(2 * .pi * 92 * t)) * 0.012 : 0
+            for start in starts {
                 let local = t - start
-                if local >= 0 && local < 0.09 {
-                    let env = sinf(Float(local / 0.09) * .pi)   // smooth in/out
-                    // Stepper buzz: 160 Hz square-ish + head noise.
-                    let square: Float = sinf(Float(2 * .pi * 160 * local)) > 0 ? 1 : -1
-                    sample += square * 0.055 * env
-                    sample += Float.random(in: -1...1) * 0.075 * env
-                    sample += sinf(Float(2 * .pi * 950 * local)) * 0.018 * env
+                if local >= 0, local < 0.065 {
+                    let envelope = Float(sin(.pi * local / 0.065))
+                    sample += Self.noise(i &+ Int(start * 10_000)) * envelope * 0.045
+                    sample += Float(sin(2 * .pi * 145 * local)) * envelope * 0.025
                 }
             }
-
-            // Done: two short 1.25 kHz beeps, like every gate printer alive.
-            for beep in [beepStart, beepStart + 0.22] {
-                let local = t - beep
-                if local >= 0 && local < 0.12 {
-                    let env = min(1, Float(local) / 0.008) * expf(-26 * Float(max(0, local - 0.07)))
-                    sample += sinf(Float(2 * .pi * 1250 * local)) * 0.085 * env
+            for start in [completion, completion + 0.18] {
+                let local = t - start
+                if local >= 0, local < 0.09 {
+                    sample += Float(sin(2 * .pi * 1_180 * local)) * Float(sin(.pi * local / 0.09)) * 0.045
                 }
             }
             return sample
-        }) else { return }
-        schedule(buffer)
+        }
     }
 
-    /// One perforation fiber snapping — played per ratchet step while the
-    /// stub is pulled, so the tear is heard as it happens.
     func playTearTick() {
-        guard SettingsStore.shared.ambienceEnabled || SettingsStore.shared.announcementsEnabled else { return }
-        cancelPendingTeardown()
-        startEngineIfNeeded()
-        holdEngine(for: 0.15)
-        guard let buffer = makeBuffer(duration: 0.06, build: { i, t, _ in
-            let env = expf(-70 * Float(t))
-            let white = Float.random(in: -1...1)
-            let crackle = white - (i % 2 == 0 ? 0.5 : -0.5) * Float.random(in: 0...1)
-            return crackle * env * 0.22
-        }) else { return }
-        schedule(buffer)
+        guard soundEffectsEnabled else { return }
+        play(duration: 0.045) { i, t, _ in
+            Self.noise(i &* 7 &+ 13) * Float(exp(-85 * t)) * 0.11
+        }
     }
 
-    /// Engines spooling to takeoff power: a rising turbine whine over the
-    /// swelling ambience bed.
     func playTakeoffSpool() {
-        guard SettingsStore.shared.ambienceEnabled else { return }
-        cancelPendingTeardown()
-        startEngineIfNeeded()
-        holdEngine(for: 3.2)
-        guard let buffer = makeBuffer(duration: 3.0, build: { _, t, _ in
-            let progress = Float(t / 3.0)
-            // Fade in, hold, release into the (now louder) engine bed.
-            let env = min(1, Float(t) / 0.8) * (t > 2.4 ? Float((3.0 - t) / 0.6) : 1)
-            // Turbine whine sweeping up as N1 rises.
-            let freq = 140.0 + 420.0 * Double(progress * progress)
-            let phase = 2 * .pi * (140.0 * t + 210.0 * t * t * t / 9.0)
-            let whine = sinf(Float(phase)) * 0.05 + sinf(Float(phase * 2.01)) * 0.02
-            _ = freq
-            // Low shove underneath.
-            let rumble = sinf(Float(2 * .pi * 38 * t)) * 0.06 * progress
-            return (whine + rumble) * env
-        }) else { return }
-        schedule(buffer)
+        guard soundEffectsEnabled else { return }
+        play(duration: 2.8) { _, t, _ in
+            let progress = Float(t / 2.8)
+            let envelope = min(1, Float(t) / 0.55) * min(1, Float((2.8 - t) / 0.5))
+            let phase = 2 * Double.pi * (125 * t + 52 * t * t)
+            let turbine = Float(sin(phase)) * 0.032 + Float(sin(phase * 2.01)) * 0.009
+            let body = Float(sin(2 * .pi * 39 * t)) * progress * 0.022
+            return (turbine + body) * envelope
+        }
     }
 
-    /// Touchdown: main-gear thump, nose-gear thump, and a short tire chirp.
     func playTouchdown() {
-        guard SettingsStore.shared.ambienceEnabled else { return }
-        cancelPendingTeardown()
-        startEngineIfNeeded()
-        holdEngine(for: 1.6)
-        guard let buffer = makeBuffer(duration: 1.4, build: { _, t, _ in
+        guard soundEffectsEnabled else { return }
+        play(duration: 1.25) { i, t, _ in
             var sample: Float = 0
-            // Two gear thumps: mains at 0, nose at 0.55s.
-            for (start, gain) in [(0.0, Float(0.7)), (0.55, Float(0.45))] {
+            for (start, gain) in [(0.0, Float(0.34)), (0.42, Float(0.21))] {
                 let local = t - start
                 if local >= 0 {
-                    let env = expf(-11 * Float(local))
-                    sample += sinf(2 * .pi * 46 * Float(local)) * env * gain
-                    if local < 0.02 { sample += Float.random(in: -0.35...0.35) * gain }
+                    sample += Float(sin(2 * .pi * 47 * local)) * Float(exp(-12 * local)) * gain
+                    if local < 0.035 { sample += Self.noise(i &+ Int(start * 1_000)) * gain * 0.18 }
                 }
             }
-            // Tire chirp right at the mains.
-            if t < 0.22 {
-                let env = expf(-16 * Float(t))
-                sample += Float.random(in: -1...1) * env * 0.18
-            }
+            if t < 0.18 { sample += Self.noise(i &* 3) * Float(exp(-18 * t)) * 0.07 }
             return sample
-        }) else { return }
-        schedule(buffer)
+        }
     }
 
-    /// Low mechanical thunk for landing gear.
     func playThunk() {
-        cancelPendingTeardown()
-        startEngineIfNeeded()
-        holdEngine(for: 0.7)
-        guard let buffer = makeBuffer(duration: 0.5, build: { _, t, _ in
-            let env = expf(-9 * Float(t))
-            let body = sinf(2 * .pi * 52 * Float(t)) * env * 0.55
-            let click = t < 0.02 ? Float.random(in: -0.4...0.4) : 0
-            return body + click
-        }) else { return }
-        schedule(buffer)
+        guard soundEffectsEnabled else { return }
+        play(duration: 0.42) { i, t, _ in
+            let body = Float(sin(2 * .pi * 54 * t)) * Float(exp(-13 * t)) * 0.28
+            let latch = t < 0.018 ? Self.noise(i &* 11) * 0.08 : 0
+            return body + latch
+        }
     }
 
-    // MARK: - Buffer helpers
+    /// The seatbelt sign: two hollow, bell-like bongs. Deliberately lower and
+    /// longer than `playChime` so the two never read as the same event.
+    func playSeatbeltSign() {
+        guard soundEffectsEnabled else { return }
+        // Inharmonic partials are what separate a struck bell from a sine beep.
+        let partials: [(Double, Float)] = [(1, 0.085), (2.02, 0.03), (2.76, 0.014), (5.1, 0.005)]
+        play(duration: 2.6) { _, t, _ in
+            [0.0, 0.62].reduce(0) { sample, start in
+                let local = t - start
+                guard local >= 0 else { return sample }
+                let strike = (1 - exp(-260 * local))
+                return sample + partials.reduce(0) { voice, partial in
+                    let decay = exp(-1.55 * local * Double(partial.0))
+                    return voice + Float(sin(2 * .pi * 392 * partial.0 * local) * decay) * partial.1 * Float(strike)
+                }
+            }
+        }
+    }
+
+    /// Seat selection: the click of a latch with a little cushion behind it.
+    func playSeatLatch() {
+        guard soundEffectsEnabled else { return }
+        play(duration: 0.16) { i, t, _ in
+            let click = t < 0.006 ? Self.noise(i &* 23 &+ 5) * 0.16 : 0
+            let body = Float(sin(2 * .pi * 148 * t)) * Float(exp(-34 * t)) * 0.09
+            return click + body
+        }
+    }
+
+    /// The single clean beep of a gate scanner reading a barcode.
+    func playScanBeep() {
+        guard soundEffectsEnabled else { return }
+        play(duration: 0.13) { _, t, _ in
+            // Flat body with fast edges reads as electronic rather than musical.
+            let envelope = min(1, Float(t) / 0.004) * min(1, Float((0.1 - t) / 0.012))
+            guard envelope > 0 else { return 0 }
+            return (Float(sin(2 * .pi * 2_093 * t)) * 0.075
+                + Float(sin(2 * .pi * 4_186 * t)) * 0.012) * envelope
+        }
+    }
+
+    /// Diversion: a muted descending pair. Soft attacks and a flattened
+    /// interval make it land as disappointment rather than alarm.
+    func playDivertTone() {
+        guard soundEffectsEnabled else { return }
+        let notes: [(Double, Double)] = [(415, 0), (311, 0.34)]
+        play(duration: 1.5) { _, t, _ in
+            notes.reduce(0) { sample, note in
+                let local = t - note.1
+                guard local >= 0 else { return sample }
+                let envelope = (1 - exp(-14 * local)) * exp(-2.4 * local)
+                return sample + Float(sin(2 * .pi * note.0 * local) * envelope * 0.075)
+            }
+        }
+    }
+
+    // MARK: Audio graph
+
+    private var soundEffectsEnabled: Bool {
+        SettingsStore.shared.soundEffectsEnabled
+    }
+
+    private func startEngineIfNeeded() {
+        if !graphBuilt { buildGraph() }
+        guard graphBuilt else { return }
+
+        if !engine.isRunning {
+            do {
+                let session = AVAudioSession.sharedInstance()
+                // Ambient respects the Ring/Silent switch and coexists with a
+                // passenger's music instead of taking ownership of the device.
+                try session.setCategory(.ambient, mode: .default, options: [.mixWithOthers])
+                try session.setActive(true)
+                engine.prepare()
+                try engine.start()
+            } catch {
+                return // Sound is enhancement, never a reason to block a flight.
+            }
+        }
+
+        if !ambienceScheduled, let ambienceBuffer {
+            ambiencePlayer.scheduleBuffer(ambienceBuffer, at: nil, options: .loops)
+            ambienceScheduled = true
+        }
+        if !ambiencePlayer.isPlaying { ambiencePlayer.play() }
+        if !effectsPlayer.isPlaying { effectsPlayer.play() }
+    }
+
+    /// A ceiling speaker is a small, band-limited driver in a hard-trimmed
+    /// cabin. Rolling off the chest and the air, then lifting presence, is what
+    /// turns a clean studio read into a public-address announcement.
+    private func configurePAFilter() {
+        let bands = paFilter.bands
+        bands[0].filterType = .highPass
+        bands[0].frequency = 240
+        bands[0].bypass = false
+        bands[1].filterType = .parametric
+        bands[1].frequency = 2_400
+        bands[1].bandwidth = 1.1
+        bands[1].gain = 4.5
+        bands[1].bypass = false
+        bands[2].filterType = .lowPass
+        bands[2].frequency = 5_000
+        bands[2].bypass = false
+        paFilter.globalGain = 1.5
+    }
+
+    private func buildGraph() {
+        let rate = 44_100.0
+        guard let format = AVAudioFormat(standardFormatWithSampleRate: rate, channels: 1),
+              let loop = makeAmbienceLoop(format: format) else { return }
+
+        ambienceFilter.bands[0].filterType = .lowPass
+        ambienceFilter.bands[0].frequency = Profile.boarding.cutoff
+        ambienceFilter.bands[0].bandwidth = 0.6
+        ambienceFilter.bands[0].bypass = false
+        ambiencePlayer.volume = 0
+
+        configurePAFilter()
+
+        engine.attach(ambiencePlayer)
+        engine.attach(ambienceFilter)
+        engine.attach(effectsPlayer)
+        engine.attach(announcementPlayer)
+        engine.attach(paFilter)
+        engine.connect(ambiencePlayer, to: ambienceFilter, format: format)
+        engine.connect(ambienceFilter, to: engine.mainMixerNode, format: format)
+        engine.connect(effectsPlayer, to: engine.mainMixerNode, format: format)
+        engine.connect(announcementPlayer, to: paFilter, format: format)
+        engine.connect(paFilter, to: engine.mainMixerNode, format: format)
+        engine.mainMixerNode.outputVolume = 0.86
+        ambienceBuffer = loop
+        graphBuilt = true
+    }
+
+    private func rampAmbience(to target: Float, duration: Double) {
+        rampGeneration += 1
+        let generation = rampGeneration
+        let start = ambiencePlayer.volume
+        let steps = max(1, Int(duration * 30))
+        for step in 1...steps {
+            DispatchQueue.main.asyncAfter(deadline: .now() + duration * Double(step) / Double(steps)) { [weak self] in
+                guard let self, self.rampGeneration == generation else { return }
+                let x = Float(step) / Float(steps)
+                let eased = x * x * (3 - 2 * x)
+                self.ambiencePlayer.volume = start + (target - start) * eased
+            }
+        }
+    }
+
+    private func play(duration: Double, build: (Int, Double, Double) -> Float) {
+        startEngineIfNeeded()
+        guard engine.isRunning,
+              let buffer = makeBuffer(duration: duration, build: build) else { return }
+        effectsPlayer.scheduleBuffer(buffer)
+        if !effectsPlayer.isPlaying { effectsPlayer.play() }
+    }
 
     private func makeBuffer(duration: Double, build: (Int, Double, Double) -> Float) -> AVAudioPCMBuffer? {
-        let sr = sampleRate > 0 ? sampleRate : 44_100
-        let frames = AVAudioFrameCount(max(1, duration * sr))
-        guard let format = AVAudioFormat(standardFormatWithSampleRate: sr, channels: 1),
+        let rate = 44_100.0
+        let frames = AVAudioFrameCount(max(1, duration * rate))
+        guard let format = AVAudioFormat(standardFormatWithSampleRate: rate, channels: 1),
               let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frames),
-              let channel = buffer.floatChannelData?[0] else { return nil }
+              let samples = buffer.floatChannelData?[0] else { return nil }
         buffer.frameLength = frames
-        for i in 0..<Int(frames) {
-            channel[i] = build(i, Double(i) / sr, sr)
+        for i in 0..<Int(frames) { samples[i] = build(i, Double(i) / rate, rate) }
+        return buffer
+    }
+
+    private func makeAmbienceLoop(format: AVAudioFormat) -> AVAudioPCMBuffer? {
+        let duration = 7.0
+        let count = Int(format.sampleRate * duration)
+        guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(count)),
+              let samples = buffer.floatChannelData?[0] else { return nil }
+        buffer.frameLength = AVAudioFrameCount(count)
+
+        var low: Float = 0
+        var lower: Float = 0
+        for i in 0..<count {
+            let white = Self.noise(i)
+            low += 0.11 * (white - low)
+            lower += 0.025 * (low - lower)
+            let t = Double(i) / format.sampleRate
+            let engines = Float(sin(2 * .pi * 43 * t)) * 0.11
+                + Float(sin(2 * .pi * 86 * t + 0.7)) * 0.035
+            let breathe = 0.92 + Float(sin(2 * .pi * t / duration)) * 0.08
+            samples[i] = (lower * 1.8 + low * 0.28 + engines) * breathe
+        }
+
+        // Crossfade the tail into the head so `.loops` has no audible seam.
+        let fade = Int(format.sampleRate * 0.32)
+        for i in 0..<fade {
+            let x = Float(i) / Float(fade)
+            let tailIndex = count - fade + i
+            samples[tailIndex] = samples[tailIndex] * (1 - x) + samples[i] * x
         }
         return buffer
     }
 
-    private func schedule(_ buffer: AVAudioPCMBuffer) {
-        guard isRunning, engine.isRunning else { return }
-        effectsPlayer.scheduleBuffer(buffer, at: nil, options: [])
-        if !effectsPlayer.isPlaying {
-            effectsPlayer.play()
-        }
+    /// Fast deterministic noise: reproducible, allocation-free, and never
+    /// evaluated on AVAudioEngine's realtime render thread.
+    private static func noise(_ index: Int) -> Float {
+        var x = UInt32(truncatingIfNeeded: index) &+ 0x9E37_79B9
+        x ^= x >> 16
+        x &*= 0x7FEB_352D
+        x ^= x >> 15
+        x &*= 0x846C_A68B
+        x ^= x >> 16
+        return Float(x) / Float(UInt32.max) * 2 - 1
     }
 }

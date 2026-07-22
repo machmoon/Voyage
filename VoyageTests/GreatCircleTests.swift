@@ -74,4 +74,46 @@ final class GreatCircleTests: XCTestCase {
             XCTAssertLessThan(points[i].longitude, points[i - 1].longitude)
         }
     }
+
+    func testFlightReplayStartsAtOriginAndEndsAtDestination() {
+        let entry = LogbookEntry(
+            originCode: "BOS",
+            destinationCode: "SFO",
+            flightNumber: "UA 424",
+            seat: "12A",
+            miles: 2_700,
+            focusSeconds: 4 * 3600,
+            completed: true
+        )
+
+        let start = FlightDataAPI.shared.replaySnapshot(for: entry, progress: 0)
+        let end = FlightDataAPI.shared.replaySnapshot(for: entry, progress: 1)
+
+        XCTAssertEqual(start.coordinate.latitude, entry.origin.latitude, accuracy: 1e-6)
+        XCTAssertEqual(start.coordinate.longitude, entry.origin.longitude, accuracy: 1e-6)
+        XCTAssertEqual(end.coordinate.latitude, entry.destination.latitude, accuracy: 1e-6)
+        XCTAssertEqual(end.coordinate.longitude, entry.destination.longitude, accuracy: 1e-6)
+    }
+
+    func testFlightReplayCourseFollowsGreatCircleInsteadOfStayingFixed() {
+        let entry = LogbookEntry(
+            originCode: "JFK",
+            destinationCode: "SFO",
+            flightNumber: "UA 424",
+            seat: "12A",
+            miles: 2_586,
+            focusSeconds: 4 * 3600,
+            completed: true
+        )
+
+        let start = FlightDataAPI.shared.replaySnapshot(for: entry, progress: 0.05)
+        let end = FlightDataAPI.shared.replaySnapshot(for: entry, progress: 0.95)
+
+        XCTAssertGreaterThan(abs(start.course - end.course), 10,
+                             "The aircraft should turn with the great-circle route")
+        XCTAssertGreaterThan(start.course, 240)
+        XCTAssertLessThan(start.course, 330)
+        XCTAssertGreaterThan(end.course, 220)
+        XCTAssertLessThan(end.course, 300)
+    }
 }

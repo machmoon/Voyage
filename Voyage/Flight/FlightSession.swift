@@ -9,8 +9,8 @@ enum LegPhase: Int, Comparable {
     case takeoffRoll   // engines to full power, runway lights streaking
     case climb         // rotation, punching through cloud layers
     case cruise        // the long middle — this is the study time
-    case descent       // final ~3 minutes
-    case landing       // flare, touchdown, rollout (last ~15 s)
+    case descent       // block-time-scaled descent toward the arrival corridor
+    case landing       // flare, touchdown, and the final 30-second rollout
 
     static func < (lhs: LegPhase, rhs: LegPhase) -> Bool { lhs.rawValue < rhs.rawValue }
 }
@@ -31,10 +31,17 @@ final class FlightSession {
         case missedConnection   // layover boarding window expired
     }
 
+    /// Why a session ended as diverted (not used for missed connections).
+    enum DiversionReason: Equatable {
+        case backgroundTimeout
+        case voluntary
+    }
+
     // MARK: Configuration
 
     let itinerary: Itinerary
     var seat: String = "—"
+    var aircraft: AircraftProfile = .boeing737800
     var intentions: [String] = []
     let bookedAt: Date
 
@@ -54,16 +61,33 @@ final class FlightSession {
     /// Real current weather at the current leg's endpoints.
     private(set) var originCondition: SkyCondition = .clear
     private(set) var destinationCondition: SkyCondition = .clear
+    private(set) var originWeatherSnapshot: WeatherSnapshot?
+    /// Weather and runway choices are frozen before the first takeoff. They
+    /// never mutate while a leg is in progress, so live and replay match.
+    private(set) var frozenLegEnvironments: [FlightEnvironmentSnapshot] = []
+    private(set) var legTrajectories: [FlightTrajectory] = []
+    /// Cached samples from those same trajectories for the live flight-map
+    /// polylines. This keeps authored runway turns/approaches aligned with the
+    /// marker without resampling the spline every SwiftUI update.
+    private(set) var legMapSamples: [[FlightTrajectorySample]] = []
     private(set) var connectionDeparts: Date?
     private(set) var completedMiles: Double = 0
     private(set) var completedFocusSeconds: TimeInterval = 0
     private(set) var logEntry: LogbookEntry?
+    /// Set when `stage == .diverted` — distinguishes user exit from background timeout.
+    private(set) var diversionReason: DiversionReason?
 
     /// Deadline after which backgrounding becomes a diversion.
     private(set) var graceDeadline: Date?
 
+    /// While set, the beverage cart is at your row; nil once it moves on.
+    private(set) var beverageCartUntil: Date?
+    private(set) var watersTaken = 0
+
     private var timer: Timer?
     private var graceWorkItem: DispatchWorkItem?
+    private var preflightWeatherTask: Task<Void, Never>?
+    private var prefetchedLegEnvironments: [FlightEnvironmentSnapshot]?
     private var firedEvents: Set<Event> = []
     private let modelContext: ModelContext
     private let clock: any VoyageClock
@@ -74,15 +98,29 @@ final class FlightSession {
     /// without waiting ~90s of real-time (see README).
     nonisolated static var shortFlightsEnabled: Bool {
         ProcessInfo.processInfo.arguments.contains("-VoyageShortFlights")
+            || ProcessInfo.processInfo.environment["VOYAGE_SHORT_FLIGHTS"] == "1"
     }
 
-    nonisolated static var takeoffRollDuration: TimeInterval { shortFlightsEnabled ? 3 : 18 }
-    /// Elapsed seconds when climb ends and cruise begins (includes the takeoff roll).
-    nonisolated static var climbEndsAt: TimeInterval { shortFlightsEnabled ? 8 : 90 }
-    nonisolated static let descentDuration: TimeInterval = 180
-    nonisolated static let landingDuration: TimeInterval = 15
+    /// Long enough for engine spool and acceleration to read, without making
+    /// the user wait through a real-time runway roll.
+    nonisolated static var takeoffRollDuration: TimeInterval { shortFlightsEnabled ? 5 : 30 }
+    /// Compatibility constants for dormant procedural artwork. Live session
+    /// boundaries come from the aircraft- and block-time-specific schedule.
+    nonisolated static var climbEndsAt: TimeInterval { shortFlightsEnabled ? 16 : 8.5 * 60 }
+    nonisolated static let descentDuration: TimeInterval = 25 * 60
+    nonisolated static let landingDuration: TimeInterval = 30
     nonisolated static let graceDuration: TimeInterval = 30
     nonisolated static let finalCallWindow: TimeInterval = 3 * 60
+
+    /// Beverage service: a hydration nudge for long study flights — first
+    /// pass ~25 min into cruise, then about every half hour. Short QA flights
+    /// skip the cart entirely so demos aren't interrupted.
+    nonisolated static var beverageFirstDelay: TimeInterval { shortFlightsEnabled ? .infinity : 25 * 60 }
+    nonisolated static var beverageInterval: TimeInterval { shortFlightsEnabled ? .infinity : 30 * 60 }
+    /// How long the cart lingers at your row before moving on.
+    nonisolated static var beverageCartWindow: TimeInterval { shortFlightsEnabled ? 12 : 90 }
+    /// Skip beverage service on hops shorter than this (cruise never gets long enough).
+    nonisolated static let beverageMinimumLegDuration: TimeInterval = 45 * 60
 
     init(itinerary: Itinerary,
          modelContext: ModelContext,
@@ -112,9 +150,28 @@ final class FlightSession {
 
     var legRemaining: TimeInterval { max(0, currentLeg.duration - legElapsed) }
     var legProgress: Double {
-        let d = currentLeg.duration
-        guard d > 0 else { return 0 }
-        return min(1, legElapsed / d)
+        currentVisualState?.routeProgress ?? {
+            let d = currentLeg.duration
+            guard d > 0 else { return 0 }
+            return min(1, legElapsed / d)
+        }()
+    }
+
+    var currentTrajectory: FlightTrajectory? {
+        guard legTrajectories.indices.contains(legIndex) else { return nil }
+        return legTrajectories[legIndex]
+    }
+
+    var phaseSchedule: FlightPhaseSchedule {
+        currentTrajectory?.schedule ?? FlightPhaseSchedule.make(
+            legDuration: currentLeg.duration,
+            aircraft: aircraft,
+            shortFlights: Self.shortFlightsEnabled
+        )
+    }
+
+    var currentVisualState: FlightVisualState? {
+        currentTrajectory?.state(at: legElapsed, seat: seat)
     }
 
     /// Remaining focus time across all legs (excludes layover).
@@ -124,22 +181,21 @@ final class FlightSession {
     }
 
     var phase: LegPhase {
-        let e = legElapsed
-        let d = currentLeg.duration
-        guard d > 0 else { return .cruise }
+        phaseSchedule.phase(at: legElapsed)
+    }
 
-        // Clamp phase windows so short synthetic legs (unit tests / demos)
-        // still progress without inverted cruise/descent intervals.
-        let takeoffEnd = min(Self.takeoffRollDuration, d * 0.15)
-        let climbEnd = min(Self.climbEndsAt, max(takeoffEnd + 0.01, d * 0.35))
-        let landingStart = max(climbEnd, d - Self.landingDuration)
-        let descentStart = max(climbEnd, min(landingStart, d - min(Self.descentDuration, d * 0.45)))
-
-        if e < takeoffEnd { return .takeoffRoll }
-        if e < climbEnd { return .climb }
-        if e < descentStart { return .cruise }
-        if e < landingStart { return .descent }
-        return .landing
+    /// Elapsed time within the current visual phase. Renderers use this instead
+    /// of starting their own wall clocks, so replay and ManualClock tests see
+    /// exactly the same animation frame as a live session.
+    var phaseElapsed: TimeInterval {
+        let schedule = phaseSchedule
+        switch phase {
+        case .takeoffRoll: return legElapsed
+        case .climb: return max(0, legElapsed - schedule.takeoffEnd)
+        case .cruise: return max(0, legElapsed - schedule.climbEnd)
+        case .descent: return max(0, legElapsed - schedule.descentStart)
+        case .landing: return max(0, legElapsed - schedule.landingStart)
+        }
     }
 
     /// The ambience bed matching the current phase (used when the user
@@ -154,53 +210,27 @@ final class FlightSession {
         }
     }
 
-    /// Flavor altitude for the flight-info pill.
+    /// Altitude sampled from the same geospatial trajectory as the window and
+    /// flight map. Airport elevation is therefore preserved on the runway.
     var altitudeFeet: Int {
-        let cruiseAlt = 36_000.0
-        let climbSpan = max(0.001, Self.climbEndsAt - Self.takeoffRollDuration)
-        let descentSpan = max(0.001, Self.descentDuration - Self.landingDuration)
-        switch phase {
-        case .takeoffRoll:
-            return 0
-        case .climb:
-            let t = min(1, max(0, (legElapsed - Self.takeoffRollDuration) / climbSpan))
-            return Int((t * t) * cruiseAlt / 100) * 100
-        case .cruise:
-            let wobble = sin(legElapsed / 47) * 240
-            return Int((cruiseAlt + wobble) / 100) * 100
-        case .descent:
-            let intoDescent = max(0, legElapsed - (currentLeg.duration - Self.descentDuration))
-            let t = min(1, intoDescent / descentSpan)
-            return max(1_500, Int((1 - t) * cruiseAlt / 100) * 100)
-        case .landing:
-            let intoLanding = max(0, legElapsed - (currentLeg.duration - Self.landingDuration))
-            let t = min(1, intoLanding / max(0.001, Self.landingDuration))
-            return max(0, Int((1 - t) * 1_500 / 50) * 50)
-        }
+        guard let feet = currentVisualState?.aircraft.altitudeFeet else { return 0 }
+        return max(0, Int((feet / 50).rounded()) * 50)
     }
 
-    /// Flavor ground speed for the flight-info pill.
+    /// True trajectory ground speed for the flight-info pill and cues.
     var groundSpeedMph: Int {
-        let climbSpan = max(0.001, Self.climbEndsAt - Self.takeoffRollDuration)
-        let takeoff = max(0.001, Self.takeoffRollDuration)
-        let descent = max(0.001, Self.descentDuration)
-        let landing = max(0.001, Self.landingDuration)
-        switch phase {
-        case .takeoffRoll: return Int(min(1, legElapsed / takeoff) * 170)
-        case .climb: return 170 + Int(min(1, max(0, (legElapsed - Self.takeoffRollDuration) / climbSpan)) * 370)
-        case .cruise: return 540 + Int(sin(legElapsed / 31) * 12)
-        case .descent: return 540 - Int((1 - min(1, legRemaining / descent)) * 380)
-        case .landing: return max(0, Int(min(1, legRemaining / landing) * 150))
+        if let metersPerSecond = currentVisualState?.aircraft.groundSpeedMetersPerSecond {
+            return max(0, Int((metersPerSecond * 2.236_936).rounded()))
         }
+        return 0
     }
 
-    /// Weather the window scene should show right now: departure conditions
-    /// low on climb-out, arrival conditions once the descent begins.
+    /// Weather for the window: departure conditions while climbing out,
+    /// calm clear sky at cruise (above the weather), arrival conditions
+    /// only once we tip over for descent — never sunny→rainy→sunny mid-leg.
     var windowCondition: SkyCondition {
-        switch phase {
-        case .takeoffRoll, .climb: return originCondition
-        case .cruise, .descent, .landing: return destinationCondition
-        }
+        currentVisualState?.environment.weather(at: legProgress)?.condition
+            ?? (phase < .descent ? originCondition : destinationCondition)
     }
 
     /// Seats over the wing get the wing in their window view.
@@ -211,17 +241,26 @@ final class FlightSession {
         return (5...8).contains(row)
     }
 
+    var windowSide: WindowSide { WindowSide(seat: seat) }
+    var departureProfile: DepartureProfile {
+        let firstLeg = itinerary.legs[0]
+        let weather = frozenLegEnvironments.first?.departureWeather ?? originWeatherSnapshot
+        return AirportWorldCatalog.departureProfile(for: firstLeg.origin, weather: weather)
+    }
+
     /// Live great-circle position along the current leg, for the map view.
     var currentCoordinate: CLLocationCoordinate2D {
-        GreatCircle.point(from: currentLeg.origin.coordinate,
-                          to: currentLeg.destination.coordinate,
-                          fraction: legProgress)
+        currentVisualState?.aircraft.coordinate
+            ?? GreatCircle.point(from: currentLeg.origin.coordinate,
+                                 to: currentLeg.destination.coordinate,
+                                 fraction: legProgress)
     }
 
     /// Current true course toward the destination, degrees from north.
     var currentCourse: Double {
-        GreatCircle.bearing(from: currentCoordinate,
-                            to: currentLeg.destination.coordinate)
+        currentVisualState?.aircraft.courseDegrees
+            ?? GreatCircle.bearing(from: currentCoordinate,
+                                   to: currentLeg.destination.coordinate)
     }
 
     var layoverRemaining: TimeInterval {
@@ -241,25 +280,48 @@ final class FlightSession {
 
     // MARK: Flow control
 
+    /// Starts bounded weather prefetch while the passenger completes boarding.
+    /// Departure never waits for the network: `departFirstLeg` atomically uses
+    /// completed snapshots or deterministic clear fallbacks.
+    func prepareRealWorldTwin() {
+        guard stage == .preflight else { return }
+        preflightWeatherTask?.cancel()
+        let legs = itinerary.legs
+        let frozenAt = clock.now
+        preflightWeatherTask = Task { [weak self] in
+            let environments = await withTaskGroup(
+                of: (Int, FlightEnvironmentSnapshot).self,
+                returning: [FlightEnvironmentSnapshot].self
+            ) { group in
+                for (index, leg) in legs.enumerated() {
+                    group.addTask {
+                        let environment = await WeatherService.freezeEnvironment(
+                            for: leg,
+                            frozenAt: frozenAt
+                        )
+                        return (index, environment)
+                    }
+                }
+                var values: [(Int, FlightEnvironmentSnapshot)] = []
+                for await value in group { values.append(value) }
+                return values.sorted { $0.0 < $1.0 }.map(\.1)
+            }
+            guard !Task.isCancelled, let self, self.stage == .preflight,
+                  environments.count == legs.count else { return }
+            self.prefetchedLegEnvironments = environments
+            self.originWeatherSnapshot = environments.first?.departureWeather
+            self.originCondition = environments.first?.departureWeather?.condition ?? .clear
+            self.destinationCondition = environments.last?.arrivalWeather?.condition ?? .clear
+        }
+    }
+
     /// Called when the boarding pass is ripped: the flight begins.
     func departFirstLeg() {
         guard stage == .preflight else { return }
+        freezeVisualPlanIfNeeded()
         startTimer()
         startLeg()
-    }
-
-    /// Real weather at both ends of the current leg: departure conditions
-    /// theme takeoff/climb, arrival conditions theme descent/landing.
-    private func fetchLegWeather() {
-        let leg = currentLeg
-        Task { [weak self] in
-            let origin = await WeatherService.condition(for: leg.origin)
-            self?.originCondition = origin
-        }
-        Task { [weak self] in
-            let destination = await WeatherService.condition(for: leg.destination)
-            self?.destinationCondition = destination
-        }
+        FocusIntegration.shared.onDepart(session: self)
     }
 
     /// Called from the layover lounge to board the connecting leg.
@@ -270,35 +332,73 @@ final class FlightSession {
     }
 
     private func startLeg() {
+        freezeVisualPlanIfNeeded()
         stage = .inFlight
         let t = clock.now
         legStartDate = t
         now = t
         firedEvents = []
-        fetchLegWeather()
+        if frozenLegEnvironments.indices.contains(legIndex) {
+            let environment = frozenLegEnvironments[legIndex]
+            originWeatherSnapshot = environment.departureWeather
+            originCondition = environment.departureWeather?.condition ?? .clear
+            destinationCondition = environment.arrivalWeather?.condition ?? .clear
+        }
         FlightActivityController.shared.start(session: self)
-        // Ambience after a beat so a just-played rip one-shot never races
-        // engine start / graph rebuild on the same turn as stage transition.
-        CabinAudioEngine.shared.startAmbience(profile: .taxi)
+        // The passenger enters the scene already lined up for departure, so
+        // the first sound bed is runway acceleration rather than taxiing.
+        CabinAudioEngine.shared.startAmbience(profile: .takeoffRoll)
         Task { @MainActor [weak self] in
             guard let self, self.stage == .inFlight else { return }
             try? await Task.sleep(for: .milliseconds(200))
             guard self.stage == .inFlight else { return }
-            Announcer.shared.announce(
-                .welcomeAboard(
-                    flightNumber: self.currentLeg.flightNumber,
-                    city: self.currentLeg.destination.city,
-                    durationText: self.spokenDuration(self.currentLeg.duration)
-                ),
-                premiumChime: self.hasPremiumChime
+            Announcer.shared.announce(.welcomeAboard, premiumChime: self.hasPremiumChime)
+        }
+    }
+
+    /// Select every runway and corridor exactly once before the first roll.
+    /// Later weather or settings changes cannot alter an in-progress flight.
+    private func freezeVisualPlanIfNeeded() {
+        guard legTrajectories.isEmpty else { return }
+        preflightWeatherTask?.cancel()
+        preflightWeatherTask = nil
+
+        let frozenAt = clock.now
+        let environments: [FlightEnvironmentSnapshot]
+        if let prefetchedLegEnvironments,
+           prefetchedLegEnvironments.count == itinerary.legs.count {
+            environments = prefetchedLegEnvironments
+        } else {
+            environments = itinerary.legs.map {
+                FlightEnvironmentSnapshot.fallback(for: $0, frozenAt: frozenAt)
+            }
+        }
+        self.prefetchedLegEnvironments = nil
+        self.frozenLegEnvironments = environments
+        self.legTrajectories = zip(itinerary.legs, environments).map { leg, environment in
+            FlightVisualEngine.trajectory(
+                for: leg,
+                aircraft: aircraft,
+                environment: environment,
+                shortFlights: Self.shortFlightsEnabled
             )
         }
+        self.legMapSamples = legTrajectories.map {
+            $0.replaySamples(count: 192, seat: seat)
+        }
+
+        originWeatherSnapshot = environments.first?.departureWeather
+        originCondition = environments.first?.departureWeather?.condition ?? .clear
+        destinationCondition = environments.first?.arrivalWeather?.condition ?? .clear
     }
 
     // MARK: Tick
 
     private func startTimer() {
         timer?.invalidate()
+        // Session events remain deliberately low-frequency. The window owns a
+        // display-linked visual timebase and samples the same injected clock at
+        // 60/30 fps, so this timer does not determine rendering smoothness.
         let t = Timer(timeInterval: 0.5, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
                 self?.tick()
@@ -322,6 +422,10 @@ final class FlightSession {
                 return
             }
             fireDueEvents()
+            // The cart moves on if ignored, and never lingers into descent.
+            if let until = beverageCartUntil, now >= until || phase >= .descent {
+                beverageCartUntil = nil
+            }
             if legElapsed >= currentLeg.duration {
                 completeLeg()
             }
@@ -329,8 +433,11 @@ final class FlightSession {
             if isFinalCall {
                 fire(.finalCall) {
                     Haptics.warning()
-                    Announcer.shared.announce(.finalBoardingCall(city: itinerary.destination.city),
-                                              premiumChime: hasPremiumChime)
+                    Announcer.shared.announce(
+                        .finalBoardingCall(city: currentLeg.destination.city),
+                        premiumChime: hasPremiumChime
+                    )
+                    FlightNotifications.postFinalCallNotification(for: self)
                 }
             }
             if let departs = connectionDeparts,
@@ -345,21 +452,27 @@ final class FlightSession {
     private enum Event: Hashable {
         case takeoffPower, rotate, gearUp, cruiseReached, midpoint
         case descentStart, gearDown, touchdown, finalCall
+        case beverageService(Int)
     }
+
+    /// Exposes deterministic cue state to the session tests without leaking
+    /// the private event vocabulary into the rest of the app.
+    var didFireRotationCue: Bool { firedEvents.contains(.rotate) }
 
     private func fire(_ event: Event, _ action: () -> Void) {
         guard !firedEvents.contains(event) else { return }
         firedEvents.insert(event)
         action()
-        // Phase transitions are the only mid-leg Live Activity updates.
+        // Keep the lock-screen state aligned after each deterministic cue.
         FlightActivityController.shared.update(session: self)
     }
 
     private func fireDueEvents() {
         let e = legElapsed
         let d = currentLeg.duration
+        let schedule = phaseSchedule
 
-        let takeoffCue = Self.shortFlightsEnabled ? 0.8 : 4.0
+        let takeoffCue = Self.shortFlightsEnabled ? 0.8 : min(4.0, schedule.takeoffDuration * 0.14)
         let gearUpDelay = Self.shortFlightsEnabled ? 1.5 : 14.0
 
         if e >= takeoffCue {
@@ -369,49 +482,65 @@ final class FlightSession {
                 Haptics.softTick()
             }
         }
-        if e >= Self.takeoffRollDuration {
+        if e >= schedule.rotationStart {
             fire(.rotate) {
                 CabinAudioEngine.shared.setProfile(.climb)
                 Haptics.tap()
             }
         }
-        if e >= Self.takeoffRollDuration + gearUpDelay {
+        if e >= schedule.takeoffEnd + gearUpDelay {
             fire(.gearUp) {
                 CabinAudioEngine.shared.playThunk()
                 Haptics.gearThunk()
             }
         }
-        if e >= Self.climbEndsAt {
+        if e >= schedule.climbEnd {
             fire(.cruiseReached) {
                 CabinAudioEngine.shared.setProfile(.cruise)
-                CabinAudioEngine.shared.playChime(premium: hasPremiumChime)
+                // Level off: the seatbelt sign goes out.
+                CabinAudioEngine.shared.playSeatbeltSign()
+            }
+        }
+        // Beverage cart: long-haul hydration nudge only — never on short
+        // hops or QA compressed flights, and never once descent is close.
+        if phase == .cruise,
+           currentLeg.duration >= Self.beverageMinimumLegDuration,
+           Self.beverageFirstDelay.isFinite,
+           legRemaining > schedule.descentDuration + schedule.landingDuration + 120,
+           SettingsStore.shared.cabinServiceEnabled {
+            let firstService = schedule.climbEnd + Self.beverageFirstDelay
+            if e >= firstService {
+                let index = Int((e - firstService) / Self.beverageInterval)
+                fire(.beverageService(index)) { startBeverageService() }
             }
         }
         if e >= d / 2 {
             fire(.midpoint) {
                 Announcer.shared.announce(
-                    .midpoint(city: currentLeg.destination.city, altitude: altitudeFeet),
+                    .midpoint(city: currentLeg.destination.city),
                     premiumChime: hasPremiumChime
                 )
             }
         }
-        if e >= d - Self.descentDuration {
+        if e >= schedule.descentStart {
             fire(.descentStart) {
                 CabinAudioEngine.shared.setProfile(.descent)
+                // The seatbelt sign is the cue passengers actually recognize;
+                // it lands before the announcement rather than under it.
+                CabinAudioEngine.shared.playSeatbeltSign()
                 Announcer.shared.announce(
-                    .descent(city: currentLeg.destination.city,
-                             weather: destinationCondition.spokenDescription),
+                    .descent(city: currentLeg.destination.city),
                     premiumChime: hasPremiumChime
                 )
             }
         }
-        if e >= d - 60 {
+        if e >= max(schedule.descentStart, schedule.landingStart - 60) {
             fire(.gearDown) {
                 CabinAudioEngine.shared.playThunk()
                 Haptics.gearThunk()
             }
         }
-        if e >= d - Self.landingDuration {
+        if e >= schedule.landingStart {
             fire(.touchdown) {
                 CabinAudioEngine.shared.setProfile(.landingRoll)
                 CabinAudioEngine.shared.playTouchdown()
@@ -420,19 +549,42 @@ final class FlightSession {
         }
     }
 
+    // MARK: Beverage service
+
+    private func startBeverageService() {
+        beverageCartUntil = now.addingTimeInterval(Self.beverageCartWindow)
+        Haptics.softTick()
+        if SettingsStore.shared.announcementsEnabled {
+            Announcer.shared.announce(.beverageService, premiumChime: hasPremiumChime)
+        } else if SettingsStore.shared.ambienceEnabled {
+            // No PA, but the cart still dings on its way down the aisle.
+            CabinAudioEngine.shared.playChime(premium: hasPremiumChime)
+        }
+    }
+
+    /// The user takes a water from the cart.
+    func takeWater() {
+        guard beverageCartUntil != nil else { return }
+        watersTaken += 1
+        beverageCartUntil = nil
+        Haptics.success()
+    }
+
     // MARK: Leg completion
 
     private func completeLeg() {
         completedMiles += currentLeg.distanceMiles
         completedFocusSeconds += currentLeg.duration
+        beverageCartUntil = nil
 
         if legIndex == itinerary.legs.count - 1 {
             stage = .arrived
             FlightActivityController.shared.end(session: self)
             CabinAudioEngine.shared.setProfile(.taxi)
-            let timeText = clock.now.formatted(date: .omitted, time: .shortened)
+            // Seatbelt sign off at the gate — the sound that releases a cabin.
+            CabinAudioEngine.shared.playSeatbeltSign()
             Announcer.shared.announce(
-                .landed(city: itinerary.destination.city, localTimeText: timeText),
+                .landed(city: itinerary.destination.city),
                 premiumChime: hasPremiumChime
             )
             finishSession(completed: true)
@@ -445,9 +597,8 @@ final class FlightSession {
             stage = .layover
             connectionDeparts = now.addingTimeInterval(itinerary.layoverDuration)
             FlightActivityController.shared.update(session: self)
-            let minutes = Int(itinerary.layoverDuration / 60)
             Announcer.shared.announce(
-                .layover(city: currentLeg.destination.city, minutes: minutes),
+                .layover(city: currentLeg.destination.city),
                 premiumChime: hasPremiumChime
             )
             DispatchQueue.main.asyncAfter(deadline: .now() + 10) { [weak self] in
@@ -498,8 +649,9 @@ final class FlightSession {
         }
     }
 
-    func divert() {
+    func divert(reason: DiversionReason = .backgroundTimeout) {
         guard stage == .inFlight else { return }
+        diversionReason = reason
         stage = .diverted
         stopEverything()
         finishSession(completed: false)
@@ -507,10 +659,11 @@ final class FlightSession {
 
     /// User bails out intentionally from the in-flight screen.
     func abandonFlight() {
-        divert()
+        divert(reason: .voluntary)
     }
 
     private func stopEverything() {
+        beverageCartUntil = nil
         Announcer.shared.stop()
         CabinAudioEngine.shared.stopAmbience()
         FlightActivityController.shared.end(session: self)
@@ -523,6 +676,8 @@ final class FlightSession {
     private func finishSession(completed: Bool) {
         timer?.invalidate()
         timer = nil
+        preflightWeatherTask?.cancel()
+        preflightWeatherTask = nil
 
         // Diverted mid-leg still credits the partial leg; a missed connection
         // credits exactly the legs that landed (layover time isn't focus).
@@ -531,6 +686,12 @@ final class FlightSession {
             ? itinerary.totalFocusDuration
             : completedFocusSeconds + partialLeg
 
+        // Persist the exact phase-aware samples used by the live map. This
+        // preserves dense runway/corridor geometry and exact phase boundaries
+        // in replay instead of creating a second, coarser uniform trace.
+        let trajectoryLegSamples = legMapSamples.isEmpty
+            ? legTrajectories.map { $0.replaySamples(count: 192, seat: seat) }
+            : legMapSamples
         let entry = LogbookEntry(
             originCode: itinerary.origin.code,
             destinationCode: itinerary.destination.code,
@@ -541,26 +702,57 @@ final class FlightSession {
             focusSeconds: min(focusSeconds, itinerary.totalFocusDuration),
             completed: completed,
             intentions: intentions,
-            intentionsCompleted: Array(repeating: false, count: intentions.count)
+            intentionsCompleted: Array(repeating: false, count: intentions.count),
+            aircraft: aircraft,
+            weatherSnapshot: originWeatherSnapshot,
+            departureProfile: departureProfile,
+            worldRevision: FlightVisualEngine.trajectoryRevision,
+            routeSamples: replayRouteSamples(from: trajectoryLegSamples),
+            departureCorridorID: legTrajectories.first?.departureCorridor.id,
+            arrivalCorridorID: legTrajectories.last?.arrivalCorridor.id,
+            environmentSnapshots: frozenLegEnvironments.isEmpty ? nil : frozenLegEnvironments,
+            trajectoryLegSamples: trajectoryLegSamples.isEmpty ? nil : trajectoryLegSamples
         )
         modelContext.insert(entry)
         try? modelContext.save()
         logEntry = entry
+        FocusIntegration.shared.onSessionEnded(session: self, completed: completed)
     }
 
     /// Called if the user dismisses the ritual before ripping the pass.
     func cancelBeforeDeparture() {
         timer?.invalidate()
         timer = nil
+        preflightWeatherTask?.cancel()
+        preflightWeatherTask = nil
         stopEverything()
     }
 
-    private func spokenDuration(_ interval: TimeInterval) -> String {
-        let minutes = Int(interval / 60)
-        let h = minutes / 60
-        let m = minutes % 60
-        if h > 0 && m > 0 { return "\(h) hours and \(m) minutes" }
-        if h > 0 { return h == 1 ? "1 hour" : "\(h) hours" }
-        return "\(m) minutes"
+    private func replayRouteSamples(
+        from legSamples: [[FlightTrajectorySample]]
+    ) -> [ReplayRouteSample] {
+        guard legSamples.count == itinerary.legs.count, !legSamples.isEmpty else {
+            return ReplayRouteRecorder.samples(for: itinerary)
+        }
+        let total = max(1, itinerary.totalFocusDuration)
+        var elapsedBeforeLeg: TimeInterval = 0
+        var samples: [ReplayRouteSample] = []
+        for (index, values) in legSamples.enumerated() {
+            let legDuration = itinerary.legs[index].duration
+            for (sampleIndex, sample) in values.enumerated() {
+                // Adjacent legs share an endpoint; store it once.
+                if index > 0 && sampleIndex == 0 { continue }
+                let progress = min(1, max(0, (elapsedBeforeLeg + sample.elapsed) / total))
+                samples.append(
+                    ReplayRouteSample(
+                        latitude: sample.latitude,
+                        longitude: sample.longitude,
+                        progress: progress
+                    )
+                )
+            }
+            elapsedBeforeLeg += legDuration
+        }
+        return samples
     }
 }

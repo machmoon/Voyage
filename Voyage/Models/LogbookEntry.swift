@@ -16,6 +16,20 @@ final class LogbookEntry {
     var completed: Bool
     var intentions: [String]
     var intentionsCompleted: [Bool]
+    /// Optional caption added at share time (Strava-style activity description).
+    var shareCaption: String?
+    /// World choices are optional to keep existing logbook stores lightweight-migration compatible.
+    var aircraftRaw: String?
+    var weatherSnapshotData: Data?
+    var departureProfileRaw: String?
+    var worldRevision: String?
+    var routeSamplesData: Data?
+    /// Immutable real-world-twin inputs. Optional fields preserve lightweight
+    /// migration for logbook rows written before trajectory revision 1.
+    var departureCorridorID: String?
+    var arrivalCorridorID: String?
+    var environmentSnapshotData: Data?
+    var trajectorySamplesData: Data?
 
     init(date: Date = .now,
          originCode: String,
@@ -27,7 +41,17 @@ final class LogbookEntry {
          focusSeconds: TimeInterval,
          completed: Bool,
          intentions: [String] = [],
-         intentionsCompleted: [Bool] = []) {
+         intentionsCompleted: [Bool] = [],
+         shareCaption: String? = nil,
+         aircraft: AircraftProfile? = nil,
+         weatherSnapshot: WeatherSnapshot? = nil,
+         departureProfile: DepartureProfile? = nil,
+         worldRevision: String? = nil,
+         routeSamples: [ReplayRouteSample]? = nil,
+         departureCorridorID: String? = nil,
+         arrivalCorridorID: String? = nil,
+         environmentSnapshots: [FlightEnvironmentSnapshot]? = nil,
+         trajectoryLegSamples: [[FlightTrajectorySample]]? = nil) {
         self.date = date
         self.originCode = originCode
         self.destinationCode = destinationCode
@@ -39,10 +63,41 @@ final class LogbookEntry {
         self.completed = completed
         self.intentions = intentions
         self.intentionsCompleted = intentionsCompleted
+        self.shareCaption = shareCaption
+        self.aircraftRaw = aircraft?.rawValue
+        self.weatherSnapshotData = weatherSnapshot.flatMap { try? JSONEncoder().encode($0) }
+        self.departureProfileRaw = departureProfile?.rawValue
+        self.worldRevision = worldRevision
+        self.routeSamplesData = routeSamples.flatMap { try? JSONEncoder().encode($0) }
+        self.departureCorridorID = departureCorridorID
+        self.arrivalCorridorID = arrivalCorridorID
+        self.environmentSnapshotData = environmentSnapshots.flatMap { try? JSONEncoder().encode($0) }
+        self.trajectorySamplesData = trajectoryLegSamples.flatMap { try? JSONEncoder().encode($0) }
     }
 
     var origin: Airport { Airport.byCode(originCode) }
     var destination: Airport { Airport.byCode(destinationCode) }
+    var aircraft: AircraftProfile { AircraftProfile(rawValue: aircraftRaw ?? "") ?? .voyageClassic }
+    var weatherSnapshot: WeatherSnapshot? {
+        weatherSnapshotData.flatMap { try? JSONDecoder().decode(WeatherSnapshot.self, from: $0) }
+    }
+    var departureProfile: DepartureProfile? {
+        departureProfileRaw.flatMap(DepartureProfile.init(rawValue:))
+    }
+    var routeSamples: [ReplayRouteSample] {
+        routeSamplesData.flatMap { try? JSONDecoder().decode([ReplayRouteSample].self, from: $0) } ?? []
+    }
+    var trajectoryRevision: String? { worldRevision }
+    var environmentSnapshots: [FlightEnvironmentSnapshot] {
+        environmentSnapshotData.flatMap {
+            try? JSONDecoder().decode([FlightEnvironmentSnapshot].self, from: $0)
+        } ?? []
+    }
+    var trajectoryLegSamples: [[FlightTrajectorySample]] {
+        trajectorySamplesData.flatMap {
+            try? JSONDecoder().decode([[FlightTrajectorySample]].self, from: $0)
+        } ?? []
+    }
 }
 
 /// Frequent-flyer status, computed from lifetime completed miles.
@@ -98,6 +153,19 @@ enum LogbookStats {
 
     static func tier(_ entries: [LogbookEntry]) -> FlyerTier {
         FlyerTier.tier(forMiles: totalMiles(entries))
+    }
+
+    /// Completed flights in one local calendar week, oldest first, ready for
+    /// a deterministic multi-flight replay.
+    static func completedFlights(
+        _ entries: [LogbookEntry],
+        inWeekContaining date: Date = .now,
+        calendar: Calendar = .current
+    ) -> [LogbookEntry] {
+        guard let interval = calendar.dateInterval(of: .weekOfYear, for: date) else { return [] }
+        return entries
+            .filter { $0.completed && interval.contains($0.date) }
+            .sorted { $0.date < $1.date }
     }
 
     /// Consecutive-day streak of completed flights ending today or yesterday.

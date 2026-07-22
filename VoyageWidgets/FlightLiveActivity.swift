@@ -69,14 +69,17 @@ struct FlightLiveActivity: Widget {
                 Text(context.attributes.originCode)
                     .font(.system(size: 26, weight: .heavy, design: .monospaced))
                 Spacer()
-                VStack(spacing: 1) {
+                VStack(spacing: 2) {
                     Image(systemName: context.state.phaseSymbol)
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(Self.accent)
+                    Text(context.attributes.flightNumber)
+                        .font(.system(size: 8, weight: .bold, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.5))
                     if let via = context.attributes.viaCode {
                         Text("via \(via)")
                             .font(.system(size: 8, weight: .bold))
-                            .foregroundStyle(.white.opacity(0.55))
+                            .foregroundStyle(.white.opacity(0.45))
                     }
                 }
                 Spacer()

@@ -1,42 +1,86 @@
 import SwiftUI
 import SwiftData
+import UIKit
+
+private struct ReplaySelection: Identifiable {
+    let id = UUID()
+    let entries: [LogbookEntry]
+    let title: String
+}
 
 /// Passport-style history of every flight, plus miles, streak, and tier progress.
 struct LogbookView: View {
     @Environment(\.dismiss) private var dismiss
     @Query(sort: \LogbookEntry.date, order: .reverse) private var entries: [LogbookEntry]
 
+    private enum Tab: String, CaseIterable {
+        case flights = "Flights"
+        case passport = "Passport"
+    }
+
+    @State private var tab: Tab = .flights
+    @State private var replaySelection: ReplaySelection?
+
     private var tier: FlyerTier { LogbookStats.tier(entries) }
     private var totalMiles: Double { LogbookStats.totalMiles(entries) }
+    private var weekEntries: [LogbookEntry] { LogbookStats.completedFlights(entries) }
 
     var body: some View {
         NavigationStack {
-            List {
-                Section {
-                    statusCard
-                        .listRowInsets(EdgeInsets())
-                        .listRowBackground(Color.clear)
-                }
-
-                Section("Flights") {
-                    if entries.isEmpty {
-                        ContentUnavailableView(
-                            "No flights yet",
-                            systemImage: "airplane",
-                            description: Text("Book your first flight from the globe. Every completed session lands here.")
-                        )
-                    } else {
-                        ForEach(entries) { entry in
-                            entryRow(entry)
-                        }
+            VStack(spacing: 0) {
+                Picker("View", selection: $tab) {
+                    ForEach(Tab.allCases, id: \.self) { t in
+                        Text(t.rawValue).tag(t)
                     }
                 }
+                .pickerStyle(.segmented)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 10)
+
+                switch tab {
+                case .flights:
+                    flightsList
+                case .passport:
+                    PassportView()
+                }
             }
+            // The picker strip sat on the plain background while both tabs use
+            // the grouped one, which drew a visible seam under the title bar.
+            .background(Color(.systemGroupedBackground).ignoresSafeArea())
             .navigationTitle("Logbook")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Color(.systemGroupedBackground), for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
+                }
+            }
+        }
+        .fullScreenCover(item: $replaySelection) { selection in
+            FlightReplayView(entries: selection.entries, title: selection.title)
+        }
+    }
+
+    private var flightsList: some View {
+        List {
+            Section {
+                statusCard
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+            }
+
+            Section("Flights") {
+                if entries.isEmpty {
+                    ContentUnavailableView(
+                        "No flights yet",
+                        systemImage: "airplane",
+                        description: Text("Book your first flight from the globe. Every completed session lands here.")
+                    )
+                } else {
+                    ForEach(entries) { entry in
+                        entryRow(entry)
+                    }
                 }
             }
         }
@@ -71,9 +115,9 @@ struct LogbookView: View {
                 VStack(spacing: 5) {
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
-                            Capsule().fill(.white.opacity(0.25))
+                            Capsule().fill(.white.opacity(0.12))
                             Capsule()
-                                .fill(.white)
+                                .fill(Theme.accent)
                                 .frame(width: geo.size.width * tierProgress(to: next))
                         }
                     }
@@ -84,13 +128,54 @@ struct LogbookView: View {
                         .frame(maxWidth: .infinity, alignment: .trailing)
                 }
             }
+
+            Button {
+                Haptics.tap()
+                replaySelection = ReplaySelection(entries: weekEntries, title: "This Week")
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 11, weight: .black))
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("Replay this week")
+                            .font(.subheadline.weight(.bold))
+                        Text(weekEntries.isEmpty
+                             ? "No completed flights yet"
+                             : "\(weekEntries.count) flight\(weekEntries.count == 1 ? "" : "s") · \(Int(LogbookStats.totalMiles(weekEntries)).formatted()) miles")
+                            .font(.caption2.weight(.medium))
+                            .opacity(0.68)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.bold))
+                        .opacity(0.6)
+                }
+                .foregroundStyle(.white)
+                .padding(.horizontal, 14)
+                .frame(height: 54)
+                .background(Theme.accent.opacity(weekEntries.isEmpty ? 0.12 : 0.22),
+                            in: RoundedRectangle(cornerRadius: 15, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 15, style: .continuous)
+                        .strokeBorder(Theme.accent.opacity(weekEntries.isEmpty ? 0.12 : 0.34), lineWidth: 1)
+                )
+            }
+            .buttonStyle(.plain)
+            .disabled(weekEntries.isEmpty)
+            .accessibilityLabel(weekEntries.isEmpty
+                                ? "No flights to replay this week"
+                                : "Replay \(weekEntries.count) flights from this week")
         }
         .foregroundStyle(.white)
         .padding(20)
         .background(
-            LinearGradient(colors: [Color(hex: "23345C"), Color(hex: "101A33")],
+            LinearGradient(colors: [Theme.surfaceSubtle, Theme.surfaceDark],
                            startPoint: .topLeading, endPoint: .bottomTrailing),
             in: RoundedRectangle(cornerRadius: 20, style: .continuous)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(.white.opacity(0.08), lineWidth: 1)
         )
     }
 
@@ -156,6 +241,34 @@ struct LogbookView: View {
             }
 
             Spacer()
+
+            if entry.completed {
+                Button {
+                    Haptics.tap()
+                    replaySelection = ReplaySelection(entries: [entry], title: "Flight \(entry.flightNumber)")
+                } label: {
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 30, height: 30)
+                        .background(Theme.accent, in: Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Replay flight to \(entry.destinationCode)")
+            }
+
+            if entry.completed, let png = FlightReceiptRenderer.pngData(entry: entry),
+               let uiImage = UIImage(data: png) {
+                ShareLink(
+                    item: ReceiptShareItem(pngData: png),
+                    preview: SharePreview("Flight to \(entry.destinationCode)", image: Image(uiImage: uiImage))
+                ) {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(Theme.accent)
+                }
+                .buttonStyle(.plain)
+            }
 
             VStack(alignment: .trailing, spacing: 3) {
                 Text("+\(Int(entry.miles).formatted()) mi")

@@ -27,7 +27,7 @@ final class ScreenshotTourUITests: XCTestCase {
         try selectDestinationAndDepart(in: app)
         save("qa-02-departing")
 
-        XCTAssertTrue(app.staticTexts["Select Seats"].waitForExistence(timeout: 6))
+        XCTAssertTrue(app.staticTexts["Choose your seat"].waitForExistence(timeout: 6))
         let available = app.buttons.matching(NSPredicate(format: "label MATCHES %@", #"Seat [A-D][0-9]+"#)).firstMatch
         XCTAssertTrue(available.waitForExistence(timeout: 5))
         available.tap()
@@ -38,22 +38,16 @@ final class ScreenshotTourUITests: XCTestCase {
         XCTAssertTrue(takeSeat.waitForExistence(timeout: 3))
         takeSeat.tap()
 
-        let skip = app.buttons["Travel light — skip"]
-        XCTAssertTrue(skip.waitForExistence(timeout: 5))
-        skip.tap()
+        let continueWithoutBags = app.buttons["Skip for now"]
+        XCTAssertTrue(continueWithoutBags.waitForExistence(timeout: 5))
+        continueWithoutBags.tap()
 
-        let tearHint = app.staticTexts["Pull the stub down to tear & board"]
-        // Button accessibilityLabel is "Tear and board" (ampersand expanded).
-        let tearButton = app.buttons["Tear and board"]
-        XCTAssertTrue(
-            tearHint.waitForExistence(timeout: 10) || tearButton.waitForExistence(timeout: 1),
-            "Expected boarding pass"
-        )
+        let stub = app.otherElements["boarding-pass-stub"]
+        XCTAssertTrue(stub.waitForExistence(timeout: 10), "Expected boarding pass stub")
         sleep(2) // let print animation finish
         save("qa-04-boarding-pass-pre-tear")
 
-        XCTAssertTrue(tearButton.waitForExistence(timeout: 8), "Expected Tear and board control")
-        tearButton.tap()
+        stub.swipeRight()
 
         // Ripping the pass departs directly: stub flies, curtain lifts,
         // short-flight takeoff roll (~3s) then climb (~8s total).

@@ -12,27 +12,27 @@ struct InFlightView: View {
     }
 
     @State private var studyView: StudyView = .window
-    @State private var showInfoPill = true
+    @State private var showInfoPill = false
     @State private var showExitConfirm = false
     @State private var settings = SettingsStore.shared
     /// Cabin-lights curtain shown while the stage transition settles —
     /// doubles as the polish moment and as cover for arming the Canvas.
     @State private var curtainVisible = true
+    @State private var curtainProgress: CGFloat = 0.5
+    @State private var curtainPulse = false
     @State private var windowSceneArmed = false
+    @State private var windowShadeRaised = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private var isNight: Bool {
-        let hour = Calendar.current.component(.hour, from: Date())
-        return hour >= 19 || hour < 6
+    private var sceneAirport: Airport {
+        session.phase >= .descent ? session.currentLeg.destination : session.currentLeg.origin
     }
 
-    /// Subtle nose-up pitch while punching through the cloud deck.
-    private var climbWindowPitch: Double {
-        guard !reduceMotion, session.phase == .climb, studyView == .window else { return 0 }
-        let climbSpan = max(0.001, FlightSession.climbEndsAt - FlightSession.takeoffRollDuration)
-        let intoClimb = max(0, session.legElapsed - FlightSession.takeoffRollDuration)
-        let t = min(1, intoClimb / climbSpan)
-        return -5.5 * (1.0 - t * 0.75)
+    private var isNight: Bool {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = sceneAirport.timeZone
+        let hour = calendar.component(.hour, from: Date())
+        return hour >= 19 || hour < 6
     }
 
     /// Red-eye flights dim the whole cabin, and the crew dims the lights
@@ -64,6 +64,12 @@ struct InFlightView: View {
 
                 countdown
 
+                if session.beverageCartUntil != nil {
+                    beverageCartCard
+                        .padding(.top, 16)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+
                 if showInfoPill {
                     flightInfoPill
                         .padding(.top, 20)
@@ -77,6 +83,7 @@ struct InFlightView: View {
 
                 Spacer(minLength: 24)
             }
+            .animation(.snappy(duration: 0.4), value: session.beverageCartUntil)
 
             departureCurtain
         }
@@ -92,13 +99,25 @@ struct InFlightView: View {
         .task {
             // Let RootView finish the stage swap behind the curtain,
             // then arm the Canvas and raise the lights. QA short flights
-            // compress the moment so the 3s takeoff roll isn't missed.
+            // Compress the moment so the short QA takeoff roll isn't missed.
             let quick = reduceMotion || FlightSession.shortFlightsEnabled
             await Task.yield()
             windowSceneArmed = true
-            try? await Task.sleep(for: .milliseconds(quick ? 250 : 1400))
-            withAnimation(.smooth(duration: quick ? 0.3 : 1.3)) {
+            withAnimation(.smooth(duration: quick ? 0.28 : 0.65)) {
+                curtainProgress = 1
+                curtainPulse = true
+            }
+            try? await Task.sleep(for: .milliseconds(quick ? 320 : 760))
+            withAnimation(.easeOut(duration: quick ? 0.24 : 0.42)) {
                 curtainVisible = false
+            }
+            if reduceMotion {
+                windowShadeRaised = true
+            } else {
+                try? await Task.sleep(for: .milliseconds(quick ? 60 : 140))
+                withAnimation(.smooth(duration: quick ? 0.35 : 1.25)) {
+                    windowShadeRaised = true
+                }
             }
         }
     }
@@ -109,103 +128,185 @@ struct InFlightView: View {
     private var departureCurtain: some View {
         if curtainVisible {
             ZStack {
-                Color.black.ignoresSafeArea()
-                VStack(spacing: 10) {
-                    Image(systemName: "airplane")
-                        .font(.system(size: 22, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.85))
-                    Text("\(session.currentLeg.origin.code) → \(session.currentLeg.destination.code)")
-                        .font(.system(size: 15, weight: .heavy, design: .monospaced))
-                        .foregroundStyle(.white.opacity(0.9))
-                    Text("Cabin lights dimmed for departure")
-                        .font(.footnote)
-                        .foregroundStyle(.white.opacity(0.45))
+                LinearGradient(
+                    colors: [Color(hex: "0D1531"), Color(hex: "050713")],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
+
+                RadialGradient(
+                    colors: [Theme.accent.opacity(0.24), Theme.accent.opacity(0.04), .clear],
+                    center: .center,
+                    startRadius: 8,
+                    endRadius: 330
+                )
+                .scaleEffect(curtainPulse ? 1.2 : 0.75)
+                .opacity(curtainPulse ? 1 : 0.35)
+                .ignoresSafeArea()
+
+                VStack(spacing: 22) {
+                    ZStack {
+                        Circle()
+                            .fill(Theme.accent.opacity(0.14))
+                            .frame(width: 82, height: 82)
+                        Circle()
+                            .strokeBorder(Theme.accent.opacity(0.3), lineWidth: 1)
+                            .frame(width: 66, height: 66)
+                        Image(systemName: "airplane.departure")
+                            .font(.system(size: 26, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .symbolEffect(.pulse, value: curtainPulse)
+                    }
+
+                    VStack(spacing: 8) {
+                        Text("CLEARED FOR DEPARTURE")
+                            .font(.system(size: 11, weight: .heavy, design: .monospaced))
+                            .kerning(1.7)
+                            .foregroundStyle(Theme.accent.opacity(0.95))
+
+                        HStack(spacing: 14) {
+                            Text(session.currentLeg.origin.code)
+                            curtainRouteTrack
+                            Text(session.currentLeg.destination.code)
+                        }
+                        .font(.system(size: 28, weight: .heavy, design: .monospaced))
+                        .foregroundStyle(.white)
+
+                        Text("\(session.currentLeg.duration.shortDurationText) focus flight")
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(.white.opacity(0.52))
+                    }
                 }
+                .padding(.horizontal, 28)
             }
-            .transition(.opacity)
+            .transition(.scale(scale: 1.025).combined(with: .opacity))
             .zIndex(10)
             .accessibilityHidden(true)
         }
     }
 
+    private var curtainRouteTrack: some View {
+        GeometryReader { geo in
+            let travel = max(0, geo.size.width - 14)
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(.white.opacity(0.18))
+                    .frame(height: 2)
+                Capsule()
+                    .fill(Theme.accent.opacity(0.95))
+                    .frame(width: max(2, geo.size.width * curtainProgress), height: 2)
+                Circle()
+                    .fill(.white.opacity(0.9))
+                    .frame(width: 5, height: 5)
+                Image(systemName: "airplane")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(.white)
+                    .shadow(color: Theme.accent.opacity(0.8), radius: 5)
+                    .offset(x: travel * curtainProgress)
+            }
+            .frame(maxHeight: .infinity)
+        }
+        .frame(width: 84, height: 18)
+    }
+
     // MARK: Top bar
 
     private var cabinSoundOn: Bool {
-        settings.ambienceEnabled || settings.announcementsEnabled
+        settings.ambienceEnabled || settings.soundEffectsEnabled
     }
 
     private var topBar: some View {
-        HStack {
-            if session.itinerary.isConnection {
-                Text("LEG \(session.legIndex + 1) OF \(session.itinerary.legs.count)")
-                    .font(.system(size: 10, weight: .heavy))
-                    .kerning(1.5)
-                    .foregroundStyle(.white.opacity(0.45))
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(.white.opacity(0.08), in: Capsule())
-            }
-            Spacer()
-            viewSwitcher
-            Spacer()
-            HStack(spacing: 8) {
-                // One switch for all cabin sound: ambience bed and PA together.
-                cabinToggle(
-                    icon: cabinSoundOn ? "speaker.wave.2.fill" : "speaker.slash.fill"
-                ) {
-                    let on = !cabinSoundOn
-                    settings.ambienceEnabled = on
-                    settings.announcementsEnabled = on
-                    if on {
-                        CabinAudioEngine.shared.startAmbience(profile: session.ambienceProfile)
-                    } else {
-                        Announcer.shared.stop()
-                        CabinAudioEngine.shared.stopAmbience()
-                    }
-                }
-                cabinToggle(icon: "rectangle.portrait.and.arrow.right") {
-                    showExitConfirm = true
-                }
-            }
-        }
-    }
-
-    private var viewSwitcher: some View {
         HStack(spacing: 2) {
-            ForEach(StudyView.allCases, id: \.self) { view in
-                let isOn = studyView == view
-                Button {
-                    Haptics.tap()
-                    withAnimation(.smooth(duration: 0.35)) { studyView = view }
-                } label: {
-                    Label(view.rawValue,
-                          systemImage: view == .window ? "airplane" : "map")
-                        .labelStyle(.iconOnly)
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(isOn ? .black : .white.opacity(0.6))
-                        .frame(width: 40, height: 26)
-                        .background(isOn ? AnyShapeStyle(.white.opacity(0.9)) : AnyShapeStyle(.clear),
-                                    in: Capsule())
-                }
-                .accessibilityLabel("\(view.rawValue) view")
-                .accessibilityAddTraits(isOn ? .isSelected : [])
+            if session.itinerary.isConnection {
+                Text("LEG \(session.legIndex + 1)/\(session.itinerary.legs.count)")
+                    .font(.system(size: 10, weight: .heavy, design: .rounded))
+                    .kerning(0.8)
+                    .foregroundStyle(.white.opacity(0.58))
+                    .padding(.horizontal, 9)
+                    .frame(height: 36)
+
+                toolbarDivider
             }
+
+            ForEach(StudyView.allCases, id: \.self) { view in
+                studyViewButton(view)
+            }
+
+            toolbarDivider
+
+            // A quick cabin-sound control. Spoken check-ins stay opt-in and
+            // are never silently enabled by this button.
+            Button {
+                Haptics.tap()
+                let on = !cabinSoundOn
+                settings.ambienceEnabled = on
+                settings.soundEffectsEnabled = on
+                if !on {
+                    CabinAudioEngine.shared.stopAmbience()
+                } else {
+                    CabinAudioEngine.shared.startAmbience(profile: session.ambienceProfile)
+                }
+            } label: {
+                Image(systemName: cabinSoundOn ? "speaker.wave.2.fill" : "speaker.slash.fill")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(cabinSoundOn ? .white.opacity(0.8) : .white.opacity(0.48))
+                    .frame(width: 36, height: 36)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(cabinSoundOn ? "Mute cabin sounds" : "Unmute cabin sounds")
+
+            Button {
+                Haptics.tap()
+                showExitConfirm = true
+            } label: {
+                Label("Exit", systemImage: "rectangle.portrait.and.arrow.right")
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.72))
+                    .padding(.horizontal, 9)
+                    .frame(height: 36)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Leave flight")
         }
-        .padding(3)
-        .background(.white.opacity(0.08), in: Capsule())
+        .padding(4)
+        .background(.ultraThinMaterial, in: Capsule())
+        .overlay {
+            Capsule()
+                .strokeBorder(.white.opacity(0.12), lineWidth: 1)
+        }
+        .shadow(color: .black.opacity(0.22), radius: 12, y: 5)
+        .frame(maxWidth: .infinity)
     }
 
-    private func cabinToggle(icon: String, action: @escaping () -> Void) -> some View {
-        Button {
+    private func studyViewButton(_ view: StudyView) -> some View {
+        let isOn = studyView == view
+        return Button {
             Haptics.tap()
-            action()
+            withAnimation(.smooth(duration: 0.35)) { studyView = view }
         } label: {
-            Image(systemName: icon)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.55))
-                .frame(width: 34, height: 34)
-                .background(.white.opacity(0.07), in: Circle())
+            Label(view.rawValue, systemImage: view == .window ? "airplane" : "map")
+                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .foregroundStyle(isOn ? .black : .white.opacity(0.62))
+                .padding(.horizontal, 10)
+                .frame(height: 36)
+                .background(isOn ? AnyShapeStyle(.white.opacity(0.94)) : AnyShapeStyle(.clear),
+                            in: Capsule())
+                .contentShape(Capsule())
         }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(view.rawValue) view")
+        .accessibilityAddTraits(isOn ? .isSelected : [])
+    }
+
+    private var toolbarDivider: some View {
+        Rectangle()
+            .fill(.white.opacity(0.12))
+            .frame(width: 1, height: 18)
+            .padding(.horizontal, 3)
+            .accessibilityHidden(true)
     }
 
     // MARK: Study content
@@ -226,20 +327,56 @@ struct InFlightView: View {
 
     private var airplaneWindow: some View {
         let shape = RoundedRectangle(cornerRadius: 110, style: .continuous)
-        return Group {
-            if windowSceneArmed {
-                WindowSceneView(
-                    phase: session.phase,
-                    altitudeFraction: Double(session.altitudeFeet) / 36_000.0,
-                    isNight: isNight,
-                    condition: session.windowCondition,
-                    showSunset: session.hasSunsetScene,
-                    showAurora: session.hasAuroraScene,
-                    showWing: session.hasWingView
-                )
-            } else {
-                Color(hex: isNight ? "0B0910" : "1A1E2A")
+        return ZStack {
+            Group {
+                if windowSceneArmed {
+                    if let trajectory = session.currentTrajectory {
+                        WindowSceneView(
+                            context: FlightVisualContext(
+                                trajectory: trajectory,
+                                seat: session.seat,
+                                isNight: isNight,
+                                showsWing: session.hasWingView,
+                                showsSunset: session.hasSunsetScene,
+                                showsAurora: session.hasAuroraScene,
+                                realWorldTwinEnabled: settings.realWorldTwinEnabled,
+                                isVisible: studyView == .window
+                            ),
+                            clockAnchor: FlightVisualClockAnchor(
+                                legElapsed: session.legElapsed,
+                                displayDate: .now
+                            )
+                        )
+                    } else {
+                        Color(hex: isNight ? "0B0910" : "5C8FAD")
+                    }
+                } else {
+                    Color(hex: isNight ? "0B0910" : "1A1E2A")
+                }
             }
+
+            GeometryReader { geometry in
+                let height = geometry.size.height
+                ZStack(alignment: .bottom) {
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .fill(
+                            LinearGradient(colors: [Color(hex: "E8E9EB"), Color(hex: "B9BDC4")],
+                                           startPoint: .top, endPoint: .bottom)
+                        )
+                    Capsule()
+                        .fill(.black.opacity(0.24))
+                        .frame(width: 54, height: 7)
+                        .padding(.bottom, 16)
+                }
+                .frame(height: height * 1.03)
+                // Clear the entire pane once raised. The previous 92% offset
+                // intentionally left the shade lip and handle visible.
+                .offset(y: windowShadeRaised ? -height * 1.10 : 0)
+                .shadow(color: .black.opacity(0.35), radius: 8, y: 5)
+            }
+            .opacity(reduceMotion && windowShadeRaised ? 0 : 1)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
         }
         .aspectRatio(0.72, contentMode: .fit)
         .clipShape(shape)
@@ -262,13 +399,6 @@ struct InFlightView: View {
                 )
                 .shadow(color: .black.opacity(0.55), radius: 24, y: 10)
         )
-        .rotation3DEffect(
-            .degrees(climbWindowPitch),
-            axis: (x: 1, y: 0, z: 0),
-            anchor: .center,
-            perspective: 0.45
-        )
-        .animation(reduceMotion ? nil : .easeInOut(duration: 1.2), value: session.phase)
     }
 
     private var mapCard: some View {
@@ -318,6 +448,10 @@ struct InFlightView: View {
             Haptics.tap()
             withAnimation(.snappy) { showInfoPill.toggle() }
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(session.legRemaining.clockText) remaining to \(session.currentLeg.destination.city)")
+        .accessibilityHint(showInfoPill ? "Hide flight details" : "Show flight details")
+        .accessibilityAddTraits(.isButton)
     }
 
     private var phaseCaption: String {
@@ -381,6 +515,48 @@ struct InFlightView: View {
                 .font(.system(size: 12, weight: .semibold, design: .monospaced))
                 .foregroundStyle(.white.opacity(0.85))
         }
+    }
+
+    // MARK: Beverage cart
+
+    /// The cart is at your row: one tap takes a water, then it moves on.
+    private var beverageCartCard: some View {
+        Button {
+            withAnimation(.snappy(duration: 0.35)) {
+                session.takeWater()
+            }
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "cup.and.saucer.fill")
+                    .font(.title3)
+                    .foregroundStyle(Theme.accent)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Stay hydrated")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.white.opacity(0.95))
+                    Text("You've been flying a while — have some water")
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.55))
+                }
+                Spacer()
+                Text("Take a sip")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.black)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 7)
+                    .background(.white.opacity(0.9), in: Capsule())
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(.white.opacity(0.09), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(.white.opacity(0.14), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 28)
+        .accessibilityLabel("Beverage service. Take a water.")
     }
 
     // MARK: Intentions

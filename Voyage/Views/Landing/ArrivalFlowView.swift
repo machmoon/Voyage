@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// The peak-end payoff after touchdown: a typographic welcome, baggage
 /// claim for your checked intentions, and a passport stamp into the logbook.
@@ -43,7 +44,7 @@ struct ArrivalFlowView: View {
 
 // MARK: - Welcome
 
-/// Full-screen typographic arrival moment in the city's accent color.
+/// Full-screen typographic arrival moment in the restrained Voyage palette.
 private struct WelcomeView: View {
     @Bindable var session: FlightSession
     let onContinue: () -> Void
@@ -55,8 +56,16 @@ private struct WelcomeView: View {
     var body: some View {
         ZStack {
             LinearGradient(
-                colors: [city.accentColor, city.accentColor.opacity(0.55), Color(hex: "101018")],
+                colors: [Theme.surfaceSubtle, Theme.surfaceDark, Theme.ink],
                 startPoint: .top, endPoint: .bottom
+            )
+            .ignoresSafeArea()
+
+            RadialGradient(
+                colors: [Theme.accent.opacity(0.3), .clear],
+                center: .topLeading,
+                startRadius: 20,
+                endRadius: 420
             )
             .ignoresSafeArea()
 
@@ -77,7 +86,7 @@ private struct WelcomeView: View {
                     .padding(.horizontal, 20)
                     .opacity(revealed ? 1 : 0)
                     .offset(y: revealed ? 0 : 26)
-                    .shadow(color: .black.opacity(0.25), radius: 12, y: 6)
+                    .shadow(color: .black.opacity(0.3), radius: 12, y: 6)
 
                 Text(city.code)
                     .font(.system(size: 15, weight: .heavy, design: .monospaced))
@@ -91,18 +100,31 @@ private struct WelcomeView: View {
                     .opacity(revealed ? 1 : 0)
                     .offset(y: revealed ? 0 : 30)
 
+                if session.watersTaken > 0 {
+                    Label(
+                        session.watersTaken == 1
+                            ? "1 water en route"
+                            : "\(session.watersTaken) waters en route",
+                        systemImage: "cup.and.saucer.fill"
+                    )
+                    .font(.footnote.weight(.medium))
+                    .foregroundStyle(.white.opacity(0.7))
+                    .padding(.top, 14)
+                    .opacity(revealed ? 1 : 0)
+                }
+
                 Spacer()
 
                 Button(action: onContinue) {
                     Text(session.intentions.isEmpty ? "Continue to passport control" : "Head to baggage claim")
                         .font(.headline)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Theme.textPrimary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
-                        .background(.white.opacity(0.18), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        .background(Theme.accent, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                         .overlay(
                             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .strokeBorder(.white.opacity(0.35), lineWidth: 1)
+                                .strokeBorder(.white.opacity(0.14), lineWidth: 1)
                         )
                 }
                 .padding(.horizontal, 24)
@@ -128,7 +150,11 @@ private struct WelcomeView: View {
             arrivalStat("Flight", session.itinerary.primaryFlightNumber)
         }
         .padding(.vertical, 16)
-        .background(.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .background(Theme.surfaceElevated.opacity(0.86), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(.white.opacity(0.09), lineWidth: 1)
+        )
         .padding(.horizontal, 32)
     }
 
@@ -163,7 +189,7 @@ private struct BaggageClaimView: View {
 
     var body: some View {
         ZStack {
-            Color(hex: "14161C").ignoresSafeArea()
+            Theme.surfaceDark.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 VStack(spacing: 6) {
@@ -207,6 +233,8 @@ private struct BaggageClaimView: View {
         let isClaimed = claimed.contains(index)
         return Button {
             Haptics.tap()
+            // Claiming reads the tag; releasing it back onto the belt does not.
+            if !isClaimed { CabinAudioEngine.shared.playScanBeep() }
             withAnimation(.snappy(duration: 0.3)) {
                 if isClaimed { claimed.remove(index) } else { claimed.insert(index) }
             }
@@ -242,12 +270,15 @@ private struct BaggageClaimView: View {
 
 // MARK: - Passport stamp
 
-/// The final thunk: a passport-style stamp slams into the logbook.
+/// The final thunk: a passport-style stamp slams into the logbook,
+/// then a Strava-style share moment — stats card + optional caption.
 private struct StampView: View {
     @Bindable var session: FlightSession
     let onDone: () -> Void
 
     @State private var stamped = false
+    @State private var shareCaption = ""
+    @State private var receiptPNG: Data?
 
     private var city: Airport { session.itinerary.destination }
 
@@ -273,16 +304,19 @@ private struct StampView: View {
 
                 Spacer()
 
+                if stamped {
+                    shareSection
+                        .padding(.horizontal, 24)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+
                 Button {
+                    persistShareCaption()
                     onDone()
                 } label: {
-                    Text("Back to the terminal")
-                        .font(.headline)
-                        .foregroundStyle(.black)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(.white, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    Text(stamped ? "Back to the terminal" : "Continue")
                 }
+                .buttonStyle(VoyagePrimaryButtonStyle())
                 .padding(.horizontal, 24)
                 .padding(.bottom, 30)
                 .opacity(stamped ? 1 : 0.3)
@@ -297,8 +331,61 @@ private struct StampView: View {
                 }
                 Haptics.stamp()
                 CabinAudioEngine.shared.playThunk()
+                receiptPNG = FlightReceiptRenderer.pngData(session: session, caption: shareCaption)
             }
         }
+        .onChange(of: shareCaption) { _, _ in
+            receiptPNG = FlightReceiptRenderer.pngData(session: session, caption: shareCaption)
+            persistShareCaption()
+        }
+    }
+
+    /// Strava pattern: optional activity description + shareable stats image.
+    private var shareSection: some View {
+        VStack(spacing: 12) {
+            if let receiptPNG, let uiImage = UIImage(data: receiptPNG) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxHeight: 140)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .shadow(color: .black.opacity(0.35), radius: 8, y: 4)
+            }
+
+            TextField("What did you work on? (optional)", text: $shareCaption, axis: .vertical)
+                .lineLimit(2...4)
+                .font(.subheadline)
+                .padding(12)
+                .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .foregroundStyle(.white)
+
+            if let receiptPNG, let uiImage = UIImage(data: receiptPNG) {
+                ShareLink(
+                    item: ReceiptShareItem(pngData: receiptPNG),
+                    preview: SharePreview(
+                        "Flight to \(city.code)",
+                        image: Image(uiImage: uiImage)
+                    )
+                ) {
+                    Label("Share flight receipt", systemImage: "square.and.arrow.up")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.white.opacity(0.85))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .strokeBorder(.white.opacity(0.22), lineWidth: 1)
+                        )
+                }
+                .simultaneousGesture(TapGesture().onEnded { persistShareCaption() })
+            }
+        }
+    }
+
+    private func persistShareCaption() {
+        let trimmed = shareCaption.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let entry = session.logEntry else { return }
+        entry.shareCaption = trimmed.isEmpty ? nil : trimmed
     }
 
     private var passportPage: some View {

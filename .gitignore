@@ -32,3 +32,13 @@ playground.xcworkspace
 QA/*.log
 QA/*.txt
 QA/uitest/
+
+# Cloudflare Worker
+worker/node_modules/
+worker/.dev.vars
+worker/.env
+worker/.wrangler/
+worker/dist/
+
+# Local Google Maps 3D credential override (included by Config.example.xcconfig)
+/Config.local.xcconfig
