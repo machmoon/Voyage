@@ -16,7 +16,9 @@ final class FlightSessionTests: XCTestCase {
         clock = ManualClock(now: Date(timeIntervalSince1970: 1_700_000_000))
         // Keep PA/audio quiet during unit tests.
         SettingsStore.shared.ambienceEnabled = false
+        SettingsStore.shared.soundEffectsEnabled = false
         SettingsStore.shared.announcementsEnabled = false
+        SettingsStore.shared.cabinServiceEnabled = true
     }
 
     override func tearDown() async throws {
@@ -32,23 +34,94 @@ final class FlightSessionTests: XCTestCase {
         session.departFirstLeg()
         XCTAssertEqual(session.stage, .inFlight)
         XCTAssertEqual(session.phase, .takeoffRoll)
+        let schedule = session.phaseSchedule
 
-        clock.advance(by: FlightSession.takeoffRollDuration)
+        // Date stores sub-second boundaries as binary floating point; step a
+        // tiny amount past the exact edge to assert the new phase.
+        clock.advance(by: schedule.takeoffEnd + 0.05)
         session.tick()
         XCTAssertEqual(session.phase, .climb)
 
-        clock.advance(by: FlightSession.climbEndsAt - FlightSession.takeoffRollDuration)
+        clock.advance(by: schedule.climbEnd - schedule.takeoffEnd)
         session.tick()
         XCTAssertEqual(session.phase, .cruise)
 
-        // Jump to descent window (last 180s of a 600s leg).
-        clock.set(session.legStartDate!.addingTimeInterval(600 - FlightSession.descentDuration + 1))
+        clock.set(session.legStartDate!.addingTimeInterval(schedule.descentStart + 1))
         session.tick()
         XCTAssertEqual(session.phase, .descent)
 
-        clock.set(session.legStartDate!.addingTimeInterval(600 - FlightSession.landingDuration + 1))
+        clock.set(session.legStartDate!.addingTimeInterval(schedule.landingStart + 1))
         session.tick()
         XCTAssertEqual(session.phase, .landing)
+    }
+
+    func testPhaseElapsedUsesInjectedClock() {
+        let session = makeSession(duration: 600)
+        session.departFirstLeg()
+
+        clock.advance(by: 7)
+        session.tick()
+        XCTAssertEqual(session.phaseElapsed, 7, accuracy: 0.001)
+
+        clock.set(session.legStartDate!.addingTimeInterval(session.phaseSchedule.takeoffEnd + 3))
+        session.tick()
+        XCTAssertEqual(session.phase, .climb)
+        XCTAssertEqual(session.phaseElapsed, 3, accuracy: 0.001)
+    }
+
+    func testRotationCueFiresWhenTrajectoryBeginsRotation() throws {
+        let session = makeSession(duration: 6 * 60 * 60)
+        session.departFirstLeg()
+
+        let schedule = session.phaseSchedule
+        let legStart = try XCTUnwrap(session.legStartDate)
+        XCTAssertGreaterThan(schedule.rotationStart, 0)
+        XCTAssertLessThan(schedule.rotationStart, schedule.takeoffEnd)
+
+        clock.set(legStart.addingTimeInterval(schedule.rotationStart - 0.05))
+        session.tick()
+        XCTAssertFalse(session.didFireRotationCue)
+
+        clock.set(legStart.addingTimeInterval(schedule.rotationStart + 0.05))
+        session.tick()
+        XCTAssertTrue(session.didFireRotationCue)
+        XCTAssertEqual(session.phase, .takeoffRoll)
+    }
+
+    func testSixHourMapSamplesIncludeRunwayAndEveryPhaseBoundary() throws {
+        let session = makeSession(duration: 6 * 60 * 60)
+        session.seat = "14A"
+        session.departFirstLeg()
+
+        let samples = try XCTUnwrap(session.legMapSamples.first)
+        let schedule = session.phaseSchedule
+        let boundaries = [
+            0,
+            schedule.rotationStart,
+            schedule.takeoffEnd,
+            schedule.climbEnd,
+            schedule.descentStart,
+            schedule.landingStart,
+            schedule.legDuration,
+        ]
+
+        for boundary in boundaries {
+            XCTAssertTrue(
+                samples.contains { abs($0.elapsed - boundary) < 0.001 },
+                "Expected a cached trajectory sample at \(boundary) seconds"
+            )
+        }
+
+        XCTAssertGreaterThanOrEqual(
+            samples.filter { $0.elapsed <= schedule.takeoffEnd + 0.001 }.count,
+            20,
+            "A long cruise must not starve the runway roll of map/replay detail"
+        )
+        XCTAssertGreaterThanOrEqual(
+            samples.filter { $0.elapsed >= schedule.landingStart - 0.001 }.count,
+            20,
+            "A long cruise must not starve approach and rollout of replay detail"
+        )
     }
 
     func testDirectFlightCompletesAndWritesLogbook() throws {
@@ -56,6 +129,11 @@ final class FlightSessionTests: XCTestCase {
         session.seat = "14A"
         session.intentions = ["Read chapter 3"]
         session.departFirstLeg()
+        XCTAssertEqual(session.legMapSamples.count, 1)
+        XCTAssertEqual(
+            session.legMapSamples[0],
+            try XCTUnwrap(session.currentTrajectory).replaySamples(count: 192, seat: session.seat)
+        )
 
         clock.advance(by: 120)
         session.tick()
@@ -70,6 +148,12 @@ final class FlightSessionTests: XCTestCase {
         let entries = try context.fetch(FetchDescriptor<LogbookEntry>())
         XCTAssertEqual(entries.count, 1)
         XCTAssertTrue(entries[0].completed)
+        XCTAssertEqual(entries[0].trajectoryRevision, FlightVisualEngine.trajectoryRevision)
+        XCTAssertNotNil(entries[0].departureCorridorID)
+        XCTAssertNotNil(entries[0].arrivalCorridorID)
+        XCTAssertEqual(entries[0].environmentSnapshots.count, 1)
+        XCTAssertEqual(entries[0].trajectoryLegSamples.count, 1)
+        XCTAssertEqual(entries[0].trajectoryLegSamples[0], session.legMapSamples[0])
     }
 
     // MARK: Layover / connection
@@ -154,6 +238,7 @@ final class FlightSessionTests: XCTestCase {
         session.departFirstLeg()
         session.abandonFlight()
         XCTAssertEqual(session.stage, .diverted)
+        XCTAssertEqual(session.diversionReason, .voluntary)
         XCTAssertEqual(session.logEntry?.completed, false)
     }
 
@@ -166,6 +251,75 @@ final class FlightSessionTests: XCTestCase {
     }
 
     // MARK: Helpers
+
+    // MARK: Beverage service
+
+    func testBeverageCartAppearsDuringCruiseAndTakingWaterDismissesIt() {
+        let session = makeSession(duration: 3600)
+        session.departFirstLeg()
+
+        clock.advance(by: session.phaseSchedule.climbEnd + FlightSession.beverageFirstDelay)
+        session.tick()
+        XCTAssertNotNil(session.beverageCartUntil)
+        XCTAssertEqual(session.watersTaken, 0)
+
+        session.takeWater()
+        XCTAssertEqual(session.watersTaken, 1)
+        XCTAssertNil(session.beverageCartUntil)
+
+        // Taking again with no cart present does nothing.
+        session.takeWater()
+        XCTAssertEqual(session.watersTaken, 1)
+    }
+
+    func testBeverageCartMovesOnIfIgnoredThenReturnsNextService() {
+        let session = makeSession(duration: 7200)
+        session.departFirstLeg()
+
+        clock.advance(by: session.phaseSchedule.climbEnd + FlightSession.beverageFirstDelay)
+        session.tick()
+        XCTAssertNotNil(session.beverageCartUntil)
+
+        clock.advance(by: FlightSession.beverageCartWindow + 1)
+        session.tick()
+        XCTAssertNil(session.beverageCartUntil)
+        XCTAssertEqual(session.watersTaken, 0)
+
+        clock.advance(by: FlightSession.beverageInterval)
+        session.tick()
+        XCTAssertNotNil(session.beverageCartUntil)
+    }
+
+    func testNoBeverageServiceOnceDescentBegins() {
+        let session = makeSession(duration: 3600)
+        session.departFirstLeg()
+        // Jump straight into descent — cart stays stowed even though the
+        // clock is past the usual first-service time.
+        clock.advance(by: session.phaseSchedule.descentStart + 1)
+        session.tick()
+        XCTAssertEqual(session.phase, .descent)
+        XCTAssertNil(session.beverageCartUntil)
+    }
+
+    func testNoBeverageOnShortStudyHops() {
+        // Under the 45-minute minimum — hydration nudge is for long flights.
+        let session = makeSession(duration: 40 * 60)
+        session.departFirstLeg()
+        clock.advance(by: session.phaseSchedule.climbEnd + FlightSession.beverageFirstDelay)
+        session.tick()
+        XCTAssertNil(session.beverageCartUntil)
+    }
+
+    func testBeverageServiceRespectsCabinServiceSetting() {
+        SettingsStore.shared.cabinServiceEnabled = false
+        defer { SettingsStore.shared.cabinServiceEnabled = true }
+
+        let session = makeSession(duration: 3600)
+        session.departFirstLeg()
+        clock.advance(by: session.phaseSchedule.climbEnd + FlightSession.beverageFirstDelay)
+        session.tick()
+        XCTAssertNil(session.beverageCartUntil)
+    }
 
     private func makeSession(duration: TimeInterval) -> FlightSession {
         let origin = Airport.byCode("BOS")

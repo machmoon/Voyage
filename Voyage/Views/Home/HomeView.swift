@@ -67,7 +67,8 @@ struct HomeView: View {
                                        origin: origin,
                                        flightNumber: option.flightNumber)
                 }
-                .presentationDetents([.height(520)])
+                .presentationDetents([.large])
+                .presentationCornerRadius(28)
             }
         }
         .sheet(isPresented: $showingLogbook) {
@@ -80,6 +81,7 @@ struct HomeView: View {
             locationManager.resolveHomeAirport()
             scheduler.pruneExpired()
             recenter(animated: false)
+            applyPendingShortcutDeparture()
         }
         .onChange(of: settings.originOverrideCode) {
             selectedDestination = nil
@@ -124,6 +126,7 @@ struct HomeView: View {
             withAnimation(.snappy) { selectedDestination = airport }
         } label: {
             VStack(spacing: 3) {
+                if labelSitsAbove(airport) { code(airport) }
                 ZStack {
                     Circle()
                         .fill(isOrigin ? Color.white : (isSelected ? Theme.accent : .black.opacity(0.55)))
@@ -133,13 +136,29 @@ struct HomeView: View {
                         .font(.system(size: isOrigin ? 11 : 9, weight: .bold))
                         .foregroundStyle(isOrigin ? .black : .white)
                 }
-                Text(airport.code)
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(.white)
-                    .shadow(color: .black.opacity(0.8), radius: 2)
+                if !labelSitsAbove(airport) { code(airport) }
             }
         }
         .buttonStyle(.plain)
+    }
+
+    private func code(_ airport: Airport) -> some View {
+        Text(airport.code)
+            .font(.caption2.weight(.bold))
+            .foregroundStyle(.white)
+            .shadow(color: .black.opacity(0.8), radius: 2)
+    }
+
+    /// The globe has no label declutter of its own, so pins that sit within a
+    /// few degrees of each other stack their codes (SEA landed on top of YVR).
+    /// The more northern of a close pair carries its code above the dot.
+    private func labelSitsAbove(_ airport: Airport) -> Bool {
+        Airport.all.contains { other in
+            other != airport
+                && abs(other.latitude - airport.latitude) < 6
+                && abs(other.longitude - airport.longitude) < 6
+                && other.latitude < airport.latitude
+        }
     }
 
     private func recenter(animated: Bool) {
@@ -157,68 +176,96 @@ struct HomeView: View {
         }
     }
 
+    /// Siri / Shortcuts "Depart on a focus flight" lands here with a destination pre-selected.
+    private func applyPendingShortcutDeparture() {
+        guard let code = PendingDepartureStore.destinationCode,
+              let airport = Airport.all.first(where: { $0.code == code }),
+              airport != origin else {
+            PendingDepartureStore.destinationCode = nil
+            return
+        }
+        PendingDepartureStore.destinationCode = nil
+        withAnimation(.snappy) { selectedDestination = airport }
+        Haptics.success()
+    }
+
     // MARK: Header
 
     private var header: some View {
-        HStack(alignment: .top) {
+        HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Text("VOYAGE")
-                    .font(.system(size: 24, weight: .black))
+                    .font(.system(size: 23, weight: .black))
                     .kerning(5)
                     .foregroundStyle(.white)
                 HStack(spacing: 6) {
                     Image(systemName: "location.fill")
                         .font(.system(size: 9))
-                    Text("\(origin.city) · \(origin.code)")
+                    Text("Focus flights · \(origin.code)")
                         .font(.caption.weight(.medium))
+
+                    if lifetimeMiles > 0 {
+                        Circle()
+                            .frame(width: 3, height: 3)
+                            .opacity(0.65)
+                        Text("\(lifetimeMiles.formatted()) mi")
+                            .font(.caption2.weight(.semibold))
+                    }
                 }
                 .foregroundStyle(.white.opacity(0.75))
+                .lineLimit(1)
+                // The whole line is one unit: it shrinks rather than letting the
+                // origin code truncate to "S…" behind the Logbook pill.
+                .minimumScaleFactor(0.75)
             }
-            Spacer()
-            HStack(spacing: 10) {
-                statusChip
-                iconButton("book.closed.fill") { showingLogbook = true }
-                iconButton("gearshape.fill") { showingSettings = true }
-            }
+
+            Spacer(minLength: 8)
+
+            headerActions
         }
         .padding(.horizontal, 20)
         .padding(.top, 8)
     }
 
-    /// The number a student actually protects: the day streak. Tier lives
-    /// in the logbook; miles ride along in small type.
-    private var statusChip: some View {
-        let streak = LogbookStats.streakDays(entries)
-        let miles = Int(LogbookStats.totalMiles(entries))
-        return HStack(spacing: 7) {
-            Image(systemName: "flame.fill")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(streak > 0 ? Color(hex: "FFA33B") : .white.opacity(0.4))
-            VStack(alignment: .leading, spacing: 0) {
-                Text(streak > 0 ? "\(streak)-day streak" : "Fly today")
-                    .font(.system(size: 12, weight: .bold))
-                    .lineLimit(1)
-                    .fixedSize()
-                Text("\(miles.formatted()) mi")
-                    .font(.system(size: 10, weight: .medium, design: .monospaced))
-                    .opacity(0.7)
-            }
-        }
-        .foregroundStyle(.white)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
-        .background(.ultraThinMaterial, in: Capsule())
-        .accessibilityLabel(streak > 0 ? "\(streak) day streak, \(miles) miles" : "No streak yet — fly today")
+    private var lifetimeMiles: Int {
+        Int(LogbookStats.totalMiles(entries))
     }
 
-    private func iconButton(_ systemName: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: systemName)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(.white)
-                .frame(width: 38, height: 38)
-                .background(.ultraThinMaterial, in: Circle())
+    private var headerActions: some View {
+        HStack(spacing: 2) {
+            Button {
+                Haptics.tap()
+                showingLogbook = true
+            } label: {
+                Label("Logbook", systemImage: "book.closed.fill")
+                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 10)
+                    .frame(height: 34)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Open logbook")
+
+            Button {
+                Haptics.tap()
+                showingSettings = true
+            } label: {
+                Image(systemName: "gearshape.fill")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 34, height: 34)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Settings")
         }
+        .padding(4)
+        .background(.ultraThinMaterial, in: Capsule())
+        .overlay {
+            Capsule()
+                .strokeBorder(.white.opacity(0.16), lineWidth: 1)
+        }
+        .shadow(color: .black.opacity(0.16), radius: 10, y: 4)
     }
 
     // MARK: Scheduled flight banner
@@ -228,8 +275,8 @@ struct HomeView: View {
         let status = flight.status(at: nowTick)
         VStack(spacing: 8) {
             scheduledBannerRow(flight, status: status)
-            if scheduler.notificationsDenied && status != .boarding {
-                Text("Notifications are off — the boarding call can't ring. Enable them in Settings.")
+            if scheduler.notificationsDenied {
+                Text("Notifications are off — boarding calls and final-call alerts can't ring. Enable them in Settings.")
                     .font(.caption2)
                     .foregroundStyle(.orange)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -297,10 +344,15 @@ struct HomeView: View {
             if let itinerary = selectedItinerary {
                 routeSummary(itinerary)
             } else {
-                Text("Where are we flying today?")
-                    .font(.headline)
-                    .foregroundStyle(.white)
-                    .shadow(color: .black.opacity(0.6), radius: 3)
+                VStack(spacing: 3) {
+                    Text("Choose your focus flight")
+                        .font(.headline)
+                    Text("Each route is an uninterrupted study session")
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.72))
+                }
+                .foregroundStyle(.white)
+                .shadow(color: .black.opacity(0.6), radius: 3)
             }
 
             ScrollView(.horizontal, showsIndicators: false) {
@@ -378,12 +430,14 @@ struct HomeView: View {
                     .font(.caption.weight(.medium))
                     .lineLimit(1)
                 HStack(spacing: 4) {
-                    Image(systemName: itinerary.isConnection ? "arrow.triangle.swap" : "arrow.right")
+                    Image(systemName: itinerary.isConnection ? "arrow.triangle.swap" : "timer")
                         .font(.system(size: 8, weight: .bold))
                     Text(itinerary.connection.map {
-                        "\(itinerary.totalFocusDuration.shortDurationText) via \($0.code)"
-                    } ?? itinerary.totalFocusDuration.shortDurationText)
+                        "\(itinerary.totalFocusDuration.shortDurationText) focus · via \($0.code)"
+                    } ?? "\(itinerary.totalFocusDuration.shortDurationText) focus")
                         .font(.system(size: 10, weight: .semibold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.78)
                 }
                 .opacity(0.65)
             }
@@ -400,14 +454,14 @@ struct HomeView: View {
         .accessibilityIdentifier("destination-\(airport.code)")
     }
 
-    /// Pill buttons matching the app's capsule language: quiet glass
-    /// "Schedule", solid white "Depart now".
+    /// Pill buttons matching the app's capsule language: quiet glass for
+    /// scheduling and solid white for the immediate focus-flight action.
     private var departButtons: some View {
         HStack(spacing: 10) {
             Button {
                 showingSchedule = true
             } label: {
-                Label("Schedule", systemImage: "clock")
+                Label("Schedule focus", systemImage: "clock")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
@@ -420,13 +474,15 @@ struct HomeView: View {
                     depart(to: destination)
                 }
             } label: {
-                Label("Depart now", systemImage: "airplane.departure")
+                Label("Start focus flight", systemImage: "airplane.departure")
                     .font(.subheadline.weight(.bold))
                     .foregroundStyle(.black)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 15)
                     .background(.white, in: Capsule())
                     .shadow(color: .black.opacity(0.25), radius: 10, y: 4)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
             }
             .accessibilityIdentifier("depart-now")
         }
@@ -438,6 +494,7 @@ struct HomeView: View {
         let session = FlightSession(itinerary: itinerary,
                                     modelContext: modelContext,
                                     tier: LogbookStats.tier(entries))
+        session.prepareRealWorldTwin()
         Haptics.success()
         onDepart(session)
     }

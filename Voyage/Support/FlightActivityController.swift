@@ -55,10 +55,39 @@ final class FlightActivityController {
     }
 
     private func state(for session: FlightSession) -> FlightActivityAttributes.ContentState {
+        let now = session.now
+        switch session.stage {
+        case .layover:
+            let caption = session.isFinalCall
+                ? "Final call — board now"
+                : "Lounge · connection boards soon"
+            let symbol = session.isFinalCall ? "exclamationmark.circle.fill" : "cup.and.saucer.fill"
+            let arrival: Date
+            if session.isFinalCall, let departs = session.connectionDeparts {
+                arrival = departs.addingTimeInterval(FlightSession.finalCallWindow)
+            } else if let departs = session.connectionDeparts {
+                arrival = departs
+            } else {
+                arrival = now
+            }
+            let departure = arrival.addingTimeInterval(-RoutePlanner.layoverDuration)
+            return .init(
+                phaseCaption: caption,
+                phaseSymbol: symbol,
+                arrival: arrival,
+                departure: departure,
+                legNumber: session.legIndex + 1,
+                legCount: session.itinerary.legs.count,
+                concluded: false
+            )
+        default:
+            break
+        }
+
         let (caption, symbol): (String, String)
         switch session.stage {
         case .layover:
-            (caption, symbol) = ("Lounge — connection boards soon", "cup.and.saucer.fill")
+            (caption, symbol) = ("", "") // unreachable
         default:
             switch session.phase {
             case .takeoffRoll: (caption, symbol) = ("Taking off", "airplane.departure")
@@ -68,7 +97,6 @@ final class FlightActivityController {
             case .landing: (caption, symbol) = ("Landing", "airplane.arrival")
             }
         }
-        let now = session.now
         return .init(
             phaseCaption: caption,
             phaseSymbol: symbol,

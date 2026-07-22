@@ -5,6 +5,28 @@ final class RouteCatalogTests: XCTestCase {
 
     // MARK: Catalog coverage & integrity
 
+    func testSeattleAndRaleighDurhamAirportMetadata() {
+        let sea = Airport.byCode("SEA")
+        XCTAssertEqual(sea.city, "Seattle")
+        XCTAssertEqual(sea.timeZone.identifier, "America/Los_Angeles")
+        XCTAssertNotNil(sea.runway)
+
+        let rdu = Airport.byCode("RDU")
+        XCTAssertEqual(rdu.city, "Raleigh–Durham")
+        XCTAssertEqual(rdu.timeZone.identifier, "America/New_York")
+        XCTAssertNotNil(rdu.runway)
+    }
+
+    func testSeattleAndRaleighDurhamHaveBookableSchedules() {
+        let sea = Airport.byCode("SEA")
+        let rdu = Airport.byCode("RDU")
+
+        XCTAssertNotNil(RouteCatalog.nonstop(from: sea, to: rdu))
+        XCTAssertFalse(RouteCatalog.upcomingDepartures(from: sea, to: rdu, count: 3).isEmpty)
+        XCTAssertEqual(RouteCatalog.via(from: sea, to: Airport.byCode("YQR"))?.code, "YVR")
+        XCTAssertEqual(RouteCatalog.via(from: rdu, to: Airport.byCode("YQR"))?.code, "YYZ")
+    }
+
     func testEveryDirectedPairIsNonstopOrHasValidConnection() {
         for origin in Airport.all {
             for destination in Airport.all where destination != origin {
@@ -104,5 +126,19 @@ final class RouteCatalogTests: XCTestCase {
         let options = RouteCatalog.upcomingDepartures(from: sfo, to: lax, count: 5)
         let numbers = Set(options.map(\.flightNumber))
         XCTAssertGreaterThan(numbers.count, 1, "Consecutive departures should differ")
+    }
+
+    func testCompetitiveRouteBoardIncludesMultipleCarriers() {
+        let options = RouteCatalog.upcomingDepartures(
+            from: Airport.byCode("SFO"),
+            to: Airport.byCode("LAX"),
+            count: 8
+        )
+        let carriers = Set(options.map(\.carrier))
+        XCTAssertGreaterThanOrEqual(carriers.count, 3,
+                                    "A competitive route should not look like a single-airline timetable")
+        for option in options {
+            XCTAssertTrue(option.flightNumber.hasPrefix(option.carrier.rawValue + " "))
+        }
     }
 }

@@ -27,10 +27,12 @@ struct RootView: View {
             session?.handleScenePhase(newPhase)
             if newPhase == .active {
                 scheduler.pruneExpired()
+                Task { await FocusIntegration.shared.refresh() }
             }
         }
         .onAppear {
             Haptics.prepare()
+            Task { await FocusIntegration.shared.refresh() }
         }
         .preferredColorScheme(session?.stage == .inFlight ? .dark : nil)
     }

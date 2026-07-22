@@ -1,51 +1,115 @@
 import SwiftUI
 
-/// Airline-style seat map: cream page, white fuselage, a 1–1 First Class
-/// cabin up front, a 2–2 Main Cabin behind it, exit-row markers over the
-/// wing box, and a fare card with cabin class, seat, flight number, and price.
+/// Airline-style seat map, drawn from the aircraft's real cabin plan: a 2-2
+/// First cabin, extra-legroom and main 3-3 cabins on the narrowbodies, exit
+/// rows over a visible wing box, and a tailplane at the back. The airframe
+/// silhouette changes with the aircraft, so a 737 and an A320neo are not the
+/// same drawing with a different label.
 struct SeatSelectionView: View {
     @Bindable var session: FlightSession
     let onContinue: () -> Void
 
     @State private var selected: String?
 
-    private let firstRows = Array(1...2)
-    private let economyRows = Array(3...12)
-    private let leftLetters = ["A", "B"]
-    private let rightLetters = ["C", "D"]
-    /// Visual break (exit row / over-wing box) after this economy row.
-    private let wingBreakAfterRow = 6
-    private let firstClassRows = 1...2
+    private var plan: CabinPlan { session.aircraft.cabinPlan }
+
+    // MARK: Metrics
+    //
+    // Every cabin shares one column grid so rows line up down the aircraft even
+    // where the seat count changes. The widest cabin sets the seat size.
+
+    // Scaled off a real 737-800 cabin so the map reads at airline proportions
+    // rather than as oversized tiles: 17.2" seat, 20" aisle, 139" interior
+    // width, 31" pitch. One point here is roughly half an inch of cabin.
+    private var seatSize: CGFloat { 34 }
+    private var seatGap: CGFloat { 3 }
+    /// Wider than a seat, as the aisle is on the real aircraft.
+    private var aisleWidth: CGFloat { 38 }
+    /// Sidewall and armrest margin — also wide enough to hold a turned EXIT
+    /// marker beside the window seats.
+    private var edgeInset: CGFloat { 16 }
+    /// Cushion depth. Shorter than the pitch, which is what leaves the
+    /// legroom gap between rows.
+    private var seatDepth: CGFloat { 34 }
+    /// Seats are drawn smaller than they are tapped: the button fills the row
+    /// pitch so no target falls below the 44pt minimum.
+    private var rowPitch: CGFloat { 46 }
+
+    private var groupWidth: CGFloat {
+        let count = CGFloat(plan.maxSeatsPerRow / 2)
+        return count * seatSize + (count - 1) * seatGap
+    }
+
+    private var fuselageWidth: CGFloat {
+        groupWidth * 2 + aisleWidth + edgeInset * 2
+    }
+
+    /// Seen from above, a narrowbody nose is a shallow cap — the flight deck
+    /// is barely a third of a fuselage width long. Drawing it longer turned
+    /// the top of the map into a dome with nothing in it.
+    private var noseLength: CGFloat { fuselageWidth * (0.30 + 0.12 * plan.noseFullness) }
+    private var tailLength: CGFloat { fuselageWidth * 0.42 }
+
+    /// First-class seats are wider because there are fewer of them across the
+    /// same cabin — the geometry produces the recliner, no special casing.
+    private func seatWidth(premium: Bool, perSide: Int) -> CGFloat {
+        premium ? (groupWidth - seatGap * CGFloat(perSide - 1)) / CGFloat(perSide) : seatSize
+    }
 
     var body: some View {
         VStack(spacing: 0) {
             header
             legend
-                .padding(.top, 4)
+                .padding(.top, 8)
                 .padding(.bottom, 10)
 
             ScrollView(showsIndicators: false) {
-                fuselage
-                    .frame(maxWidth: 300)
+                airframe
+                    .frame(width: fuselageWidth)
                     .frame(maxWidth: .infinity)
-                    .padding(.horizontal, 24)
                     .padding(.top, 6)
-                    .padding(.bottom, 16)
+                    .padding(.bottom, 28)
             }
+            .scrollClipDisabled()
 
-            fareCard
+            selectionCard
         }
         .background(Theme.seatMapBackground.ignoresSafeArea())
+        .onChange(of: session.aircraft) { _, _ in
+            // Letters and rows differ between aircraft, so a held seat may not
+            // exist on the new one.
+            withAnimation(.snappy(duration: 0.25)) { selected = nil }
+        }
     }
 
     // MARK: Header / legend
 
     private var header: some View {
-        Text("Select Seats")
-            .font(.system(size: 22, weight: .bold))
-            .foregroundStyle(Theme.seatMapInk)
-            .padding(.top, 6)
-            .padding(.bottom, 6)
+        HStack(spacing: 12) {
+            Text("Choose your seat")
+                .font(.system(size: 22, weight: .bold))
+            Spacer()
+            Menu {
+                Picker("Aircraft", selection: $session.aircraft) {
+                    ForEach(AircraftProfile.allCases) { aircraft in
+                        Text(aircraft.name).tag(aircraft)
+                    }
+                }
+            } label: {
+                Label(session.aircraft.name, systemImage: session.aircraft.symbol)
+                    .font(.caption.weight(.semibold))
+                    .lineLimit(1)
+                    .foregroundStyle(Theme.seatMapInk.opacity(0.7))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
+                    .background(Theme.seatMapInk.opacity(0.06), in: Capsule())
+            }
+            .accessibilityLabel("Aircraft model, \(session.aircraft.name)")
+        }
+        .foregroundStyle(Theme.seatMapInk)
+        .padding(.horizontal, 20)
+        .padding(.top, 6)
+        .padding(.bottom, 2)
     }
 
     private var legend: some View {
@@ -68,36 +132,44 @@ struct SeatSelectionView: View {
         }
     }
 
-    // MARK: Aircraft
+    // MARK: Airframe
 
-    private var fuselage: some View {
+    private var airframe: some View {
         VStack(spacing: 0) {
             nose
-            firstCabin
-            cabinDivider("MAIN CABIN")
-                .padding(.top, 18)
-                .padding(.bottom, 14)
-            economyCabin
+            ForEach(Array(plan.cabins.enumerated()), id: \.element.id) { index, cabin in
+                cabinDivider(cabin.name.uppercased())
+                    .padding(.top, index == 0 ? 0 : 18)
+                    .padding(.bottom, 10)
+                columnHeaders(cabin)
+                ForEach(cabin.rows, id: \.self) { row in
+                    seatRow(row, cabin: cabin)
+                        .background(alignment: .top) {
+                            if row == plan.wingAnchorRow { wingLayer }
+                        }
+                }
+            }
+            tailBand
         }
         .background(
-            NoseCappedColumn()
+            FuselageShape(noseLength: noseLength, tailLength: tailLength)
                 .fill(Theme.seatMapFuselage)
                 .shadow(color: .black.opacity(0.14), radius: 18, y: 8)
         )
     }
 
+    /// Reserves exactly the height the shape spends on the nose cone, so the
+    /// first row of seats begins where the fuselage reaches full width.
     private var nose: some View {
-        VStack(spacing: 8) {
-            // Cockpit windscreen.
-            Capsule()
-                .fill(Theme.seatMapInk.opacity(0.85))
-                .frame(width: 58, height: 14)
-                .padding(.top, 34)
-            cabinDivider("FIRST CLASS")
-                .padding(.top, 14)
-        }
-        .padding(.bottom, 14)
-        .accessibilityHidden(true)
+        // The flight-deck bulkhead, drawn as a light rule rather than a solid
+        // slug so it recedes the way it does on an airline seat map.
+        Capsule()
+            .fill(Theme.seatMapInk.opacity(0.16))
+            .frame(width: fuselageWidth * 0.34, height: 6)
+            .frame(maxHeight: .infinity, alignment: .bottom)
+            .padding(.bottom, 12)
+            .frame(height: noseLength)
+            .accessibilityHidden(true)
     }
 
     private func cabinDivider(_ label: String) -> some View {
@@ -119,235 +191,194 @@ struct SeatSelectionView: View {
             .frame(height: 1)
     }
 
-    // MARK: First Class (1–1 wide recliners)
+    /// A narrowbody wing is not a band between two rows. Its root chord is
+    /// close to twice the fuselage width and its half-span is four times it,
+    /// so at cabin scale the wing runs the length of the over-wing block and
+    /// leaves the screen on both sides. Drawn behind the seats — the seats are
+    /// inside the aircraft, so nothing about the wing may cover one.
+    private var wingRootChord: CGFloat { fuselageWidth * 1.45 }
+    private var wingOverhang: CGFloat { fuselageWidth * plan.wingSpan * 2.6 }
 
-    private var firstCabin: some View {
-        VStack(spacing: 14) {
-            ForEach(firstRows, id: \.self) { row in
-                HStack(spacing: 0) {
-                    windowTick
-                    firstSeatButton(row: row, letter: "A")
-                        .frame(maxWidth: .infinity)
-                    Text("\(row)")
-                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(Theme.seatMapInk.opacity(0.25))
-                        .frame(width: 34)
-                    firstSeatButton(row: row, letter: "D")
-                        .frame(maxWidth: .infinity)
-                    windowTick
-                }
-                .padding(.horizontal, 18)
-            }
+    private var wingLayer: some View {
+        ZStack {
+            WingPair(overhang: wingOverhang, sweep: plan.wingSweep)
+                .fill(Theme.seatMapWing)
+            EnginePair(overhang: wingOverhang, size: plan.engineSize)
+                .fill(Theme.seatMapWing.opacity(0.9))
         }
-    }
-
-    private func firstSeatButton(row: Int, letter: String) -> some View {
-        let id = displaySeat(row: row, letter: letter)
-        let taken = isTaken(id)
-        let isSelected = selected == id
-
-        let shell: Color = isSelected ? Theme.seatChosen
-            : (taken ? Theme.seatTakenFill : Theme.seatFirstGold)
-        let cushion: Color = isSelected ? Theme.seatChosen.opacity(0.72)
-            : (taken ? Theme.seatTakenFill.opacity(0.7) : Theme.seatFirstGoldLight)
-
-        return Button {
-            guard !taken else { return }
-            Haptics.tap()
-            withAnimation(.snappy(duration: 0.25)) { selected = id }
-        } label: {
-            // A front-view armchair: tall backrest with a headrest notch,
-            // wide seat cushion, armrests flanking the sides.
-            HStack(alignment: .bottom, spacing: 2) {
-                armrest(shell: shell, taken: taken)
-                VStack(spacing: 0) {
-                    // Backrest with headrest.
-                    UnevenRoundedRectangle(topLeadingRadius: 16, bottomLeadingRadius: 4,
-                                           bottomTrailingRadius: 4, topTrailingRadius: 16,
-                                           style: .continuous)
-                        .fill(shell)
-                        .overlay(alignment: .top) {
-                            Capsule()
-                                .fill(.white.opacity(taken ? 0.25 : 0.4))
-                                .frame(width: 22, height: 4)
-                                .padding(.top, 5)
-                        }
-                        .overlay {
-                            if isSelected {
-                                Text(id)
-                                    .font(.system(size: 12, weight: .bold))
-                                    .foregroundStyle(.white)
-                            } else if !taken {
-                                Image(systemName: "diamond.fill")
-                                    .font(.system(size: 7, weight: .bold))
-                                    .foregroundStyle(Theme.seatMapInk.opacity(0.3))
-                            }
-                        }
-                        .frame(width: 46, height: 40)
-                    // Seat cushion.
-                    UnevenRoundedRectangle(topLeadingRadius: 3, bottomLeadingRadius: 8,
-                                           bottomTrailingRadius: 8, topTrailingRadius: 3,
-                                           style: .continuous)
-                        .fill(cushion)
-                        .frame(width: 52, height: 12)
-                        .padding(.top, 2)
-                }
-                armrest(shell: shell, taken: taken)
-            }
-            .frame(width: 78, height: 58, alignment: .bottom)
-        }
-        .buttonStyle(.plain)
-        .disabled(taken)
-        .scaleEffect(isSelected ? 1.06 : 1)
-        .animation(.snappy(duration: 0.25), value: isSelected)
-        .accessibilityLabel(taken ? "First class seat \(id), taken" : "First class seat \(id)")
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
-    }
-
-    private func armrest(shell: Color, taken: Bool) -> some View {
-        UnevenRoundedRectangle(topLeadingRadius: 5, bottomLeadingRadius: 3,
-                               bottomTrailingRadius: 3, topTrailingRadius: 5,
-                               style: .continuous)
-            .fill(shell.opacity(taken ? 0.8 : 1))
-            .overlay(
-                UnevenRoundedRectangle(topLeadingRadius: 5, bottomLeadingRadius: 3,
-                                       bottomTrailingRadius: 3, topTrailingRadius: 5,
-                                       style: .continuous)
-                    .strokeBorder(Theme.seatMapInk.opacity(0.15), lineWidth: 1)
-            )
-            .frame(width: 9, height: 30)
-    }
-
-    // MARK: Main Cabin (2–2)
-
-    private var economyCabin: some View {
-        VStack(spacing: 12) {
-            columnHeaders
-            ForEach(economyRows, id: \.self) { row in
-                seatRow(row)
-                if row == wingBreakAfterRow {
-                    exitRowBreak
-                }
-            }
-        }
-        .padding(.bottom, 34)
-    }
-
-    private var columnHeaders: some View {
-        HStack(spacing: 0) {
-            windowTick.opacity(0)
-            seatHeaderGroup(leftLetters)
-            Text("")
-                .frame(width: 34)
-            seatHeaderGroup(rightLetters)
-            windowTick.opacity(0)
-        }
-        .padding(.horizontal, 18)
+        .frame(width: fuselageWidth + wingOverhang * 2, height: wingRootChord)
+        .allowsHitTesting(false)
         .accessibilityHidden(true)
     }
 
-    private func seatHeaderGroup(_ letters: [String]) -> some View {
-        HStack(spacing: 10) {
+    /// Horizontal stabilizers: the same wing geometry at a smaller scale,
+    /// sitting where the fuselage begins to taper into the tail.
+    private var tailBand: some View {
+        // The stabiliser is roughly 40% of the wing's span and chord.
+        let overhang = wingOverhang * 0.4
+        return WingPair(overhang: overhang, sweep: plan.wingSweep * 1.6)
+            .fill(Theme.seatMapWing)
+            .frame(height: wingRootChord * 0.4)
+            .padding(.horizontal, -overhang)
+            .padding(.top, 18)
+            .frame(height: tailLength, alignment: .top)
+            .accessibilityHidden(true)
+    }
+
+    // MARK: Rows
+
+    private func columnHeaders(_ cabin: CabinPlan.Cabin) -> some View {
+        let width = seatWidth(premium: cabin.isPremium, perSide: cabin.left.count)
+        return HStack(spacing: 0) {
+            letterGroup(cabin.left, width: width)
+            Text("").frame(width: aisleWidth)
+            letterGroup(cabin.right, width: width)
+        }
+        .padding(.horizontal, edgeInset)
+        .padding(.bottom, 2)
+        .accessibilityHidden(true)
+    }
+
+    private func letterGroup(_ letters: [String], width: CGFloat) -> some View {
+        HStack(spacing: seatGap) {
             ForEach(letters, id: \.self) { letter in
                 Text(letter)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(Theme.seatMapInk.opacity(0.45))
-                    .frame(width: 44)
+                    .frame(width: width)
             }
         }
     }
 
-    /// Over-wing exit row: red EXIT markers at both fuselage edges,
-    /// the way real airline seat maps mark it.
-    private var exitRowBreak: some View {
-        HStack {
-            exitTag
-            Spacer()
-            exitTag
+    private func seatRow(_ row: Int, cabin: CabinPlan.Cabin) -> some View {
+        let width = seatWidth(premium: cabin.isPremium, perSide: cabin.left.count)
+        let isExit = plan.exitRows.contains(row)
+        return HStack(spacing: 0) {
+            seatGroup(cabin.left, row: row, cabin: cabin, width: width)
+            Text("\(row)")
+                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                .foregroundStyle(Theme.seatMapInk.opacity(0.28))
+                .frame(width: aisleWidth)
+            seatGroup(cabin.right, row: row, cabin: cabin, width: width)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .accessibilityHidden(true)
+        .padding(.horizontal, edgeInset)
+        .padding(.vertical, cabin.isPremium ? 5 : 2)
+        .overlay {
+            if isExit {
+                // Turned to run along the fuselage, the way a door marking
+                // does, so the tag sits in the margin instead of over a seat.
+                HStack(spacing: 0) {
+                    exitTag.rotationEffect(.degrees(-90))
+                    Spacer()
+                    exitTag.rotationEffect(.degrees(90))
+                }
+                .accessibilityHidden(true)
+            }
+        }
     }
 
+    private func seatGroup(_ letters: [String], row: Int,
+                           cabin: CabinPlan.Cabin, width: CGFloat) -> some View {
+        HStack(spacing: seatGap) {
+            ForEach(letters, id: \.self) { letter in
+                seatButton(row: row, letter: letter, cabin: cabin, width: width)
+            }
+        }
+    }
+
+    /// Red EXIT markers on the fuselage edge, the way airline seat maps mark
+    /// the over-wing doors.
     private var exitTag: some View {
         Text("EXIT")
-            .font(.system(size: 8, weight: .heavy))
-            .kerning(1)
+            .font(.system(size: 7, weight: .heavy))
+            .kerning(0.8)
             .foregroundStyle(.white)
-            .padding(.horizontal, 5)
+            .padding(.horizontal, 4)
             .padding(.vertical, 2)
             .background(Color(hex: "C4453B"), in: RoundedRectangle(cornerRadius: 3))
     }
 
-    private func seatRow(_ row: Int) -> some View {
-        HStack(spacing: 0) {
-            windowTick
-            HStack(spacing: 10) {
-                ForEach(leftLetters, id: \.self) { seatButton(row: row, letter: $0) }
-            }
-            Text("\(row)")
-                .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                .foregroundStyle(Theme.seatMapInk.opacity(0.25))
-                .frame(width: 34)
-            HStack(spacing: 10) {
-                ForEach(rightLetters, id: \.self) { seatButton(row: row, letter: $0) }
-            }
-            windowTick
-        }
-        .padding(.horizontal, 18)
-    }
+    // MARK: Seats
 
-    /// Small gray pill on the fuselage edge — a cabin window.
-    private var windowTick: some View {
-        Capsule()
-            .fill(Theme.seatMapInk.opacity(0.18))
-            .frame(width: 5, height: 16)
-            .accessibilityHidden(true)
-    }
-
-    private func seatButton(row: Int, letter: String) -> some View {
+    private func seatButton(row: Int, letter: String,
+                            cabin: CabinPlan.Cabin, width: CGFloat) -> some View {
         let id = displaySeat(row: row, letter: letter)
         let taken = isTaken(id)
+        let locked = cabin.isPremium && !session.isPremiumCabin
+        let unavailable = taken || locked
         let isSelected = selected == id
 
         return Button {
-            guard !taken else { return }
+            guard !unavailable else { return }
             Haptics.tap()
+            CabinAudioEngine.shared.playSeatLatch()
             withAnimation(.snappy(duration: 0.25)) { selected = id }
         } label: {
-            ZStack {
-                RoundedRectangle(cornerRadius: 9, style: .continuous)
-                    .fill(seatColor(taken: taken, selected: isSelected))
-                RoundedRectangle(cornerRadius: 9, style: .continuous)
-                    .strokeBorder(
-                        taken ? Theme.seatMapInk.opacity(0.05) : Theme.accent.opacity(isSelected ? 0 : 0.35),
-                        lineWidth: 1
-                    )
-                if isSelected {
-                    Text(id)
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(.white)
-                        .minimumScaleFactor(0.7)
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .fill(seatColor(cabin: cabin, taken: unavailable, selected: isSelected))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .strokeBorder(seatBorder(cabin: cabin, taken: unavailable,
+                                                 selected: isSelected), lineWidth: 1)
                 }
-            }
-            .frame(width: 44, height: 44)
+                .overlay {
+                    if isSelected {
+                        Text(id)
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(.white)
+                            .minimumScaleFactor(0.7)
+                    } else if locked {
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(Theme.seatMapInk.opacity(0.3))
+                    }
+                }
+                // A headrest notch at the top of the cushion is what makes a
+                // rounded square read as a seat seen from above.
+                .overlay(alignment: .top) {
+                    Capsule()
+                        .fill(.white.opacity(unavailable ? 0.3 : 0.55))
+                        .frame(width: width * 0.42, height: 3)
+                        .padding(.top, 4)
+                        .opacity(isSelected ? 0.9 : 1)
+                }
+                .frame(width: width, height: seatDepth)
+                .frame(height: rowPitch)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .disabled(taken)
-        .scaleEffect(isSelected ? 1.08 : 1)
+        .disabled(unavailable)
+        .scaleEffect(isSelected ? 1.06 : 1)
         .animation(.snappy(duration: 0.25), value: isSelected)
-        .accessibilityLabel(taken ? "Seat \(id), taken" : "Seat \(id)")
+        .accessibilityLabel(accessibilityLabel(id: id, cabin: cabin, taken: taken, locked: locked))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
-    private func seatColor(taken: Bool, selected: Bool) -> Color {
-        if selected { return Theme.seatChosen }
-        if taken { return Theme.seatTakenFill }
-        return Theme.seatOpen
+    /// Premium seats are announced by cabin; every other seat is plain
+    /// "Seat C10", which is also the contract the UI tests select on.
+    private func accessibilityLabel(id: String, cabin: CabinPlan.Cabin,
+                                    taken: Bool, locked: Bool) -> String {
+        let prefix = cabin.isPremium ? "First class seat" : "Seat"
+        if locked { return "\(prefix) \(id), unlock at Silver tier" }
+        if taken { return "\(prefix) \(id), taken" }
+        return "\(prefix) \(id)"
     }
 
-    // MARK: Seat identity / pricing
+    private func seatColor(cabin: CabinPlan.Cabin, taken: Bool, selected: Bool) -> Color {
+        if selected { return Theme.seatChosen }
+        if taken { return Theme.seatTakenFill }
+        return cabin.isPremium ? Theme.seatFirstGold : Theme.seatOpen
+    }
+
+    private func seatBorder(cabin: CabinPlan.Cabin, taken: Bool, selected: Bool) -> Color {
+        if selected { return .clear }
+        if taken { return Theme.seatMapInk.opacity(0.05) }
+        return cabin.isPremium
+            ? Theme.seatFirstGold.opacity(0.9)
+            : Theme.accent.opacity(0.35)
+    }
+
+    // MARK: Seat identity
 
     /// Reference design labels seats letter-first ("C10").
     private func displaySeat(row: Int, letter: String) -> String { "\(letter)\(row)" }
@@ -368,39 +399,35 @@ struct SeatSelectionView: View {
 
     private var cabinClass: String {
         guard let row = selectedRow else { return "—" }
-        return firstClassRows.contains(row) ? "First" : "Main Cabin"
+        return plan.cabin(forRow: row)?.name ?? "—"
     }
 
-    private var price: Int {
-        guard let row = selectedRow else { return 0 }
-        let base = 59.0 + session.itinerary.totalMiles * 0.085
-        let multiplier = firstClassRows.contains(row) ? 3.0 : 1.0
-        return Int(((base * multiplier) / 5).rounded()) * 5
-    }
+    // MARK: Selection summary
 
-    // MARK: Fare card
-
-    private var fareCard: some View {
+    private var selectionCard: some View {
         VStack(spacing: 14) {
             HStack(alignment: .top) {
-                fareField("Cabin Class", cabinClass)
+                selectionField("Cabin Class", cabinClass)
                 Spacer()
-                fareField("Selected Seat", selected ?? "—", centered: true)
+                selectionField("Selected Seat", selected ?? "—", centered: true)
                 Spacer()
-                fareField("Flight No", session.currentLeg.flightNumber, trailing: true)
+                selectionField("Flight No", session.currentLeg.flightNumber, trailing: true)
             }
 
             Divider()
 
             HStack {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Total Price")
+                    Text("Focus block")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(Theme.seatMapInk.opacity(0.5))
-                    Text(selected == nil ? "$—" : "$\(price)")
+                    Text(session.itinerary.totalFocusDuration.shortDurationText)
                         .font(.system(size: 24, weight: .bold))
                         .foregroundStyle(Theme.seatMapInk)
                         .contentTransition(.numericText())
+                    Text("Uninterrupted study time")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(Theme.seatMapInk.opacity(0.35))
                 }
                 Spacer()
                 Button {
@@ -410,15 +437,19 @@ struct SeatSelectionView: View {
                         onContinue()
                     }
                 } label: {
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 20, weight: .bold))
+                    HStack(spacing: 8) {
+                        Text("Continue")
+                        Image(systemName: "arrow.right")
+                    }
+                        .font(.subheadline.bold())
                         .foregroundStyle(selected == nil ? Theme.seatMapInk.opacity(0.5) : .white)
-                        .frame(width: 58, height: 58)
+                        .padding(.horizontal, 18)
+                        .frame(height: 52)
                         .background(
                             selected == nil
                                 ? Theme.seatTakenFill.opacity(0.6)
                                 : Theme.accent,
-                            in: Circle()
+                            in: Capsule()
                         )
                 }
                 .disabled(selected == nil)
@@ -437,8 +468,8 @@ struct SeatSelectionView: View {
         .animation(.snappy(duration: 0.25), value: selected)
     }
 
-    private func fareField(_ label: String, _ value: String,
-                           centered: Bool = false, trailing: Bool = false) -> some View {
+    private func selectionField(_ label: String, _ value: String,
+                                centered: Bool = false, trailing: Bool = false) -> some View {
         let alignment: HorizontalAlignment = trailing ? .trailing : (centered ? .center : .leading)
         return VStack(alignment: alignment, spacing: 3) {
             Text(label)
@@ -452,29 +483,99 @@ struct SeatSelectionView: View {
     }
 }
 
-// MARK: - Airframe shape
+// MARK: - Airframe shapes
 
-/// White fuselage column with a rounded nose and slight tail taper.
-private struct NoseCappedColumn: Shape {
+/// Fuselage seen from above: an ogive nose cone, parallel sides through the
+/// cabin, and a tail that tapers to a narrow boat-tail.
+private struct FuselageShape: Shape {
+    let noseLength: CGFloat
+    let tailLength: CGFloat
+
     func path(in rect: CGRect) -> Path {
         var path = Path()
-        let noseHeight = min(rect.height * 0.16, 90)
-        let tailInset = rect.width * 0.12
+        let nose = rect.minY + noseLength
+        let tail = rect.maxY - tailLength
+        // The cone ends in a small rounded cap rather than a point — the sides
+        // hug the fuselage for most of the run, then turn in hard.
+        let capHalf = rect.width * 0.26
+        let tailHalf = rect.width * 0.16
+        let hug = noseLength * 0.58
 
-        path.move(to: CGPoint(x: rect.minX, y: rect.minY + noseHeight))
-        // Nose dome.
-        path.addQuadCurve(to: CGPoint(x: rect.midX, y: rect.minY),
-                          control: CGPoint(x: rect.minX, y: rect.minY))
-        path.addQuadCurve(to: CGPoint(x: rect.maxX, y: rect.minY + noseHeight),
-                          control: CGPoint(x: rect.maxX, y: rect.minY))
-        // Body sides with gentle tail taper.
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY * 0.82))
-        path.addQuadCurve(to: CGPoint(x: rect.maxX - tailInset, y: rect.maxY),
-                          control: CGPoint(x: rect.maxX, y: rect.maxY * 0.95))
-        path.addLine(to: CGPoint(x: rect.minX + tailInset, y: rect.maxY))
-        path.addQuadCurve(to: CGPoint(x: rect.minX, y: rect.maxY * 0.82),
-                          control: CGPoint(x: rect.minX, y: rect.maxY * 0.95))
+        // Control points stay inside the fuselage half-width, otherwise the
+        // curve bows out past the cabin sides and the nose reads as a mushroom.
+        let shoulder = min(capHalf * 1.5, rect.width * 0.4)
+
+        path.move(to: CGPoint(x: rect.minX, y: nose))
+        path.addCurve(to: CGPoint(x: rect.midX - capHalf, y: rect.minY),
+                      control1: CGPoint(x: rect.minX, y: nose - hug),
+                      control2: CGPoint(x: rect.midX - shoulder, y: rect.minY))
+        path.addQuadCurve(to: CGPoint(x: rect.midX + capHalf, y: rect.minY),
+                          control: CGPoint(x: rect.midX, y: rect.minY - capHalf * 0.28))
+        path.addCurve(to: CGPoint(x: rect.maxX, y: nose),
+                      control1: CGPoint(x: rect.midX + shoulder, y: rect.minY),
+                      control2: CGPoint(x: rect.maxX, y: nose - hug))
+        path.addLine(to: CGPoint(x: rect.maxX, y: tail))
+        path.addCurve(to: CGPoint(x: rect.midX + tailHalf, y: rect.maxY),
+                      control1: CGPoint(x: rect.maxX, y: tail + tailLength * 0.45),
+                      control2: CGPoint(x: rect.midX + tailHalf, y: rect.maxY - tailLength * 0.28))
+        path.addLine(to: CGPoint(x: rect.midX - tailHalf, y: rect.maxY))
+        path.addCurve(to: CGPoint(x: rect.minX, y: tail),
+                      control1: CGPoint(x: rect.midX - tailHalf, y: rect.maxY - tailLength * 0.28),
+                      control2: CGPoint(x: rect.minX, y: tail + tailLength * 0.45))
         path.closeSubpath()
+        return path
+    }
+}
+
+/// A swept wing on each side, rooted at the fuselage edge and raked aft.
+/// The centre is left empty so the wing never draws over the cabin.
+private struct WingPair: Shape {
+    let overhang: CGFloat
+    /// Aft rake of the tip, as a fraction of the band height.
+    let sweep: Double
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let rootTop = rect.minY
+        let rootBottom = rect.minY + rect.height * 0.78
+        let tipTop = rect.minY + rect.height * sweep
+        let tipBottom = tipTop + rect.height * 0.15
+        let tipInset: CGFloat = 3
+
+        for side in [true, false] {
+            let root = side ? rect.minX + overhang : rect.maxX - overhang
+            let tip = side ? rect.minX + tipInset : rect.maxX - tipInset
+            path.move(to: CGPoint(x: root, y: rootTop))
+            path.addLine(to: CGPoint(x: tip, y: tipTop))
+            path.addLine(to: CGPoint(x: tip, y: tipBottom))
+            path.addLine(to: CGPoint(x: root, y: rootBottom))
+            path.closeSubpath()
+        }
+        return path
+    }
+}
+
+/// Nacelles slung forward of the wing root — larger on the A320neo, which is
+/// how you tell it from a 737 at a glance.
+private struct EnginePair: Shape {
+    let overhang: CGFloat
+    /// Nacelle length as a fraction of the band height.
+    let size: Double
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let length = rect.height * size * 2.6
+        let width = rect.height * size * 0.95
+        let top = rect.minY - length * 0.28
+        let offset = overhang * 0.34
+
+        for side in [true, false] {
+            let centre = side ? rect.minX + overhang - offset : rect.maxX - overhang + offset
+            path.addRoundedRect(
+                in: CGRect(x: centre - width / 2, y: top, width: width, height: length),
+                cornerSize: CGSize(width: width / 2, height: width / 2)
+            )
+        }
         return path
     }
 }

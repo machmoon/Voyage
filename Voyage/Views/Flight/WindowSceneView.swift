@@ -1,11 +1,14 @@
 import SwiftUI
 
-/// Everything visible through a **side-facing** airplane window, drawn
-/// procedurally: the airport rushing past on the takeoff roll, punching
-/// through the cloud deck on climb, an undercast far below at cruise
-/// (with the wing, if you're seated over it), real-weather skies, and
-/// runway lights streaking past at touchdown.
-struct WindowSceneView: View {
+/// Everything visible through a side-facing airplane window, drawn rather than
+/// streamed: real skies for the forecast condition (clear, cloud, rain, storm,
+/// snow, fog), sun/moon, stars, aurora, and the wing. Authored airport worlds
+/// handle supported departures; the procedural renderer covers everything else.
+///
+/// This is the "Illustrated" half of the window-mode choice — see
+/// `WindowWorldMode`. It needs no network and never shows a half-loaded tile.
+struct IllustratedWindowSceneView: View {
+    let airport: Airport
     let phase: LegPhase
     /// 0 = on the ground, 1 = cruise altitude.
     let altitudeFraction: Double
@@ -14,19 +17,90 @@ struct WindowSceneView: View {
     let showSunset: Bool
     let showAurora: Bool
     var showWing: Bool = false
+    var isLeftSide: Bool = false
+    var legElapsed: TimeInterval = 0
+    var phaseElapsed: TimeInterval = 0
+    var aircraft: AircraftProfile = .voyageClassic
+    var weatherSnapshot: WeatherSnapshot?
 
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    /// Wall-clock moment the current phase began — gives every frame a
-    /// smooth, continuous per-phase elapsed time for kinematics.
-    @State private var phaseStart = Date()
-
     var body: some View {
-        TimelineView(.animation(minimumInterval: frameInterval, paused: isPaused)) { timeline in
+        let frame = AirportWorldSimulation(
+            airport: airport,
+            aircraft: aircraft,
+            seat: isLeftSide ? "A1" : "C1",
+            weather: weatherSnapshot
+        ).frame(
+            phase: phase,
+            legElapsed: legElapsed,
+            altitudeFeet: Int(max(0, altitudeFraction) * 36_000)
+        )
+        WindowWorldRenderer(
+            frame: frame,
+            phase: phase,
+            isNight: isNight,
+            condition: condition,
+            reduceMotion: reduceMotion
+        ) {
+            ZStack {
+                proceduralScene
+                if realSceneryActive {
+                    realSceneryLayer
+                }
+            }
+        }
+    }
+
+    // MARK: Real scenery (satellite flyover)
+
+    /// Real imagery only makes sense near the ground, online, at an airport
+    /// with runway choreography, and in weather you could actually see
+    /// through. Everything else stays procedural.
+    private var realSceneryActive: Bool {
+        SettingsStore.shared.realSceneryEnabled
+            && RealSceneryReachability.shared.isOnline
+            && airport.runway != nil
+            && phase != .cruise
+            && realSceneryOpacity > 0.02
+            && (condition == .clear || condition == .partlyCloudy || condition == .cloudy)
+    }
+
+    /// Crossfade to the procedural renderer as the ground stops reading:
+    /// fully real below ~15% of cruise altitude, fully procedural by ~30%.
+    private var realSceneryOpacity: Double {
+        let t = (altitudeFraction - 0.15) / 0.15
+        return 1 - min(1, max(0, t))
+    }
+
+    private var realSceneryLayer: some View {
+        RealWorldSceneView(
+            airport: airport,
+            phase: phase,
+            altitudeFraction: altitudeFraction,
+            isLeftSide: isLeftSide
+        )
+        .overlay {
+            // Satellite tiles are daytime-only; retint them for the scene.
+            if isNight {
+                Color(hex: "0A1226").opacity(0.62).blendMode(.multiply)
+            } else if condition == .cloudy {
+                Color(hex: "AEB6C2").opacity(0.22)
+            }
+        }
+        .saturation(isNight ? 0.45 : 1)
+        .opacity(realSceneryOpacity)
+        .allowsHitTesting(false)
+    }
+
+    // MARK: Procedural scene
+
+    private var proceduralScene: some View {
+            TimelineView(.animation(minimumInterval: frameInterval, paused: isPaused)) { timeline in
             Canvas { context, size in
-                let t = timeline.date.timeIntervalSinceReferenceDate
-                let tPhase = max(0, timeline.date.timeIntervalSince(phaseStart))
+                let t = legElapsed
+                let tPhase = phaseElapsed
                 let scene = SceneModel(
                     phase: phase,
                     altitude: altitudeFraction,
@@ -94,21 +168,18 @@ struct WindowSceneView: View {
                     drawWing(context, scene)
                 }
             }
-            .rotationEffect(.degrees(bankAngle(at: timeline.date)))
-            .scaleEffect(1 + abs(bankAngle(at: timeline.date)) * 0.014)
-            .overlay { hazeOverlay(time: timeline.date.timeIntervalSinceReferenceDate) }
-        }
-        .onChange(of: phase) { _, _ in phaseStart = Date() }
-        .onAppear { phaseStart = Date() }
+            .rotationEffect(.degrees(bankAngle))
+            .scaleEffect(1 + abs(bankAngle) * 0.014)
+            .overlay { hazeOverlay(time: legElapsed) }
+            }
     }
 
     /// The aircraft rotates and banks away on climb-out: the horizon tips a
     /// few degrees, easing back to level as we approach altitude. The slight
     /// scale-up hides the window corners while rotated.
-    private func bankAngle(at date: Date) -> Double {
+    private var bankAngle: Double {
         guard !reduceMotion, phase == .climb else { return 0 }
-        let tPhase = max(0, date.timeIntervalSince(phaseStart))
-        let rise = min(1, tPhase / 1.4)
+        let rise = min(1, phaseElapsed / 1.4)
         let levelOff = 1 - min(1, max(0, altitudeFraction) / 0.85)
         return -6.0 * rise * levelOff
     }
@@ -128,7 +199,9 @@ struct WindowSceneView: View {
     private var goldenHour: Bool {
         if showSunset && phase == .cruise { return true }
         guard !isNight else { return false }
-        let hour = Calendar.current.component(.hour, from: Date())
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = airport.timeZone
+        let hour = calendar.component(.hour, from: Date())
         return hour >= 17 && hour < 20 || hour >= 5 && hour < 8
     }
 
@@ -151,7 +224,14 @@ struct WindowSceneView: View {
         var horizonY: Double {
             if onGround { return 0.60 }
             // Higher altitude pushes the horizon toward the upper third.
-            return 0.60 - 0.18 * min(1, altitude)
+            let level = 0.60 - 0.18 * min(1, altitude)
+            guard phase == .climb else { return level }
+            // Altitude alone would raise the horizon as soon as the wheels
+            // leave the ground, which reads as the nose dropping. A climbing
+            // aircraft is pitched up, so the horizon sinks toward the sill and
+            // sky fills the pane; the pitch washes out as the climb shallows.
+            let pitch = 0.26 * (1 - min(1, altitude / 0.55))
+            return level + pitch
         }
 
         var showsPrecipitation: Bool {
@@ -183,7 +263,6 @@ struct WindowSceneView: View {
             case .landing:
                 let t = tPhase
                 let brake = max(0.5, FlightSession.landingDuration * 0.85)
-                let v = max(130.0, vMax - (vMax - 130.0) * min(1, t / brake))
                 // Integrate the linear deceleration.
                 let tc = min(t, brake)
                 var d = vMax * tc - (vMax - 130.0) * tc * tc / (2 * brake)
@@ -782,67 +861,105 @@ struct WindowSceneView: View {
         let turbulence = s.condition.isPrecipitating ? 3.0 : 1.4
         let flex = sin(s.time * 1.1) * turbulence
 
-        let rootLead = CGPoint(x: -6, y: h * 0.74)
-        let tip = CGPoint(x: w * 0.84, y: h * 0.615 + flex)
+        // The root sits below the sill so the wing reads as bolted to a
+        // fuselage just out of frame, and the sweep is shallow — a steep
+        // diagonal makes the wing look like a blade laid across the view.
+        let rootLead = CGPoint(x: -10, y: h * 0.86)
+        let tip = CGPoint(x: w * 0.86, y: h * 0.60 + flex)
+        // Real wingtips are blunt: a chord this deep never tapers to a point.
+        let tipChord = h * 0.055
 
-        // Wing surface.
+        // Wing surface: leading edge out to the tip, square across the tip
+        // chord, then the trailing edge sweeping back to the root.
         var wing = Path()
         wing.move(to: rootLead)
-        wing.addQuadCurve(to: tip, control: CGPoint(x: w * 0.40, y: h * 0.665))
-        wing.addLine(to: CGPoint(x: tip.x + w * 0.02, y: tip.y + 6))
-        wing.addQuadCurve(to: CGPoint(x: -6, y: h * 1.08),
-                          control: CGPoint(x: w * 0.34, y: h * 0.93))
+        wing.addQuadCurve(to: tip, control: CGPoint(x: w * 0.42, y: h * 0.735))
+        wing.addLine(to: CGPoint(x: tip.x + w * 0.008, y: tip.y + tipChord))
+        wing.addQuadCurve(to: CGPoint(x: -10, y: h * 1.16),
+                          control: CGPoint(x: w * 0.36, y: h * 1.00))
         wing.closeSubpath()
 
-        let top: Color = s.isNight ? Color(hex: "12151E") : Color(hex: "A8B1BD")
-        let bottom: Color = s.isNight ? Color(hex: "080A11") : Color(hex: "6B7480")
+        // Lit from above: the upper surface catches sky, the chord falls into
+        // shadow toward the trailing edge.
+        let top: Color = s.isNight ? Color(hex: "1A1F2C") : Color(hex: "D3D9E1")
+        let mid: Color = s.isNight ? Color(hex: "12151E") : Color(hex: "9BA5B2")
+        let bottom: Color = s.isNight ? Color(hex: "070910") : Color(hex: "5F6874")
         context.fill(wing, with: .linearGradient(
-            Gradient(colors: [top, bottom]),
-            startPoint: CGPoint(x: 0, y: tip.y - 16),
-            endPoint: CGPoint(x: 0, y: h)))
+            Gradient(colors: [top, mid, bottom]),
+            startPoint: CGPoint(x: 0, y: tip.y - h * 0.04),
+            endPoint: CGPoint(x: 0, y: h * 1.05)))
+
+        // Engine nacelle slung under the inboard wing — without it the wing
+        // floats, with no sense of the aircraft it belongs to.
+        let nacX = rootLead.x + (tip.x - rootLead.x) * 0.30
+        let nacY = rootLead.y + (tip.y - rootLead.y) * 0.30 + h * 0.055
+        let nacW = w * 0.30, nacH = h * 0.085
+        let nacelle = Path(roundedRect: CGRect(x: nacX - nacW * 0.42, y: nacY,
+                                               width: nacW, height: nacH),
+                           cornerSize: CGSize(width: nacH * 0.5, height: nacH * 0.5))
+        context.fill(nacelle, with: .linearGradient(
+            Gradient(colors: [s.isNight ? Color(hex: "141824") : Color(hex: "B6BEC9"),
+                              s.isNight ? Color(hex: "05070C") : Color(hex: "4E5763")]),
+            startPoint: CGPoint(x: 0, y: nacY),
+            endPoint: CGPoint(x: 0, y: nacY + nacH)))
+        // Dark intake lip at the front of the nacelle.
+        context.fill(
+            Path(ellipseIn: CGRect(x: nacX - nacW * 0.42, y: nacY + nacH * 0.06,
+                                   width: nacW * 0.17, height: nacH * 0.88)),
+            with: .color(s.isNight ? Color(hex: "020306") : Color(hex: "2C333D")))
 
         // Flap-track fairings: slender pods trailing back off the surface.
         let fairing: Color = s.isNight ? Color(hex: "060810") : Color(hex: "525B66")
-        for f in [0.28, 0.5, 0.7] {
+        for f in [0.34, 0.54, 0.72] {
             let baseX = rootLead.x + (tip.x - rootLead.x) * f
-            let baseY = rootLead.y + (tip.y - rootLead.y) * f + h * (0.10 - 0.03 * f)
+            let baseY = rootLead.y + (tip.y - rootLead.y) * f + h * (0.085 - 0.025 * f)
+            // Pods shrink outboard with the chord.
+            let scale = 1.0 - f * 0.45
             var pod = Path()
-            pod.move(to: CGPoint(x: baseX - 14, y: baseY))
-            pod.addQuadCurve(to: CGPoint(x: baseX + 30, y: baseY + 15),
-                             control: CGPoint(x: baseX + 12, y: baseY + 2))
-            pod.addQuadCurve(to: CGPoint(x: baseX - 14, y: baseY + 8),
-                             control: CGPoint(x: baseX + 8, y: baseY + 12))
+            pod.move(to: CGPoint(x: baseX - 13 * scale, y: baseY))
+            pod.addQuadCurve(to: CGPoint(x: baseX + 28 * scale, y: baseY + 13 * scale),
+                             control: CGPoint(x: baseX + 11 * scale, y: baseY + 2))
+            pod.addQuadCurve(to: CGPoint(x: baseX - 13 * scale, y: baseY + 7 * scale),
+                             control: CGPoint(x: baseX + 7 * scale, y: baseY + 11 * scale))
             pod.closeSubpath()
             context.fill(pod, with: .color(fairing.opacity(0.85)))
         }
 
         // Spoiler panel line along the surface.
         var panel = Path()
-        panel.move(to: CGPoint(x: 0, y: h * 0.84))
-        panel.addQuadCurve(to: CGPoint(x: tip.x * 0.9, y: tip.y + h * 0.045),
-                           control: CGPoint(x: w * 0.38, y: h * 0.76))
+        panel.move(to: CGPoint(x: 0, y: h * 0.96))
+        panel.addQuadCurve(to: CGPoint(x: tip.x * 0.9, y: tip.y + tipChord * 0.6),
+                           control: CGPoint(x: w * 0.38, y: h * 0.855))
         context.stroke(panel, with: .color(.black.opacity(s.isNight ? 0.35 : 0.16)), lineWidth: 1)
 
-        // Leading-edge glint.
+        // Leading-edge glint — the brightest line on the wing, and the thing
+        // that sells the surface as metal rather than a flat cutout.
         var edge = Path()
         edge.move(to: rootLead)
-        edge.addQuadCurve(to: tip, control: CGPoint(x: w * 0.40, y: h * 0.665))
-        context.stroke(edge, with: .color(.white.opacity(s.isNight ? 0.12 : 0.55)), lineWidth: 1.6)
+        edge.addQuadCurve(to: tip, control: CGPoint(x: w * 0.42, y: h * 0.735))
+        context.stroke(edge, with: .color(.white.opacity(s.isNight ? 0.14 : 0.72)), lineWidth: 2)
 
-        // Winglet: a slim blade curving up from the tip.
+        // Winglet: a blunt upturned blade, raked back, with real width — the
+        // tip of a wing is a slab, never a needle.
+        let wgH = h * 0.135
+        let rake = w * 0.045
         var winglet = Path()
-        winglet.move(to: CGPoint(x: tip.x - 4, y: tip.y + 2))
-        winglet.addQuadCurve(to: CGPoint(x: tip.x + w * 0.055, y: tip.y - h * 0.085),
-                             control: CGPoint(x: tip.x + w * 0.045, y: tip.y - h * 0.02))
-        winglet.addLine(to: CGPoint(x: tip.x + w * 0.075, y: tip.y - h * 0.082))
-        winglet.addQuadCurve(to: CGPoint(x: tip.x + w * 0.02, y: tip.y + 6),
-                             control: CGPoint(x: tip.x + w * 0.065, y: tip.y - h * 0.01))
+        winglet.move(to: CGPoint(x: tip.x - w * 0.005, y: tip.y + tipChord))
+        winglet.addQuadCurve(to: CGPoint(x: tip.x + rake, y: tip.y - wgH),
+                             control: CGPoint(x: tip.x + rake * 0.35, y: tip.y - wgH * 0.45))
+        winglet.addLine(to: CGPoint(x: tip.x + rake + w * 0.032, y: tip.y - wgH * 0.94))
+        winglet.addQuadCurve(to: CGPoint(x: tip.x + w * 0.030, y: tip.y + tipChord),
+                             control: CGPoint(x: tip.x + rake * 0.75, y: tip.y - wgH * 0.35))
         winglet.closeSubpath()
-        context.fill(winglet, with: .color(s.isNight ? Color(hex: "0D101A") : Color(hex: "8892A0")))
+        context.fill(winglet, with: .linearGradient(
+            Gradient(colors: [s.isNight ? Color(hex: "171B26") : Color(hex: "C2CAD4"),
+                              s.isNight ? Color(hex: "0A0D14") : Color(hex: "78828F")]),
+            startPoint: CGPoint(x: 0, y: tip.y - wgH),
+            endPoint: CGPoint(x: 0, y: tip.y + tipChord)))
 
         // Navigation light (green, starboard) + white strobe at the winglet tip.
-        let navX = tip.x + w * 0.062
-        let navY = tip.y - h * 0.085
+        let navX = tip.x + rake + w * 0.012
+        let navY = tip.y - wgH * 0.92
         let navOn = sin(s.time * 2.6) > -0.2
         let navAlpha = navOn ? 0.95 : 0.35
         context.fill(Path(ellipseIn: CGRect(x: navX - 2.5, y: navY - 2.5, width: 5, height: 5)),

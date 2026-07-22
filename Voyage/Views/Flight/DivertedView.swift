@@ -12,6 +12,18 @@ struct DivertedView: View {
     let kind: Kind
     let onDismiss: () -> Void
 
+    private var subtitle: String {
+        switch kind {
+        case .missedConnection:
+            return "The gate closed before you boarded. Your connection left without you."
+        case .diverted:
+            if session.diversionReason == .voluntary {
+                return "You chose to end the flight early. Partial credit applies for completed legs."
+            }
+            return "You were away from the cabin for more than 30 seconds, so we had to put her down early."
+        }
+    }
+
     var body: some View {
         ZStack {
             Color(hex: "17181C").ignoresSafeArea()
@@ -28,9 +40,7 @@ struct DivertedView: View {
                     .font(.title.bold())
                     .foregroundStyle(.white)
 
-                Text(kind == .diverted
-                     ? "You were away from the cabin too long, so we had to put her down early."
-                     : "The gate closed before you boarded. Your connection left without you.")
+                Text(subtitle)
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.55))
                     .multilineTextAlignment(.center)
@@ -46,17 +56,16 @@ struct DivertedView: View {
                     onDismiss()
                 } label: {
                     Text("Back to the terminal")
-                        .font(.headline)
-                        .foregroundStyle(.black)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(.white, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                 }
+                .buttonStyle(VoyagePrimaryButtonStyle())
                 .padding(.horizontal, 24)
                 .padding(.bottom, 30)
             }
         }
-        .onAppear { Haptics.failure() }
+        .onAppear {
+            Haptics.failure()
+            CabinAudioEngine.shared.playDivertTone()
+        }
     }
 
     private var statsRow: some View {

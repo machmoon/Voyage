@@ -1,0 +1,1916 @@
+
+--- 2026-07-21T00:13:48.280Z debug
+🪵  Writing logs to "/Users/patliu/Desktop/Coding/Voyage/worker/.wrangler/deploy.log"
+---
+
+--- 2026-07-21T00:13:48.280Z debug
+.env file not found at "/Users/patliu/Desktop/Coding/Voyage/worker/.env". Continuing... For more details, refer to https://developers.cloudflare.com/workers/wrangler/system-environment-variables/
+---
+
+--- 2026-07-21T00:13:48.280Z debug
+.env file not found at "/Users/patliu/Desktop/Coding/Voyage/worker/.env.local". Continuing... For more details, refer to https://developers.cloudflare.com/workers/wrangler/system-environment-variables/
+---
+
+--- 2026-07-21T00:13:48.285Z log
+
+ ⛅️ wrangler 4.112.0
+────────────────────
+---
+
+--- 2026-07-21T00:13:48.295Z debug
+Running autoconfig detection in /Users/patliu/Desktop/Coding/Voyage/worker...
+---
+
+--- 2026-07-21T00:13:48.296Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"wrangler command started","timestamp":1784592828296,"properties":{"amplitude_session_id":1784592828290,"amplitude_event_id":0,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"jsonc","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"agent":"codex","argsUsed":[],"argsCombination":"","sanitizedCommand":"deploy","sanitizedArgs":{},"currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-21T00:13:48.299Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"autoconfig_process_started","timestamp":1784592828299,"properties":{"amplitude_session_id":1784592828295,"amplitude_event_id":0,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"none","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"agent":"codex","category":"Workers","os":"darwin:arm64","autoConfigId":"d541c49e-bf10-4ec5-9ccd-e31fd2cd4063","command":"wrangler deploy","dryRun":false,"currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-21T00:13:48.299Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"autoconfig_detection_started","timestamp":1784592828299,"properties":{"amplitude_session_id":1784592828295,"amplitude_event_id":0,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"none","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"agent":"codex","category":"Workers","os":"darwin:arm64","autoConfigId":"d541c49e-bf10-4ec5-9ccd-e31fd2cd4063","command":"wrangler deploy","currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-21T00:13:48.300Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"autoconfig_detection_completed","timestamp":1784592828300,"properties":{"amplitude_session_id":1784592828296,"amplitude_event_id":0,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"none","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"agent":"codex","category":"Workers","os":"darwin:arm64","autoConfigId":"d541c49e-bf10-4ec5-9ccd-e31fd2cd4063","configured":true,"success":true,"currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-21T00:13:48.311Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"autoconfig_process_ended","timestamp":1784592828311,"properties":{"amplitude_session_id":1784592828296,"amplitude_event_id":0,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"none","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"agent":"codex","category":"Workers","os":"darwin:arm64","autoConfigId":"d541c49e-bf10-4ec5-9ccd-e31fd2cd4063","command":"wrangler deploy","dryRun":false,"success":true,"currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-21T00:13:48.398Z debug
+-- START CF API REQUEST: GET https://api.cloudflare.com/client/v4/accounts
+---
+
+--- 2026-07-21T00:13:48.398Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:13:48.398Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:13:48.398Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:13:48.398Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-21T00:13:48.399Z debug
+-- START CF API REQUEST: GET https://api.cloudflare.com/client/v4/memberships
+---
+
+--- 2026-07-21T00:13:48.399Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:13:48.399Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:13:48.399Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:13:48.399Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-21T00:13:48.703Z debug
+-- START CF API RESPONSE: OK 200
+---
+
+--- 2026-07-21T00:13:48.703Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:13:48.703Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:13:48.703Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-21T00:13:49.178Z debug
+-- START CF API RESPONSE: OK 200
+---
+
+--- 2026-07-21T00:13:49.179Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:13:49.179Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:13:49.179Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-21T00:13:49.179Z debug
+Saving to cache: {"account":{"id":"995aec4683b6bb910256e73d9eb234ba","name":"Patrick_liu@ucsb.edu's Account"}}
+---
+
+--- 2026-07-21T00:13:49.189Z debug
+Starting verifyWorkerMatchesCITag() with tag: undefined, name: voyage-digital-twin
+---
+
+--- 2026-07-21T00:13:49.189Z debug
+No WRANGLER_CI_MATCH_TAG variable provided, aborting verifyWorkerMatchesCITag()
+---
+
+--- 2026-07-21T00:13:49.189Z debug
+-- START CF API REQUEST: GET https://api.cloudflare.com/client/v4/accounts/995aec4683b6bb910256e73d9eb234ba/workers/services/voyage-digital-twin
+---
+
+--- 2026-07-21T00:13:49.189Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:13:49.189Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:13:49.189Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:13:49.189Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-21T00:13:50.098Z debug
+-- START CF API RESPONSE: Not Found 404
+---
+
+--- 2026-07-21T00:13:50.098Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:13:50.098Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:13:50.098Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-21T00:13:50.099Z debug
+-- START CF API REQUEST: GET https://api.cloudflare.com/client/v4/accounts/995aec4683b6bb910256e73d9eb234ba/workers/subdomain
+---
+
+--- 2026-07-21T00:13:50.099Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:13:50.099Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:13:50.099Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:13:50.099Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-21T00:13:50.405Z debug
+-- START CF API RESPONSE: Not Found 404
+---
+
+--- 2026-07-21T00:13:50.405Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:13:50.405Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:13:50.405Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-21T00:13:50.442Z warn
+▲ [WARNING] You need to register a workers.dev subdomain before publishing to workers.dev
+
+
+---
+
+--- 2026-07-21T00:13:50.442Z log
+? Would you like to register a workers.dev subdomain now?
+---
+
+--- 2026-07-21T00:13:50.442Z log
+🤖 Using fallback value in non-interactive context: no
+---
+
+--- 2026-07-21T00:13:50.443Z log
+
+---
+
+--- 2026-07-21T00:13:50.443Z error
+✘ [ERROR] You can either deploy your worker to one or more routes by specifying them in your wrangler.jsonc file, or register a workers.dev subdomain here:
+
+  https://dash.cloudflare.com/995aec4683b6bb910256e73d9eb234ba/workers/onboarding
+
+
+---
+
+--- 2026-07-21T00:13:50.458Z debug
+Error: You can either deploy your worker to one or more routes by specifying them in your wrangler.jsonc file, or register a workers.dev subdomain here:
+https://dash.cloudflare.com/995aec4683b6bb910256e73d9eb234ba/workers/onboarding
+    at getRegistrationDeclinedError (/Users/patliu/Desktop/Coding/Voyage/worker/node_modules/wrangler/wrangler-dist/cli.js:138758:14)
+    at getWorkersDevSubdomain (/Users/patliu/Desktop/Coding/Voyage/worker/node_modules/wrangler/wrangler-dist/cli.js:138719:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async preUploadApiChecks (/Users/patliu/Desktop/Coding/Voyage/worker/node_modules/wrangler/wrangler-dist/cli.js:143786:5)
+    at async deploy (/Users/patliu/Desktop/Coding/Voyage/worker/node_modules/wrangler/wrangler-dist/cli.js:143812:64)
+    at async runDeployCommandHandler (/Users/patliu/Desktop/Coding/Voyage/worker/node_modules/wrangler/wrangler-dist/cli.js:294609:80)
+    at async Object.handler (/Users/patliu/Desktop/Coding/Voyage/worker/node_modules/wrangler/wrangler-dist/cli.js:294738:9)
+    at async /Users/patliu/Desktop/Coding/Voyage/worker/node_modules/wrangler/wrangler-dist/cli.js:235923:26
+    at async Object.handler (/Users/patliu/Desktop/Coding/Voyage/worker/node_modules/wrangler/wrangler-dist/cli.js:235860:7)
+---
+
+--- 2026-07-21T00:13:50.458Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"wrangler command errored","timestamp":1784592830458,"properties":{"amplitude_session_id":1784592828290,"amplitude_event_id":1,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"jsonc","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"agent":"codex","argsUsed":[],"argsCombination":"","sanitizedCommand":"deploy","sanitizedArgs":{},"durationMs":2162,"errorType":"UserError","errorMessage":"routes workers dev registration declined","currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-21T00:14:00.859Z debug
+🪵  Writing logs to "/Users/patliu/Desktop/Coding/Voyage/worker/.wrangler/deploy.log"
+---
+
+--- 2026-07-21T00:14:00.859Z debug
+.env file not found at "/Users/patliu/Desktop/Coding/Voyage/worker/.env". Continuing... For more details, refer to https://developers.cloudflare.com/workers/wrangler/system-environment-variables/
+---
+
+--- 2026-07-21T00:14:00.859Z debug
+.env file not found at "/Users/patliu/Desktop/Coding/Voyage/worker/.env.local". Continuing... For more details, refer to https://developers.cloudflare.com/workers/wrangler/system-environment-variables/
+---
+
+--- 2026-07-21T00:14:00.863Z log
+
+ ⛅️ wrangler 4.112.0
+────────────────────
+---
+
+--- 2026-07-21T00:14:00.872Z debug
+Running autoconfig detection in /Users/patliu/Desktop/Coding/Voyage/worker...
+---
+
+--- 2026-07-21T00:14:00.872Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"wrangler command started","timestamp":1784592840872,"properties":{"amplitude_session_id":1784592840866,"amplitude_event_id":0,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"jsonc","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":true,"hasAssets":false,"agent":"codex","argsUsed":[],"argsCombination":"","sanitizedCommand":"deploy","sanitizedArgs":{},"currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-21T00:14:00.875Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"autoconfig_process_started","timestamp":1784592840875,"properties":{"amplitude_session_id":1784592840872,"amplitude_event_id":0,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"none","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":true,"hasAssets":false,"agent":"codex","category":"Workers","os":"darwin:arm64","autoConfigId":"358f7ff5-9d32-4f76-bd10-96f65297111f","command":"wrangler deploy","dryRun":false,"currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-21T00:14:00.875Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"autoconfig_detection_started","timestamp":1784592840875,"properties":{"amplitude_session_id":1784592840872,"amplitude_event_id":0,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"none","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":true,"hasAssets":false,"agent":"codex","category":"Workers","os":"darwin:arm64","autoConfigId":"358f7ff5-9d32-4f76-bd10-96f65297111f","command":"wrangler deploy","currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-21T00:14:00.876Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"autoconfig_detection_completed","timestamp":1784592840876,"properties":{"amplitude_session_id":1784592840872,"amplitude_event_id":0,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"none","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":true,"hasAssets":false,"agent":"codex","category":"Workers","os":"darwin:arm64","autoConfigId":"358f7ff5-9d32-4f76-bd10-96f65297111f","configured":true,"success":true,"currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-21T00:14:00.885Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"autoconfig_process_ended","timestamp":1784592840885,"properties":{"amplitude_session_id":1784592840872,"amplitude_event_id":0,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"none","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":true,"hasAssets":false,"agent":"codex","category":"Workers","os":"darwin:arm64","autoConfigId":"358f7ff5-9d32-4f76-bd10-96f65297111f","command":"wrangler deploy","dryRun":false,"success":true,"currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-21T00:14:00.953Z debug
+Retrieving cached values for account from node_modules/.cache/wrangler
+---
+
+--- 2026-07-21T00:14:00.959Z debug
+Starting verifyWorkerMatchesCITag() with tag: undefined, name: voyage-digital-twin
+---
+
+--- 2026-07-21T00:14:00.959Z debug
+No WRANGLER_CI_MATCH_TAG variable provided, aborting verifyWorkerMatchesCITag()
+---
+
+--- 2026-07-21T00:14:00.960Z debug
+-- START CF API REQUEST: GET https://api.cloudflare.com/client/v4/accounts/995aec4683b6bb910256e73d9eb234ba/workers/services/voyage-digital-twin
+---
+
+--- 2026-07-21T00:14:00.960Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:14:00.960Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:14:00.960Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:14:00.960Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-21T00:14:01.256Z debug
+-- START CF API RESPONSE: Not Found 404
+---
+
+--- 2026-07-21T00:14:01.257Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:14:01.257Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:14:01.257Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-21T00:14:01.258Z debug
+-- START CF API REQUEST: GET https://api.cloudflare.com/client/v4/accounts/995aec4683b6bb910256e73d9eb234ba/workers/subdomain
+---
+
+--- 2026-07-21T00:14:01.258Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:14:01.258Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:14:01.258Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:14:01.258Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-21T00:14:01.606Z debug
+-- START CF API RESPONSE: Not Found 404
+---
+
+--- 2026-07-21T00:14:01.606Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:14:01.606Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:14:01.606Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-21T00:14:01.656Z warn
+▲ [WARNING] You need to register a workers.dev subdomain before publishing to workers.dev
+
+
+---
+
+--- 2026-07-21T00:16:21.682Z debug
+🪵  Writing logs to "/Users/patliu/Desktop/Coding/Voyage/worker/.wrangler/deploy.log"
+---
+
+--- 2026-07-21T00:16:21.682Z debug
+.env file not found at "/Users/patliu/Desktop/Coding/Voyage/worker/.env". Continuing... For more details, refer to https://developers.cloudflare.com/workers/wrangler/system-environment-variables/
+---
+
+--- 2026-07-21T00:16:21.683Z debug
+.env file not found at "/Users/patliu/Desktop/Coding/Voyage/worker/.env.local". Continuing... For more details, refer to https://developers.cloudflare.com/workers/wrangler/system-environment-variables/
+---
+
+--- 2026-07-21T00:16:21.687Z log
+
+ ⛅️ wrangler 4.112.0
+────────────────────
+---
+
+--- 2026-07-21T00:16:21.698Z debug
+Running autoconfig detection in /Users/patliu/Desktop/Coding/Voyage/worker...
+---
+
+--- 2026-07-21T00:16:21.699Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"wrangler command started","timestamp":1784592981699,"properties":{"amplitude_session_id":1784592981691,"amplitude_event_id":0,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"jsonc","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":true,"hasAssets":false,"agent":"codex","argsUsed":[],"argsCombination":"","sanitizedCommand":"deploy","sanitizedArgs":{},"currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-21T00:16:21.702Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"autoconfig_process_started","timestamp":1784592981702,"properties":{"amplitude_session_id":1784592981698,"amplitude_event_id":0,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"none","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":true,"hasAssets":false,"agent":"codex","category":"Workers","os":"darwin:arm64","autoConfigId":"083520e4-8766-4435-9574-3753c6c1cb01","command":"wrangler deploy","dryRun":false,"currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-21T00:16:21.703Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"autoconfig_detection_started","timestamp":1784592981703,"properties":{"amplitude_session_id":1784592981698,"amplitude_event_id":0,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"none","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":true,"hasAssets":false,"agent":"codex","category":"Workers","os":"darwin:arm64","autoConfigId":"083520e4-8766-4435-9574-3753c6c1cb01","command":"wrangler deploy","currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-21T00:16:21.703Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"autoconfig_detection_completed","timestamp":1784592981703,"properties":{"amplitude_session_id":1784592981699,"amplitude_event_id":0,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"none","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":true,"hasAssets":false,"agent":"codex","category":"Workers","os":"darwin:arm64","autoConfigId":"083520e4-8766-4435-9574-3753c6c1cb01","configured":true,"success":true,"currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-21T00:16:21.715Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"autoconfig_process_ended","timestamp":1784592981715,"properties":{"amplitude_session_id":1784592981699,"amplitude_event_id":0,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"none","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":true,"hasAssets":false,"agent":"codex","category":"Workers","os":"darwin:arm64","autoConfigId":"083520e4-8766-4435-9574-3753c6c1cb01","command":"wrangler deploy","dryRun":false,"success":true,"currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-21T00:16:21.796Z debug
+Retrieving cached values for account from node_modules/.cache/wrangler
+---
+
+--- 2026-07-21T00:16:21.805Z debug
+Starting verifyWorkerMatchesCITag() with tag: undefined, name: voyage-digital-twin
+---
+
+--- 2026-07-21T00:16:21.805Z debug
+No WRANGLER_CI_MATCH_TAG variable provided, aborting verifyWorkerMatchesCITag()
+---
+
+--- 2026-07-21T00:16:21.805Z debug
+-- START CF API REQUEST: GET https://api.cloudflare.com/client/v4/accounts/995aec4683b6bb910256e73d9eb234ba/workers/services/voyage-digital-twin
+---
+
+--- 2026-07-21T00:16:21.805Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:16:21.806Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:16:21.806Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:16:21.806Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-21T00:16:22.158Z debug
+-- START CF API RESPONSE: Not Found 404
+---
+
+--- 2026-07-21T00:16:22.159Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:16:22.159Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:16:22.159Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-21T00:16:22.161Z debug
+-- START CF API REQUEST: GET https://api.cloudflare.com/client/v4/accounts/995aec4683b6bb910256e73d9eb234ba/workers/subdomain
+---
+
+--- 2026-07-21T00:16:22.161Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:16:22.161Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:16:22.161Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:16:22.161Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-21T00:16:22.355Z debug
+-- START CF API RESPONSE: Not Found 404
+---
+
+--- 2026-07-21T00:16:22.356Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:16:22.356Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:16:22.356Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-21T00:16:22.408Z warn
+▲ [WARNING] You need to register a workers.dev subdomain before publishing to workers.dev
+
+
+---
+
+--- 2026-07-21T00:16:37.095Z debug
+-- START CF API REQUEST: GET https://api.cloudflare.com/client/v4/accounts/995aec4683b6bb910256e73d9eb234ba/workers/subdomains/machmoon
+---
+
+--- 2026-07-21T00:16:37.095Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:16:37.095Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:16:37.095Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:16:37.095Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-21T00:16:37.334Z debug
+-- START CF API RESPONSE: Not Found 404
+---
+
+--- 2026-07-21T00:16:37.334Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:16:37.334Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:16:37.334Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-21T00:16:40.452Z debug
+-- START CF API REQUEST: PUT https://api.cloudflare.com/client/v4/accounts/995aec4683b6bb910256e73d9eb234ba/workers/subdomain
+---
+
+--- 2026-07-21T00:16:40.452Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:16:40.452Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:16:40.452Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:16:40.452Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-21T00:16:41.786Z debug
+-- START CF API RESPONSE: OK 200
+---
+
+--- 2026-07-21T00:16:41.786Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:16:41.786Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:16:41.786Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-21T00:16:41.786Z log
+Success! It may take a few minutes for DNS records to update.
+---
+
+--- 2026-07-21T00:16:41.786Z log
+Visit https://dash.cloudflare.com/995aec4683b6bb910256e73d9eb234ba/workers/subdomain to edit your workers.dev subdomain
+---
+
+--- 2026-07-21T00:16:41.786Z debug
+-- START CF API REQUEST: GET https://api.cloudflare.com/client/v4/accounts/995aec4683b6bb910256e73d9eb234ba/workers/scripts/voyage-digital-twin/deployments
+---
+
+--- 2026-07-21T00:16:41.786Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:16:41.786Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:16:41.786Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:16:41.786Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-21T00:16:41.971Z debug
+-- START CF API RESPONSE: Not Found 404
+---
+
+--- 2026-07-21T00:16:41.972Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:16:41.972Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:16:41.972Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-21T00:16:41.989Z log
+Total Upload: 12.86 KiB / gzip: 4.05 KiB
+---
+
+--- 2026-07-21T00:16:41.990Z debug
+-- START CF API REQUEST: GET https://api.cloudflare.com/client/v4/accounts/995aec4683b6bb910256e73d9eb234ba/workers/scripts/voyage-digital-twin/settings
+---
+
+--- 2026-07-21T00:16:41.990Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:16:41.990Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:16:41.990Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:16:41.990Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-21T00:16:42.176Z debug
+-- START CF API RESPONSE: Not Found 404
+---
+
+--- 2026-07-21T00:16:42.177Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:16:42.177Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:16:42.177Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-21T00:16:42.177Z debug
+No settings found
+---
+
+--- 2026-07-21T00:16:42.180Z debug
+-- START CF API REQUEST: PUT https://api.cloudflare.com/client/v4/accounts/995aec4683b6bb910256e73d9eb234ba/workers/scripts/voyage-digital-twin
+---
+
+--- 2026-07-21T00:16:42.180Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:16:42.180Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:16:42.180Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:16:42.182Z debug
+BODY: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:16:42.182Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-21T00:16:42.540Z debug
+-- START CF API RESPONSE: Bad Request 400
+---
+
+--- 2026-07-21T00:16:42.541Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:16:42.541Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:16:42.541Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-21T00:16:42.545Z log
+
+---
+
+--- 2026-07-21T00:16:42.549Z error
+✘ [ERROR] A request to the Cloudflare API (/accounts/995aec4683b6bb910256e73d9eb234ba/workers/scripts/voyage-digital-twin) failed.
+
+  CPU limits are not supported for the Free plan. Switch to a paid plan at
+  https://dash.cloudflare.com/995aec4683b6bb910256e73d9eb234ba/workers/plans to
+  set CPU limits. [code: 100328]
+  To learn more about this error, visit:
+  https://developers.cloudflare.com/workers/platform/limits/#worker-limits
+
+  
+  If you think this is a bug, please open an issue at:
+  https://github.com/cloudflare/workers-sdk/issues/new/choose
+
+
+---
+
+--- 2026-07-21T00:16:42.550Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"wrangler command errored","timestamp":1784593002550,"properties":{"amplitude_session_id":1784592981691,"amplitude_event_id":1,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"jsonc","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":true,"hasAssets":false,"agent":"codex","argsUsed":[],"argsCombination":"","sanitizedCommand":"deploy","sanitizedArgs":{},"durationMs":20861,"errorType":"APIError","currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-21T00:17:02.161Z debug
+🪵  Writing logs to "/Users/patliu/Desktop/Coding/Voyage/worker/.wrangler/deploy.log"
+---
+
+--- 2026-07-21T00:17:02.161Z debug
+.env file not found at "/Users/patliu/Desktop/Coding/Voyage/worker/.env". Continuing... For more details, refer to https://developers.cloudflare.com/workers/wrangler/system-environment-variables/
+---
+
+--- 2026-07-21T00:17:02.161Z debug
+.env file not found at "/Users/patliu/Desktop/Coding/Voyage/worker/.env.local". Continuing... For more details, refer to https://developers.cloudflare.com/workers/wrangler/system-environment-variables/
+---
+
+--- 2026-07-21T00:17:02.166Z log
+
+ ⛅️ wrangler 4.112.0
+────────────────────
+---
+
+--- 2026-07-21T00:17:02.175Z debug
+Running autoconfig detection in /Users/patliu/Desktop/Coding/Voyage/worker...
+---
+
+--- 2026-07-21T00:17:02.175Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"wrangler command started","timestamp":1784593022175,"properties":{"amplitude_session_id":1784593022169,"amplitude_event_id":0,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"jsonc","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"agent":"codex","argsUsed":[],"argsCombination":"","sanitizedCommand":"deploy","sanitizedArgs":{},"currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-21T00:17:02.178Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"autoconfig_process_started","timestamp":1784593022178,"properties":{"amplitude_session_id":1784593022174,"amplitude_event_id":0,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"none","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"agent":"codex","category":"Workers","os":"darwin:arm64","autoConfigId":"d5e84194-3c87-43e4-960b-f2499286f0da","command":"wrangler deploy","dryRun":false,"currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-21T00:17:02.178Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"autoconfig_detection_started","timestamp":1784593022178,"properties":{"amplitude_session_id":1784593022175,"amplitude_event_id":0,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"none","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"agent":"codex","category":"Workers","os":"darwin:arm64","autoConfigId":"d5e84194-3c87-43e4-960b-f2499286f0da","command":"wrangler deploy","currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-21T00:17:02.179Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"autoconfig_detection_completed","timestamp":1784593022179,"properties":{"amplitude_session_id":1784593022175,"amplitude_event_id":0,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"none","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"agent":"codex","category":"Workers","os":"darwin:arm64","autoConfigId":"d5e84194-3c87-43e4-960b-f2499286f0da","configured":true,"success":true,"currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-21T00:17:02.188Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"autoconfig_process_ended","timestamp":1784593022188,"properties":{"amplitude_session_id":1784593022175,"amplitude_event_id":0,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"none","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"agent":"codex","category":"Workers","os":"darwin:arm64","autoConfigId":"d5e84194-3c87-43e4-960b-f2499286f0da","command":"wrangler deploy","dryRun":false,"success":true,"currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-21T00:17:02.267Z debug
+Starting verifyWorkerMatchesCITag() with tag: undefined, name: voyage-digital-twin
+---
+
+--- 2026-07-21T00:17:02.267Z debug
+No WRANGLER_CI_MATCH_TAG variable provided, aborting verifyWorkerMatchesCITag()
+---
+
+--- 2026-07-21T00:17:02.268Z debug
+-- START CF API REQUEST: GET https://api.cloudflare.com/client/v4/accounts/995aec4683b6bb910256e73d9eb234ba/workers/services/voyage-digital-twin
+---
+
+--- 2026-07-21T00:17:02.268Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:17:02.268Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:17:02.268Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:17:02.268Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-21T00:17:02.821Z debug
+-- START CF API RESPONSE: Not Found 404
+---
+
+--- 2026-07-21T00:17:02.822Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:17:02.822Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:17:02.822Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-21T00:17:02.825Z debug
+-- START CF API REQUEST: GET https://api.cloudflare.com/client/v4/accounts/995aec4683b6bb910256e73d9eb234ba/workers/subdomain
+---
+
+--- 2026-07-21T00:17:02.825Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:17:02.825Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:17:02.825Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:17:02.825Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-21T00:17:03.222Z debug
+-- START CF API RESPONSE: OK 200
+---
+
+--- 2026-07-21T00:17:03.222Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:17:03.222Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:17:03.222Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-21T00:17:03.224Z debug
+-- START CF API REQUEST: GET https://api.cloudflare.com/client/v4/accounts/995aec4683b6bb910256e73d9eb234ba/workers/scripts/voyage-digital-twin/deployments
+---
+
+--- 2026-07-21T00:17:03.224Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:17:03.224Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:17:03.224Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:17:03.224Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-21T00:17:03.415Z debug
+-- START CF API RESPONSE: Not Found 404
+---
+
+--- 2026-07-21T00:17:03.416Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:17:03.416Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:17:03.416Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-21T00:17:03.429Z log
+Total Upload: 12.86 KiB / gzip: 4.05 KiB
+---
+
+--- 2026-07-21T00:17:03.431Z debug
+-- START CF API REQUEST: GET https://api.cloudflare.com/client/v4/accounts/995aec4683b6bb910256e73d9eb234ba/workers/scripts/voyage-digital-twin/settings
+---
+
+--- 2026-07-21T00:17:03.431Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:17:03.431Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:17:03.431Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:17:03.431Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-21T00:17:03.839Z debug
+-- START CF API RESPONSE: Not Found 404
+---
+
+--- 2026-07-21T00:17:03.839Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:17:03.839Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:17:03.839Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-21T00:17:03.839Z debug
+No settings found
+---
+
+--- 2026-07-21T00:17:03.843Z debug
+-- START CF API REQUEST: PUT https://api.cloudflare.com/client/v4/accounts/995aec4683b6bb910256e73d9eb234ba/workers/scripts/voyage-digital-twin
+---
+
+--- 2026-07-21T00:17:03.843Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:17:03.843Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:17:03.843Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:17:03.846Z debug
+BODY: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:17:03.846Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-21T00:17:04.661Z debug
+-- START CF API RESPONSE: OK 200
+---
+
+--- 2026-07-21T00:17:04.661Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:17:04.661Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:17:04.661Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-21T00:17:04.664Z log
+Uploaded voyage-digital-twin (1.44 sec)
+---
+
+--- 2026-07-21T00:17:04.667Z debug
+-- START CF API REQUEST: GET https://api.cloudflare.com/client/v4/accounts/995aec4683b6bb910256e73d9eb234ba/workers/subdomain
+---
+
+--- 2026-07-21T00:17:04.667Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:17:04.667Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:17:04.667Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:17:04.667Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-21T00:17:04.857Z debug
+-- START CF API RESPONSE: OK 200
+---
+
+--- 2026-07-21T00:17:04.858Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:17:04.858Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:17:04.858Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-21T00:17:04.859Z debug
+-- START CF API REQUEST: GET https://api.cloudflare.com/client/v4/accounts/995aec4683b6bb910256e73d9eb234ba/workers/scripts/voyage-digital-twin/subdomain
+---
+
+--- 2026-07-21T00:17:04.859Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:17:04.859Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:17:04.859Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:17:04.859Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-21T00:17:05.092Z debug
+-- START CF API RESPONSE: OK 200
+---
+
+--- 2026-07-21T00:17:05.092Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:17:05.092Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:17:05.092Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-21T00:17:05.092Z debug
+-- START CF API REQUEST: POST https://api.cloudflare.com/client/v4/accounts/995aec4683b6bb910256e73d9eb234ba/workers/scripts/voyage-digital-twin/subdomain
+---
+
+--- 2026-07-21T00:17:05.092Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:17:05.092Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:17:05.092Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:17:05.092Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-21T00:17:05.475Z debug
+-- START CF API RESPONSE: OK 200
+---
+
+--- 2026-07-21T00:17:05.476Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:17:05.476Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:17:05.476Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-21T00:17:05.476Z log
+Deployed voyage-digital-twin triggers (0.81 sec)
+---
+
+--- 2026-07-21T00:17:05.476Z log
+  https://voyage-digital-twin.machmoon.workers.dev
+---
+
+--- 2026-07-21T00:17:05.477Z log
+Current Version ID: d90cded3-2a87-4ae5-9855-88e4ad4aee87
+---
+
+--- 2026-07-21T00:17:05.480Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"deploy worker script","timestamp":1784593025480,"properties":{"amplitude_session_id":1784593025477,"amplitude_event_id":0,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"none","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"agent":"codex","category":"Workers","os":"darwin:arm64","usesTypeScript":true,"durationMs":3216,"currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-21T00:17:05.483Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"wrangler command completed","timestamp":1784593025483,"properties":{"amplitude_session_id":1784593022169,"amplitude_event_id":1,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"jsonc","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"agent":"codex","argsUsed":[],"argsCombination":"","sanitizedCommand":"deploy","sanitizedArgs":{},"durationMs":3319,"currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-21T00:23:11.600Z debug
+🪵  Writing logs to "/Users/patliu/Desktop/Coding/Voyage/worker/.wrangler/deploy.log"
+---
+
+--- 2026-07-21T00:23:11.600Z debug
+.env file not found at "/Users/patliu/Desktop/Coding/Voyage/worker/.env". Continuing... For more details, refer to https://developers.cloudflare.com/workers/wrangler/system-environment-variables/
+---
+
+--- 2026-07-21T00:23:11.601Z debug
+.env file not found at "/Users/patliu/Desktop/Coding/Voyage/worker/.env.local". Continuing... For more details, refer to https://developers.cloudflare.com/workers/wrangler/system-environment-variables/
+---
+
+--- 2026-07-21T00:23:11.605Z log
+
+ ⛅️ wrangler 4.112.0
+────────────────────
+---
+
+--- 2026-07-21T00:23:11.614Z debug
+Running autoconfig detection in /Users/patliu/Desktop/Coding/Voyage/worker...
+---
+
+--- 2026-07-21T00:23:11.614Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"wrangler command started","timestamp":1784593391614,"properties":{"amplitude_session_id":1784593391608,"amplitude_event_id":0,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"jsonc","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"agent":"codex","argsUsed":[],"argsCombination":"","sanitizedCommand":"deploy","sanitizedArgs":{},"currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-21T00:23:11.617Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"autoconfig_process_started","timestamp":1784593391617,"properties":{"amplitude_session_id":1784593391614,"amplitude_event_id":0,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"none","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"agent":"codex","category":"Workers","os":"darwin:arm64","autoConfigId":"8650adef-ebe3-4216-b11a-73a8f846a0ea","command":"wrangler deploy","dryRun":false,"currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-21T00:23:11.617Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"autoconfig_detection_started","timestamp":1784593391617,"properties":{"amplitude_session_id":1784593391614,"amplitude_event_id":0,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"none","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"agent":"codex","category":"Workers","os":"darwin:arm64","autoConfigId":"8650adef-ebe3-4216-b11a-73a8f846a0ea","command":"wrangler deploy","currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-21T00:23:11.618Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"autoconfig_detection_completed","timestamp":1784593391618,"properties":{"amplitude_session_id":1784593391614,"amplitude_event_id":0,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"none","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"agent":"codex","category":"Workers","os":"darwin:arm64","autoConfigId":"8650adef-ebe3-4216-b11a-73a8f846a0ea","configured":true,"success":true,"currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-21T00:23:11.628Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"autoconfig_process_ended","timestamp":1784593391628,"properties":{"amplitude_session_id":1784593391614,"amplitude_event_id":0,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"none","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"agent":"codex","category":"Workers","os":"darwin:arm64","autoConfigId":"8650adef-ebe3-4216-b11a-73a8f846a0ea","command":"wrangler deploy","dryRun":false,"success":true,"currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-21T00:23:11.646Z debug
+Starting verifyWorkerMatchesCITag() with tag: undefined, name: voyage-digital-twin
+---
+
+--- 2026-07-21T00:23:11.646Z debug
+No WRANGLER_CI_MATCH_TAG variable provided, aborting verifyWorkerMatchesCITag()
+---
+
+--- 2026-07-21T00:23:11.646Z debug
+-- START CF API REQUEST: GET https://api.cloudflare.com/client/v4/accounts/995aec4683b6bb910256e73d9eb234ba/workers/services/voyage-digital-twin
+---
+
+--- 2026-07-21T00:23:11.646Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:11.647Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:11.647Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:11.647Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-21T00:23:11.985Z debug
+-- START CF API RESPONSE: OK 200
+---
+
+--- 2026-07-21T00:23:11.985Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:11.985Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:11.985Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-21T00:23:11.986Z debug
+-- START CF API REQUEST: GET https://api.cloudflare.com/client/v4/accounts/995aec4683b6bb910256e73d9eb234ba/workers/scripts/voyage-digital-twin/deployments
+---
+
+--- 2026-07-21T00:23:11.986Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:11.986Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:11.986Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:11.986Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-21T00:23:12.294Z debug
+-- START CF API RESPONSE: OK 200
+---
+
+--- 2026-07-21T00:23:12.294Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:12.294Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:12.294Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-21T00:23:12.304Z log
+Total Upload: 12.91 KiB / gzip: 4.08 KiB
+---
+
+--- 2026-07-21T00:23:12.306Z debug
+-- START CF API REQUEST: GET https://api.cloudflare.com/client/v4/accounts/995aec4683b6bb910256e73d9eb234ba/workers/scripts/voyage-digital-twin/settings
+---
+
+--- 2026-07-21T00:23:12.306Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:12.306Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:12.306Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:12.306Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-21T00:23:12.599Z debug
+-- START CF API RESPONSE: OK 200
+---
+
+--- 2026-07-21T00:23:12.599Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:12.599Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:12.599Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-21T00:23:12.602Z debug
+-- START CF API REQUEST: POST https://api.cloudflare.com/client/v4/accounts/995aec4683b6bb910256e73d9eb234ba/workers/scripts/voyage-digital-twin/versions
+---
+
+--- 2026-07-21T00:23:12.602Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:12.602Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:12.602Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:12.604Z debug
+BODY: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:12.604Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-21T00:23:13.420Z debug
+-- START CF API RESPONSE: OK 200
+---
+
+--- 2026-07-21T00:23:13.420Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:13.420Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:13.420Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-21T00:23:13.422Z debug
+-- START CF API REQUEST: POST https://api.cloudflare.com/client/v4/accounts/995aec4683b6bb910256e73d9eb234ba/workers/scripts/voyage-digital-twin/deployments
+---
+
+--- 2026-07-21T00:23:13.422Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:13.422Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:13.422Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:13.422Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-21T00:23:13.803Z debug
+-- START CF API RESPONSE: OK 200
+---
+
+--- 2026-07-21T00:23:13.803Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:13.803Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:13.803Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-21T00:23:13.804Z debug
+-- START CF API REQUEST: PATCH https://api.cloudflare.com/client/v4/accounts/995aec4683b6bb910256e73d9eb234ba/workers/scripts/voyage-digital-twin/script-settings
+---
+
+--- 2026-07-21T00:23:13.804Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:13.804Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:13.804Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:13.804Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-21T00:23:14.179Z debug
+-- START CF API RESPONSE: OK 200
+---
+
+--- 2026-07-21T00:23:14.179Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:14.179Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:14.179Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-21T00:23:14.180Z log
+Uploaded voyage-digital-twin (2.19 sec)
+---
+
+--- 2026-07-21T00:23:14.181Z debug
+-- START CF API REQUEST: GET https://api.cloudflare.com/client/v4/accounts/995aec4683b6bb910256e73d9eb234ba/workers/subdomain
+---
+
+--- 2026-07-21T00:23:14.181Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:14.181Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:14.181Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:14.181Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-21T00:23:14.413Z debug
+-- START CF API RESPONSE: OK 200
+---
+
+--- 2026-07-21T00:23:14.413Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:14.413Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:14.413Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-21T00:23:14.414Z debug
+-- START CF API REQUEST: GET https://api.cloudflare.com/client/v4/accounts/995aec4683b6bb910256e73d9eb234ba/workers/scripts/voyage-digital-twin/subdomain
+---
+
+--- 2026-07-21T00:23:14.414Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:14.414Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:14.414Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:14.414Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-21T00:23:14.605Z debug
+-- START CF API RESPONSE: OK 200
+---
+
+--- 2026-07-21T00:23:14.606Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:14.606Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:14.606Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-21T00:23:14.607Z debug
+-- START CF API REQUEST: POST https://api.cloudflare.com/client/v4/accounts/995aec4683b6bb910256e73d9eb234ba/workers/scripts/voyage-digital-twin/subdomain
+---
+
+--- 2026-07-21T00:23:14.607Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:14.607Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:14.607Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:14.607Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-21T00:23:14.882Z debug
+-- START CF API RESPONSE: OK 200
+---
+
+--- 2026-07-21T00:23:14.882Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:14.882Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:23:14.882Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-21T00:23:14.883Z log
+Deployed voyage-digital-twin triggers (0.70 sec)
+---
+
+--- 2026-07-21T00:23:14.883Z log
+  https://voyage-digital-twin.machmoon.workers.dev
+---
+
+--- 2026-07-21T00:23:14.883Z log
+Current Version ID: aa30e2cf-66c2-48a3-98fd-b556adb56560
+---
+
+--- 2026-07-21T00:23:14.885Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"deploy worker script","timestamp":1784593394885,"properties":{"amplitude_session_id":1784593394883,"amplitude_event_id":0,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"none","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"agent":"codex","category":"Workers","os":"darwin:arm64","usesTypeScript":true,"durationMs":3242,"currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-21T00:23:14.887Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"wrangler command completed","timestamp":1784593394887,"properties":{"amplitude_session_id":1784593391608,"amplitude_event_id":1,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"jsonc","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"agent":"codex","argsUsed":[],"argsCombination":"","sanitizedCommand":"deploy","sanitizedArgs":{},"durationMs":3284,"currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-21T00:24:32.497Z debug
+🪵  Writing logs to "/Users/patliu/Desktop/Coding/Voyage/worker/.wrangler/deploy.log"
+---
+
+--- 2026-07-21T00:24:32.497Z debug
+.env file not found at "/Users/patliu/Desktop/Coding/Voyage/worker/.env". Continuing... For more details, refer to https://developers.cloudflare.com/workers/wrangler/system-environment-variables/
+---
+
+--- 2026-07-21T00:24:32.498Z debug
+.env file not found at "/Users/patliu/Desktop/Coding/Voyage/worker/.env.local". Continuing... For more details, refer to https://developers.cloudflare.com/workers/wrangler/system-environment-variables/
+---
+
+--- 2026-07-21T00:24:32.502Z log
+
+ ⛅️ wrangler 4.112.0
+────────────────────
+---
+
+--- 2026-07-21T00:24:32.510Z debug
+Running autoconfig detection in /Users/patliu/Desktop/Coding/Voyage/worker...
+---
+
+--- 2026-07-21T00:24:32.511Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"wrangler command started","timestamp":1784593472511,"properties":{"amplitude_session_id":1784593472505,"amplitude_event_id":0,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"jsonc","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"agent":"codex","argsUsed":[],"argsCombination":"","sanitizedCommand":"deploy","sanitizedArgs":{},"currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-21T00:24:32.514Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"autoconfig_process_started","timestamp":1784593472514,"properties":{"amplitude_session_id":1784593472510,"amplitude_event_id":0,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"none","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"agent":"codex","category":"Workers","os":"darwin:arm64","autoConfigId":"058b3671-fc10-4a89-807e-53361de04902","command":"wrangler deploy","dryRun":false,"currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-21T00:24:32.514Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"autoconfig_detection_started","timestamp":1784593472514,"properties":{"amplitude_session_id":1784593472510,"amplitude_event_id":0,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"none","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"agent":"codex","category":"Workers","os":"darwin:arm64","autoConfigId":"058b3671-fc10-4a89-807e-53361de04902","command":"wrangler deploy","currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-21T00:24:32.514Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"autoconfig_detection_completed","timestamp":1784593472514,"properties":{"amplitude_session_id":1784593472511,"amplitude_event_id":0,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"none","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"agent":"codex","category":"Workers","os":"darwin:arm64","autoConfigId":"058b3671-fc10-4a89-807e-53361de04902","configured":true,"success":true,"currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-21T00:24:32.525Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"autoconfig_process_ended","timestamp":1784593472525,"properties":{"amplitude_session_id":1784593472511,"amplitude_event_id":0,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"none","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"agent":"codex","category":"Workers","os":"darwin:arm64","autoConfigId":"058b3671-fc10-4a89-807e-53361de04902","command":"wrangler deploy","dryRun":false,"success":true,"currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-21T00:24:32.542Z debug
+Starting verifyWorkerMatchesCITag() with tag: undefined, name: voyage-digital-twin
+---
+
+--- 2026-07-21T00:24:32.542Z debug
+No WRANGLER_CI_MATCH_TAG variable provided, aborting verifyWorkerMatchesCITag()
+---
+
+--- 2026-07-21T00:24:32.543Z debug
+-- START CF API REQUEST: GET https://api.cloudflare.com/client/v4/accounts/995aec4683b6bb910256e73d9eb234ba/workers/services/voyage-digital-twin
+---
+
+--- 2026-07-21T00:24:32.543Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:32.543Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:32.543Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:32.543Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-21T00:24:33.174Z debug
+-- START CF API RESPONSE: OK 200
+---
+
+--- 2026-07-21T00:24:33.174Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:33.175Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:33.175Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-21T00:24:33.177Z debug
+-- START CF API REQUEST: GET https://api.cloudflare.com/client/v4/accounts/995aec4683b6bb910256e73d9eb234ba/workers/scripts/voyage-digital-twin/deployments
+---
+
+--- 2026-07-21T00:24:33.177Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:33.177Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:33.177Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:33.177Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-21T00:24:33.362Z debug
+-- START CF API RESPONSE: OK 200
+---
+
+--- 2026-07-21T00:24:33.362Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:33.362Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:33.362Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-21T00:24:33.372Z log
+Total Upload: 12.95 KiB / gzip: 4.09 KiB
+---
+
+--- 2026-07-21T00:24:33.374Z debug
+-- START CF API REQUEST: GET https://api.cloudflare.com/client/v4/accounts/995aec4683b6bb910256e73d9eb234ba/workers/scripts/voyage-digital-twin/settings
+---
+
+--- 2026-07-21T00:24:33.374Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:33.374Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:33.374Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:33.374Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-21T00:24:33.583Z debug
+-- START CF API RESPONSE: OK 200
+---
+
+--- 2026-07-21T00:24:33.583Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:33.583Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:33.583Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-21T00:24:33.584Z debug
+-- START CF API REQUEST: POST https://api.cloudflare.com/client/v4/accounts/995aec4683b6bb910256e73d9eb234ba/workers/scripts/voyage-digital-twin/versions
+---
+
+--- 2026-07-21T00:24:33.584Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:33.584Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:33.584Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:33.585Z debug
+BODY: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:33.585Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-21T00:24:34.067Z debug
+-- START CF API RESPONSE: OK 200
+---
+
+--- 2026-07-21T00:24:34.067Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:34.067Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:34.067Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-21T00:24:34.068Z debug
+-- START CF API REQUEST: POST https://api.cloudflare.com/client/v4/accounts/995aec4683b6bb910256e73d9eb234ba/workers/scripts/voyage-digital-twin/deployments
+---
+
+--- 2026-07-21T00:24:34.068Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:34.068Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:34.068Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:34.068Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-21T00:24:34.460Z debug
+-- START CF API RESPONSE: OK 200
+---
+
+--- 2026-07-21T00:24:34.460Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:34.460Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:34.460Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-21T00:24:34.460Z debug
+-- START CF API REQUEST: PATCH https://api.cloudflare.com/client/v4/accounts/995aec4683b6bb910256e73d9eb234ba/workers/scripts/voyage-digital-twin/script-settings
+---
+
+--- 2026-07-21T00:24:34.460Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:34.460Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:34.460Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:34.460Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-21T00:24:34.812Z debug
+-- START CF API RESPONSE: OK 200
+---
+
+--- 2026-07-21T00:24:34.812Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:34.812Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:34.812Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-21T00:24:34.812Z log
+Uploaded voyage-digital-twin (1.64 sec)
+---
+
+--- 2026-07-21T00:24:34.813Z debug
+-- START CF API REQUEST: GET https://api.cloudflare.com/client/v4/accounts/995aec4683b6bb910256e73d9eb234ba/workers/subdomain
+---
+
+--- 2026-07-21T00:24:34.813Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:34.813Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:34.813Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:34.813Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-21T00:24:35.243Z debug
+-- START CF API RESPONSE: OK 200
+---
+
+--- 2026-07-21T00:24:35.243Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:35.243Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:35.243Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-21T00:24:35.243Z debug
+-- START CF API REQUEST: GET https://api.cloudflare.com/client/v4/accounts/995aec4683b6bb910256e73d9eb234ba/workers/scripts/voyage-digital-twin/subdomain
+---
+
+--- 2026-07-21T00:24:35.243Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:35.243Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:35.243Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:35.243Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-21T00:24:35.442Z debug
+-- START CF API RESPONSE: OK 200
+---
+
+--- 2026-07-21T00:24:35.442Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:35.442Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:35.442Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-21T00:24:35.443Z debug
+-- START CF API REQUEST: POST https://api.cloudflare.com/client/v4/accounts/995aec4683b6bb910256e73d9eb234ba/workers/scripts/voyage-digital-twin/subdomain
+---
+
+--- 2026-07-21T00:24:35.443Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:35.443Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:35.443Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:35.443Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-21T00:24:35.747Z debug
+-- START CF API RESPONSE: OK 200
+---
+
+--- 2026-07-21T00:24:35.747Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:35.747Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-21T00:24:35.747Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-21T00:24:35.747Z log
+Deployed voyage-digital-twin triggers (0.93 sec)
+---
+
+--- 2026-07-21T00:24:35.747Z log
+  https://voyage-digital-twin.machmoon.workers.dev
+---
+
+--- 2026-07-21T00:24:35.747Z log
+Current Version ID: 5db330de-fe84-47a2-b3df-304dfcb2cb72
+---
+
+--- 2026-07-21T00:24:35.748Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"deploy worker script","timestamp":1784593475747,"properties":{"amplitude_session_id":1784593475747,"amplitude_event_id":0,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"none","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"agent":"codex","category":"Workers","os":"darwin:arm64","usesTypeScript":true,"durationMs":3209,"currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-21T00:24:35.748Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"wrangler command completed","timestamp":1784593475748,"properties":{"amplitude_session_id":1784593472505,"amplitude_event_id":1,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"jsonc","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"agent":"codex","argsUsed":[],"argsCombination":"","sanitizedCommand":"deploy","sanitizedArgs":{},"durationMs":3250,"currentAgentSkillsInstalled":false}}
+---

@@ -1,0 +1,98 @@
+
+--- 2026-07-20T23:55:48.703Z debug
+🪵  Writing logs to "/Users/patliu/Desktop/Coding/Voyage/worker/.wrangler/wrangler.log"
+---
+
+--- 2026-07-20T23:55:48.703Z debug
+.env file not found at "/Users/patliu/Desktop/Coding/Voyage/worker/.env". Continuing... For more details, refer to https://developers.cloudflare.com/workers/wrangler/system-environment-variables/
+---
+
+--- 2026-07-20T23:55:48.703Z debug
+.env file not found at "/Users/patliu/Desktop/Coding/Voyage/worker/.env.local". Continuing... For more details, refer to https://developers.cloudflare.com/workers/wrangler/system-environment-variables/
+---
+
+--- 2026-07-20T23:55:48.708Z log
+
+ ⛅️ wrangler 4.112.0
+────────────────────
+---
+
+--- 2026-07-20T23:55:48.720Z debug
+Running autoconfig detection in /Users/patliu/Desktop/Coding/Voyage/worker...
+---
+
+--- 2026-07-20T23:55:48.721Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"wrangler command started","timestamp":1784591748721,"properties":{"amplitude_session_id":1784591748714,"amplitude_event_id":0,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"jsonc","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"agent":"codex","argsUsed":["dryRun"],"argsCombination":"dryRun","sanitizedCommand":"deploy","sanitizedArgs":{"dryRun":true},"currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-20T23:55:48.724Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"autoconfig_process_started","timestamp":1784591748724,"properties":{"amplitude_session_id":1784591748720,"amplitude_event_id":0,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"none","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"agent":"codex","category":"Workers","os":"darwin:arm64","autoConfigId":"944a3c31-f996-4fbe-aadb-c7c15b4ec840","command":"wrangler deploy","dryRun":true,"currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-20T23:55:48.725Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"autoconfig_detection_started","timestamp":1784591748725,"properties":{"amplitude_session_id":1784591748720,"amplitude_event_id":0,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"none","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"agent":"codex","category":"Workers","os":"darwin:arm64","autoConfigId":"944a3c31-f996-4fbe-aadb-c7c15b4ec840","command":"wrangler deploy","currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-20T23:55:48.725Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"autoconfig_detection_completed","timestamp":1784591748725,"properties":{"amplitude_session_id":1784591748720,"amplitude_event_id":0,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"none","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"agent":"codex","category":"Workers","os":"darwin:arm64","autoConfigId":"944a3c31-f996-4fbe-aadb-c7c15b4ec840","configured":true,"success":true,"currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-20T23:55:48.740Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"autoconfig_process_ended","timestamp":1784591748740,"properties":{"amplitude_session_id":1784591748720,"amplitude_event_id":0,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"none","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"agent":"codex","category":"Workers","os":"darwin:arm64","autoConfigId":"944a3c31-f996-4fbe-aadb-c7c15b4ec840","command":"wrangler deploy","dryRun":true,"success":true,"currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-20T23:55:48.769Z debug
+Metrics dispatcher: Failed to send request: fetch failed
+---
+
+--- 2026-07-20T23:55:48.770Z debug
+Metrics dispatcher: Failed to send request: fetch failed
+---
+
+--- 2026-07-20T23:55:48.770Z debug
+Metrics dispatcher: Failed to send request: fetch failed
+---
+
+--- 2026-07-20T23:55:48.770Z debug
+Metrics dispatcher: Failed to send request: fetch failed
+---
+
+--- 2026-07-20T23:55:48.771Z debug
+Metrics dispatcher: Failed to send request: fetch failed
+---
+
+--- 2026-07-20T23:55:48.788Z log
+Total Upload: 14.31 KiB / gzip: 4.49 KiB
+---
+
+--- 2026-07-20T23:55:48.790Z log
+No bindings found.
+---
+
+--- 2026-07-20T23:55:48.790Z log
+--dry-run: exiting now.
+---
+
+--- 2026-07-20T23:55:48.790Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"deploy worker script","timestamp":1784591748790,"properties":{"amplitude_session_id":1784591748790,"amplitude_event_id":0,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"none","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"agent":"codex","category":"Workers","os":"darwin:arm64","usesTypeScript":true,"durationMs":16,"currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-20T23:55:48.792Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"wrangler command completed","timestamp":1784591748792,"properties":{"amplitude_session_id":1784591748714,"amplitude_event_id":1,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"jsonc","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"agent":"codex","argsUsed":["dryRun"],"argsCombination":"dryRun","sanitizedCommand":"deploy","sanitizedArgs":{"dryRun":true},"durationMs":87,"currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-20T23:55:48.793Z debug
+Metrics dispatcher: Posting data {"deviceId":"5856e080-50e3-4b56-96df-16e1a3597d08","event":"skills_install_skipped","timestamp":1784591748793,"properties":{"amplitude_session_id":1784591748792,"amplitude_event_id":0,"wranglerVersion":"4.112.0","wranglerMajorVersion":4,"wranglerMinorVersion":112,"wranglerPatchVersion":0,"osPlatform":"Mac OS","osVersion":"Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"none","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"agent":"codex","category":"Workers","os":"darwin:arm64","reason":"Non-interactive terminal","command":"deploy","currentAgentSkillsInstalled":false}}
+---
+
+--- 2026-07-20T23:55:48.795Z debug
+Metrics dispatcher: Failed to send request: fetch failed
+---
+
+--- 2026-07-20T23:55:48.795Z debug
+Metrics dispatcher: Failed to send request: fetch failed
+---
+
+--- 2026-07-20T23:55:48.795Z debug
+Metrics dispatcher: Failed to send request: fetch failed
+---

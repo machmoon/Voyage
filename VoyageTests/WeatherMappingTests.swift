@@ -53,6 +53,7 @@ final class WeatherMappingTests: XCTestCase {
     // MARK: Scene parameters
 
     func testCloudAmountOrdering() {
+        XCTAssertEqual(SkyCondition.clear.cloudAmount, 0)
         XCTAssertLessThan(SkyCondition.clear.cloudAmount, SkyCondition.partlyCloudy.cloudAmount)
         XCTAssertLessThan(SkyCondition.partlyCloudy.cloudAmount, SkyCondition.cloudy.cloudAmount)
     }

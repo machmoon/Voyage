@@ -60,9 +60,9 @@ final class RoutePlannerTests: XCTestCase {
     }
 
     func testFlightNumberOverrideStampsFirstLeg() {
-        let itinerary = RoutePlanner.itinerary(from: bos, to: yqr, flightNumberOverride: "AC 745")
-        XCTAssertEqual(itinerary.legs[0].flightNumber, "AC 745")
-        XCTAssertNotEqual(itinerary.legs[1].flightNumber, "AC 745",
+        let itinerary = RoutePlanner.itinerary(from: bos, to: yqr, flightNumberOverride: "NS 745")
+        XCTAssertEqual(itinerary.legs[0].flightNumber, "NS 745")
+        XCTAssertNotEqual(itinerary.legs[1].flightNumber, "NS 745",
                           "Second leg keeps its own real number")
     }
 

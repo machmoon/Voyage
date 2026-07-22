@@ -11,6 +11,7 @@ struct CheckBagView: View {
     @State private var items = ["", "", ""]
     @FocusState private var focusedIndex: Int?
     @Query(sort: \LogbookEntry.date, order: .reverse) private var entries: [LogbookEntry]
+    @State private var focus = FocusIntegration.shared
 
     private var packedCount: Int {
         items.filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }.count
@@ -39,11 +40,12 @@ struct CheckBagView: View {
             VStack(spacing: 6) {
                 Image(systemName: "suitcase.rolling.fill")
                     .font(.system(size: 34))
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(Theme.accent)
                     .padding(.bottom, 4)
-                Text("Check a bag?")
+                Text("Set your flight goals")
                     .font(.title2.bold())
-                Text("Pack up to three things you're working on this flight. You'll pick them up at baggage claim when you land.")
+                    .foregroundStyle(Theme.seatMapInk)
+                Text("Pack up to three tasks for this focus session. Claim the ones you finish when you land.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -67,33 +69,46 @@ struct CheckBagView: View {
             Spacer()
 
             VStack(spacing: 10) {
+                focusNote
+
                 Button {
                     session.intentions = items
                         .map { $0.trimmingCharacters(in: .whitespaces) }
                         .filter { !$0.isEmpty }
                     Haptics.success()
+                    CabinAudioEngine.shared.playScanBeep()
                     onContinue()
                 } label: {
-                    Text(packedCount > 0 ? "Check \(packedCount) \(packedCount == 1 ? "bag" : "bags")" : "Continue")
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 15)
-                        .background(Color.accentColor,
-                                    in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    Text(packedCount > 0
+                         ? "Continue with \(packedCount) \(packedCount == 1 ? "goal" : "goals")"
+                         : "Skip for now")
                 }
-
-                Button("Travel light — skip") {
-                    session.intentions = []
-                    onContinue()
-                }
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(.secondary)
+                .buttonStyle(VoyageAccentButtonStyle())
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 10)
         }
-        .onAppear { focusedIndex = 0 }
+        .onAppear {
+            Task {
+                await focus.refresh()
+            }
+        }
+    }
+
+    private var focusNote: some View {
+        HStack(spacing: 8) {
+            Image(systemName: focus.boardingStatusSymbol)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(Theme.accent)
+            Text(focus.boardingStatusText)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(Theme.seatMapInk.opacity(0.65))
+                .multilineTextAlignment(.leading)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(Theme.seatMapInk.opacity(0.05), in: RoundedRectangle(cornerRadius: Theme.cardCornerRadius, style: .continuous))
     }
 
     /// One-tap chips for bags you've flown with before.
@@ -127,8 +142,8 @@ struct CheckBagView: View {
         HStack(spacing: 12) {
             Image(systemName: "tag.fill")
                 .font(.caption)
-                .foregroundStyle(items[index].isEmpty ? Color(.tertiaryLabel) : Color.accentColor)
-            TextField("Bag \(index + 1) — e.g. \"Finish chapter 4 notes\"", text: $items[index])
+                .foregroundStyle(items[index].isEmpty ? Theme.seatMapInk.opacity(0.3) : Theme.accent)
+            TextField("Goal \(index + 1) — e.g. Review chapter 4", text: $items[index])
                 .focused($focusedIndex, equals: index)
                 .submitLabel(index < 2 ? .next : .done)
                 .onSubmit {

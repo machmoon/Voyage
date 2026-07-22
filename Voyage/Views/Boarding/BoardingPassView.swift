@@ -21,7 +21,7 @@ struct BoardingPassView: View {
 
     private var leg: FlightLeg { session.itinerary.legs[0] }
 
-    /// Operating carrier from the flight number's airline code ("UA 1546").
+    /// Operating carrier from the flight number's airline code ("VG 1546").
     private var carrierName: String {
         let code = leg.flightNumber.prefix { !$0.isWhitespace }
         return Carrier(rawValue: String(code))?.name.uppercased() ?? "VOYAGE AIR"
@@ -85,7 +85,7 @@ struct BoardingPassView: View {
                             .padding(.vertical, 8)
                             .background(.white.opacity(0.12), in: Capsule())
                     }
-                    .accessibilityLabel("Tear and board")
+                    .accessibilityLabel("Tear & board")
                     .accessibilityHint("Tears the boarding pass stub and departs")
                 }
 
@@ -354,6 +354,14 @@ struct BoardingPassView: View {
             .gesture(tearGesture())
             .animation(ripped ? .easeIn(duration: 0.45) : nil, value: ripped)
             .accessibilityHidden(ripped)
+            // The stub is the whole interaction; naming it keeps the tear
+            // reachable to assistive tech and to the QA tours. `contain` keeps
+            // it a container element — `combine` collapses it to static text,
+            // which no `otherElements` query can find.
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("boarding-pass-stub")
+            .accessibilityLabel("Boarding pass stub, seat \(session.seat)")
+            .accessibilityHint("Swipe down to tear the stub and board")
     }
 
     private var stubContent: some View {
@@ -393,8 +401,16 @@ struct BoardingPassView: View {
                     rip()
                 }
             }
-            .onEnded { _ in
-                guard !ripped else { return }
+            .onEnded { value in
+                guard printed, !ripped else { return }
+                // A flick should tear even when it never travelled the full
+                // threshold — judging on distance alone made a quick, confident
+                // swipe feel like it did nothing.
+                let flick = value.predictedEndTranslation.height > tearThreshold * 0.85
+                if value.translation.height > tearThreshold * 0.45, flick {
+                    rip()
+                    return
+                }
                 withAnimation(.spring(duration: 0.4)) {
                     tearTranslation = 0
                 }

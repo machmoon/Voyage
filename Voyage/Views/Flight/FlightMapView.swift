@@ -3,7 +3,7 @@ import MapKit
 
 /// The second study view: a live flight-tracker map of the route.
 /// Shows the flown portion solid and the remainder faded, with the
-/// aircraft at its real great-circle position. Two camera modes
+/// aircraft on the same runway-to-runway trajectory as the window. Two camera modes
 /// (whole route / follow the plane) and two map styles (terrain / satellite).
 struct FlightMapView: View {
     @Bindable var session: FlightSession
@@ -62,6 +62,7 @@ struct FlightMapView: View {
     private func legContent(leg: FlightLeg, index: Int) -> some MapContent {
         let isCurrentLeg = index == session.legIndex
         let isFlown = index < session.legIndex
+        let geometry = routeGeometry(for: leg, index: index)
 
         // Endpoints.
         Annotation(leg.origin.code, coordinate: leg.origin.coordinate) {
@@ -72,33 +73,75 @@ struct FlightMapView: View {
         }
 
         if isCurrentLeg {
-            // Flown portion: solid; remaining: faded.
-            let split = session.legProgress
-            let flown = GreatCircle.points(from: leg.origin.coordinate,
-                                           to: leg.destination.coordinate,
-                                           count: 48).prefix(upTo(split, of: 48))
-            let remaining = GreatCircle.points(from: leg.origin.coordinate,
-                                               to: leg.destination.coordinate,
-                                               count: 48).suffix(from: max(0, upTo(split, of: 48) - 1))
-            if flown.count > 1 {
-                MapPolyline(coordinates: Array(flown))
-                    .stroke(accent, style: StrokeStyle(lineWidth: 4, lineCap: .round))
-            }
-            if remaining.count > 1 {
-                MapPolyline(coordinates: Array(remaining))
-                    .stroke(accent.opacity(0.4),
-                            style: StrokeStyle(lineWidth: 3, lineCap: .round))
-            }
+            // Split the shared trajectory at the aircraft. This retains the
+            // runway roll, authored departure turn, approach and rollout that
+            // would disappear in an origin→current→destination great circle.
+            MapPolyline(coordinates: geometry.flown)
+                .stroke(accent, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+            MapPolyline(coordinates: geometry.remaining)
+                .stroke(accent.opacity(0.4),
+                        style: StrokeStyle(lineWidth: 4, lineCap: .round))
         } else {
-            MapPolyline(coordinates: [leg.origin.coordinate, leg.destination.coordinate],
-                        contourStyle: .geodesic)
+            MapPolyline(coordinates: geometry.all)
                 .stroke(isFlown ? accent : accent.opacity(0.4),
                         style: StrokeStyle(lineWidth: isFlown ? 4 : 3, lineCap: .round))
         }
     }
 
-    private func upTo(_ fraction: Double, of count: Int) -> Int {
-        min(count, max(1, Int((fraction * Double(count - 1)).rounded()) + 1))
+    private struct RouteGeometry {
+        let all: [CLLocationCoordinate2D]
+        let flown: [CLLocationCoordinate2D]
+        let remaining: [CLLocationCoordinate2D]
+    }
+
+    private func routeGeometry(for leg: FlightLeg, index: Int) -> RouteGeometry {
+        guard session.legMapSamples.indices.contains(index),
+              session.legMapSamples[index].count >= 2 else {
+            let fallback = GreatCircle.points(
+                from: leg.origin.coordinate,
+                to: leg.destination.coordinate,
+                count: 96
+            )
+            if index != session.legIndex {
+                return RouteGeometry(all: fallback, flown: fallback, remaining: fallback)
+            }
+            let split = min(fallback.count - 1, max(0, Int(session.legProgress * Double(fallback.count - 1))))
+            let current = session.currentCoordinate
+            return RouteGeometry(
+                all: fallback,
+                flown: Array(fallback.prefix(split + 1)) + [current],
+                remaining: [current] + Array(fallback.suffix(from: split))
+            )
+        }
+
+        let samples = session.legMapSamples[index]
+        let all = samples.map(\.coordinate)
+        guard index == session.legIndex else {
+            return RouteGeometry(all: all, flown: all, remaining: all)
+        }
+
+        let progress = session.legProgress
+        let split = samples.lastIndex { $0.routeProgress <= progress } ?? 0
+        let current = session.currentCoordinate
+        var flown = samples.prefix(split + 1).map(\.coordinate)
+        if flown.last.map({ coordinatesNearlyEqual($0, current) }) != true {
+            flown.append(current)
+        }
+        if flown.count == 1 { flown.insert(leg.origin.coordinate, at: 0) }
+
+        var remaining = [current]
+        let nextIndex = min(samples.count, split + 1)
+        remaining.append(contentsOf: samples.suffix(from: nextIndex).map(\.coordinate))
+        if remaining.count == 1 { remaining.append(leg.destination.coordinate) }
+        return RouteGeometry(all: all, flown: flown, remaining: remaining)
+    }
+
+    private func coordinatesNearlyEqual(
+        _ lhs: CLLocationCoordinate2D,
+        _ rhs: CLLocationCoordinate2D
+    ) -> Bool {
+        abs(lhs.latitude - rhs.latitude) < 0.000_001 &&
+            abs(lhs.longitude - rhs.longitude) < 0.000_001
     }
 
     private func airportDot(_ airport: Airport, filled: Bool) -> some View {
@@ -118,13 +161,18 @@ struct FlightMapView: View {
     private var planeMarker: some View {
         ZStack {
             Circle()
-                .fill(.black.opacity(0.35))
+                .fill(
+                    RadialGradient(
+                        colors: [.black.opacity(0.35), .clear],
+                        center: .center,
+                        startRadius: 0,
+                        endRadius: 17
+                    )
+                )
                 .frame(width: 34, height: 34)
-                .blur(radius: 3)
             Image(systemName: "airplane")
                 .font(.system(size: 20, weight: .bold))
                 .foregroundStyle(.white)
-                .shadow(color: .black.opacity(0.6), radius: 2)
                 // SF airplane points along +x (east / 90°).
                 .rotationEffect(.degrees(session.currentCourse - 90))
         }
