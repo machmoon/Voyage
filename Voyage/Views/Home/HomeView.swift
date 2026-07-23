@@ -496,6 +496,10 @@ struct HomeView: View {
                                     tier: LogbookStats.tier(entries))
         session.prepareRealWorldTwin()
 
+        // Every departure starts cold: the curtain must not be waved through by
+        // a previous flight's success.
+        DepartureReadiness.shared.resetForNewBooking()
+
         // Start warming the satellite tiles around the origin runway now, so the
         // real-world window has a rendered frame ready by the time it mounts.
         if settings.streamsRealWorldScenery {
