@@ -230,20 +230,16 @@ struct BoardingPassView: View {
     private var bodyPiece: some View {
         VStack(spacing: 0) {
             passBody
-            if !ripped {
-                perforation
-            } else {
-                // Keep the same height as the perforation so the printer housing
-                // above doesn't jump when the stub tears away.
-                Color.clear.frame(height: 22)
-            }
+            perforation
         }
         .background(Color(.systemBackground))
         .clipShape(PassBodyPaper())
         .compositingGroup()
         .shadow(color: .black.opacity(ripped ? 0.35 : 0.45), radius: ripped ? 16 : 22, y: 12)
-        // The body stays put — only the stub tears away below it.
-        .animation(.smooth(duration: 0.4), value: ripped)
+        // Losing the stub takes weight off the bottom of the sheet, so the body
+        // settles a little as it goes rather than hanging in mid-air.
+        .offset(y: ripped ? 12 : 0)
+        .animation(.spring(duration: 0.45, bounce: 0.18), value: ripped)
     }
 
     /// Classic paper ticket: ink on white, no colored chrome.
@@ -320,51 +316,61 @@ struct BoardingPassView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// A real ticket tear line — side notches plus a dashed perforation bar
-    /// (not round dots). Slide a finger along it to cut; the seam opens behind
-    /// your fingertip and separates the stub cleanly.
+    /// Height of the scored strip at the bottom of the body. The seam with the
+    /// stub is this strip's bottom edge, and everything below — dashes, notches,
+    /// the opening cut — is drawn against it, because paper tears *along* its
+    /// perforation, not somewhere near it.
+    private let perforationStripHeight: CGFloat = 18
+
+    /// The tear line itself: a dashed score sitting on the seam, punched at both
+    /// ends by notches. Slide a finger along it and the seam opens behind your
+    /// fingertip. After the rip the dashes are gone with the stub and the body
+    /// keeps the two bitten half-notches, exactly like a torn ticket.
     private var perforation: some View {
         GeometryReader { geo in
             let w = geo.size.width
+            let seamY = geo.size.height
             let cutX = w * cutProgress
-            ZStack(alignment: .leading) {
-                HStack(spacing: 0) {
-                    halfNotch(leading: true)
-                    tearLine
-                    halfNotch(leading: false)
+            ZStack(alignment: .topLeading) {
+                if !ripped {
+                    // Dashes ride just above the seam so the full stroke stays on
+                    // the paper — the line you see is the line it parts along.
+                    Path { path in
+                        path.move(to: CGPoint(x: 14, y: seamY - 2))
+                        path.addLine(to: CGPoint(x: w - 14, y: seamY - 2))
+                    }
+                    .stroke(Theme.boardingBackdrop,
+                            style: StrokeStyle(lineWidth: 3, lineCap: .butt, dash: [9, 6]))
+
+                    // The parted section: the score opened solid from the leading
+                    // edge to the fingertip, at dash thickness so it reads as a
+                    // cut rather than a dark bar laid across the ticket.
+                    if cutProgress > 0.001 {
+                        Capsule()
+                            .fill(Theme.boardingBackdrop)
+                            .frame(width: max(3, cutX), height: 3)
+                            .position(x: max(3, cutX) / 2, y: seamY - 2)
+                    }
                 }
 
-                // The parted section: the same hairline the dashes sit on,
-                // opened solid from the leading edge to the fingertip. Kept at
-                // dash thickness so the seam reads as a cut, not a dark bar.
-                if cutProgress > 0.001 {
-                    Capsule()
-                        .fill(Theme.boardingBackdrop)
-                        .frame(width: max(3, cutX), height: 3)
-                }
+                // Punched at both ends of the score, centered on the seam: the
+                // body clips the top half, the stub carries the bottom half.
+                notch.position(x: 0, y: seamY)
+                notch.position(x: w, y: seamY)
             }
-            .frame(height: geo.size.height, alignment: .center)
             // Tall, generous hit area so the horizontal slide is easy to catch.
             .contentShape(Rectangle().inset(by: -16))
             .gesture(cutGesture())
         }
-        .frame(height: 22)
+        .frame(height: perforationStripHeight)
         .background(Color(.systemBackground))
         .accessibilityLabel("Tear line — slide across to tear")
     }
 
-    /// Dashed perforation line: longer marks than dots, in the backdrop color so
-    /// it reads as a real ticket tear line punched across the paper.
-    private var tearLine: some View {
-        GeometryReader { geo in
-            let midY = geo.size.height / 2
-            Path { path in
-                path.move(to: CGPoint(x: 2, y: midY))
-                path.addLine(to: CGPoint(x: geo.size.width - 2, y: midY))
-            }
-            .stroke(Theme.boardingBackdrop,
-                    style: StrokeStyle(lineWidth: 3, lineCap: .butt, dash: [9, 6]))
-        }
+    private var notch: some View {
+        Circle()
+            .fill(Theme.boardingBackdrop)
+            .frame(width: 20, height: 20)
     }
 
     /// Comfortable swipe distance to run the cut fully across.
@@ -400,13 +406,6 @@ struct BoardingPassView: View {
             }
     }
 
-    private func halfNotch(leading: Bool) -> some View {
-        Circle()
-            .fill(Theme.boardingBackdrop)
-            .frame(width: 22, height: 22)
-            .offset(x: leading ? -11 : 11)
-    }
-
     // MARK: Stub + tear gesture
 
     private var stubPiece: some View {
@@ -431,6 +430,16 @@ struct BoardingPassView: View {
                     style: .continuous
                 )
             )
+            // The other half of each punched notch. At rest these sit exactly on
+            // the body's own half, completing one circle across the seam; once
+            // the stub drops they travel with it, as the paper actually would.
+            .overlay {
+                GeometryReader { geo in
+                    notch.position(x: 0, y: 0)
+                    notch.position(x: geo.size.width, y: 0)
+                }
+                .allowsHitTesting(false)
+            }
             .compositingGroup()
             .shadow(
                 color: .black.opacity(progress > 0 || ripped ? 0.28 + 0.22 * progress : 0.08),
