@@ -151,6 +151,7 @@
 		B4970D3315854BE625BC7717 /* captain_midpoint_san-francisco.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 8EB6C0907262DAFAE144A0CC /* captain_midpoint_san-francisco.m4a */; };
 		BAE28233263100BCC5A3266C /* captain_descent_san-francisco.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 66E594E5CF2E444CC76F7A15 /* captain_descent_san-francisco.m4a */; };
 		BBF37A9F92223494A89CE28B /* captain_landed_regina.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 68992329ADA6E0D2215DDF7E /* captain_landed_regina.m4a */; };
+		BC09D84F3D0598CFFF336DAF /* StudyMapWarmupTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2250BE09A57429CDBCC6FF5E /* StudyMapWarmupTests.swift */; };
 		BCC68F42CC3FC48F31E29B59 /* captain_descent_miami.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 970C634E7950DD9E7BABFF21 /* captain_descent_miami.m4a */; };
 		BE094048F33D33818A51E68F /* captain_layover_new-york.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 7F7B5E7D980A0076C338DE93 /* captain_layover_new-york.m4a */; };
 		BE9AA8546F6A8F7E93F04228 /* crew_preview.m4a in Resources */ = {isa = PBXBuildFile; fileRef = F44071B8E0327A74FF5D7D50 /* crew_preview.m4a */; };
@@ -191,6 +192,7 @@
 		F539099ECED8D80CDCA8CE15 /* VoyageWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 0D68B05EFC09E000DA1DDF10 /* VoyageWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		F5A2E846485825E19FF558C1 /* VoyageAppIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 256772C2F15D221799B2A8B9 /* VoyageAppIntents.swift */; };
 		F746B35FA5512CD02529D043 /* crew_welcome.m4a in Resources */ = {isa = PBXBuildFile; fileRef = CDE51E8DD9A8AE7392F748BB /* crew_welcome.m4a */; };
+		F756497ACC73E477F44878E8 /* StudyMapWarmup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C0EDF5B41D51CA232306FEE /* StudyMapWarmup.swift */; };
 		FB5766BF560C242EC935A52F /* BoardingFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC2722D2607D1446EB0D8DD9 /* BoardingFlowView.swift */; };
 		FC4B5741CB3D2B70C7C9ABDF /* captain_midpoint_raleigh-durham.m4a in Resources */ = {isa = PBXBuildFile; fileRef = D6212EAE27E69A12AD58C043 /* captain_midpoint_raleigh-durham.m4a */; };
 		FE79B828B4AFC2D728D6915A /* AirportWorldMetalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B66571CD21FE7457375B9B67 /* AirportWorldMetalView.swift */; };
@@ -261,6 +263,7 @@
 		1B4D7F1D6773B175406CC8F4 /* crew_layover_regina.m4a */ = {isa = PBXFileReference; path = crew_layover_regina.m4a; sourceTree = "<group>"; };
 		1C5605B00A8994113D8123E0 /* captain_finalcall_regina.m4a */ = {isa = PBXFileReference; path = captain_finalcall_regina.m4a; sourceTree = "<group>"; };
 		21DF43DD51750D57EB40C3BF /* VoyageTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = VoyageTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		2250BE09A57429CDBCC6FF5E /* StudyMapWarmupTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyMapWarmupTests.swift; sourceTree = "<group>"; };
 		2383FDD5245C999AB4D11CFA /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
 		2395A0E623392E6DA9E44EF0 /* Voyage.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Voyage.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		24E40D44F9AAB6E845D06485 /* captain_welcome.m4a */ = {isa = PBXFileReference; path = captain_welcome.m4a; sourceTree = "<group>"; };
@@ -334,6 +337,7 @@
 		79B06B72463FCBCED2A1ED5E /* FlightDataAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightDataAPI.swift; sourceTree = "<group>"; };
 		7A09A5D0A3A83F485DA805EC /* captain_finalcall_boston.m4a */ = {isa = PBXFileReference; path = captain_finalcall_boston.m4a; sourceTree = "<group>"; };
 		7BE9E9A44DEE11A8F9DAC177 /* crew_layover_seattle.m4a */ = {isa = PBXFileReference; path = crew_layover_seattle.m4a; sourceTree = "<group>"; };
+		7C0EDF5B41D51CA232306FEE /* StudyMapWarmup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyMapWarmup.swift; sourceTree = "<group>"; };
 		7C313ECE3ED0E456B50CE7FE /* crew_descent_regina.m4a */ = {isa = PBXFileReference; path = crew_descent_regina.m4a; sourceTree = "<group>"; };
 		7E4AD40DA935C2327A44C973 /* VoyageUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = VoyageUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		7F7B5E7D980A0076C338DE93 /* captain_layover_new-york.m4a */ = {isa = PBXFileReference; path = "captain_layover_new-york.m4a"; sourceTree = "<group>"; };
@@ -481,6 +485,7 @@
 				D852A33B5FE2C0E2F34BB75C /* LogbookMigrationTests.swift */,
 				FF3BFC67E078E4199B9419D6 /* RouteCatalogTests.swift */,
 				CE7C38C4A1700E1751034581 /* RoutePlannerTests.swift */,
+				2250BE09A57429CDBCC6FF5E /* StudyMapWarmupTests.swift */,
 				E9C6A8900000325A9B0AEC28 /* WeatherMappingTests.swift */,
 			);
 			path = VoyageTests;
@@ -807,6 +812,7 @@
 				10566A414E4D9EAE24BC0E96 /* MapWarmer.swift */,
 				0DF13B0FF6F67EF0797DAFA7 /* SettingsStore.swift */,
 				DB5F0208829F37BC0518AB7B /* Shaders.metal */,
+				7C0EDF5B41D51CA232306FEE /* StudyMapWarmup.swift */,
 				4117C4E6EEA3358F00D1B5B4 /* TestModeSeeder.swift */,
 				98D80A40384AA0FD2BE7D690 /* Theme.swift */,
 				64ED0633A31C9F28D72F2C48 /* VoyageAPIClient.swift */,
@@ -1080,6 +1086,7 @@
 				7ABC500B9DB9CF1AE2C4D682 /* LogbookMigrationTests.swift in Sources */,
 				87603F97599BDD9EBA2488DE /* RouteCatalogTests.swift in Sources */,
 				2AB8D241BA72ABEF44132012 /* RoutePlannerTests.swift in Sources */,
+				BC09D84F3D0598CFFF336DAF /* StudyMapWarmupTests.swift in Sources */,
 				ED9339E9798A3987FA78A55C /* WeatherMappingTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1152,6 +1159,7 @@
 				507D87B2B8B562183973CFB3 /* SettingsStore.swift in Sources */,
 				B3CE3D47A00CDA957DE780C3 /* SettingsView.swift in Sources */,
 				6115BC48B34C1F29DD8F8A28 /* Shaders.metal in Sources */,
+				F756497ACC73E477F44878E8 /* StudyMapWarmup.swift in Sources */,
 				4D31525631FD4FC74A1A1AF1 /* TestModeSeeder.swift in Sources */,
 				2A6D2CD0EC832A9D6BD443E8 /* Theme.swift in Sources */,
 				B08A7359BD48DB86E4BC534C /* VoyageAPIClient.swift in Sources */,
