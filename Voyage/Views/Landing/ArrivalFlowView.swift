@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import StoreKit
 
 /// The peak-end payoff after touchdown: a typographic welcome, baggage
 /// claim for your checked intentions, and a passport stamp into the logbook.
@@ -276,6 +277,8 @@ private struct StampView: View {
     @Bindable var session: FlightSession
     let onDone: () -> Void
 
+    @Environment(\.requestReview) private var requestReview
+
     @State private var stamped = false
     @State private var shareCaption = ""
     @State private var receiptPNG: Data?
@@ -332,12 +335,23 @@ private struct StampView: View {
                 Haptics.stamp()
                 CabinAudioEngine.shared.playThunk()
                 receiptPNG = FlightReceiptRenderer.pngData(session: session, caption: shareCaption)
+                await askForReviewIfEarned()
             }
         }
         .onChange(of: shareCaption) { _, _ in
             receiptPNG = FlightReceiptRenderer.pngData(session: session, caption: shareCaption)
             persistShareCaption()
         }
+    }
+
+    /// The stamp is the high point of the whole session, which is the only
+    /// honest place to ask. Waits out the stamp spring and its thunk so the
+    /// system sheet doesn't slide up over the animation.
+    private func askForReviewIfEarned() async {
+        guard AppFeedback.shouldRequestReview() else { return }
+        try? await Task.sleep(for: .milliseconds(1_200))
+        AppFeedback.markReviewRequested()
+        requestReview()
     }
 
     /// Strava pattern: optional activity description + shareable stats image.

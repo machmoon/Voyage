@@ -717,6 +717,8 @@ final class FlightSession {
         modelContext.insert(entry)
         try? modelContext.save()
         logEntry = entry
+        // Only a flight that actually landed counts toward the review ask.
+        if completed { AppFeedback.recordCompletedFlight() }
         FocusIntegration.shared.onSessionEnded(session: self, completed: completed)
     }
 
