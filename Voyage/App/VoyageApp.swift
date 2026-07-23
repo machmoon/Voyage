@@ -7,6 +7,9 @@ struct VoyageApp: App {
 
     init() {
         modelContainer = Self.makeContainer()
+        // Starts the seven-day clock the review prompt waits on; a no-op after
+        // the first launch of the install.
+        MainActor.assumeIsolated { AppFeedback.stampFirstLaunchIfNeeded() }
     }
 
     var body: some Scene {

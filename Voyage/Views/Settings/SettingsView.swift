@@ -7,6 +7,7 @@ struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var settings = SettingsStore.shared
     @State private var hasSeededData = false
+    @State private var isWritingFeedback = false
 
     /// Installed English voices, best first.
     private var paVoices: [AVSpeechSynthesisVoice] {
@@ -166,10 +167,15 @@ struct SettingsView: View {
                     } label: {
                         Label("Replay the preflight briefing", systemImage: "arrow.counterclockwise")
                     }
+                    Button {
+                        isWritingFeedback = true
+                    } label: {
+                        Label("Send a note to the flight deck", systemImage: "paperplane.fill")
+                    }
                 } header: {
                     Text("Help")
                 } footer: {
-                    Text("Walks through how a Voyage flight works, the same way it did on first launch.")
+                    Text("The briefing walks through how a Voyage flight works, the same way it did on first launch. A note opens GitHub in your browser so you can post it publicly under your own account.")
                 }
 
                 // Seeded demo history is a development affordance, not a
@@ -210,6 +216,7 @@ struct SettingsView: View {
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear { hasSeededData = TestModeSeeder.hasSeededData(in: modelContext) }
+            .sheet(isPresented: $isWritingFeedback) { FeedbackSheet() }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
