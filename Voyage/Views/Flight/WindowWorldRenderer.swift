@@ -11,11 +11,10 @@ enum WindowWorldRendererSelection: Equatable {
 enum WindowWorldRendererPolicy {
     static func selection(for frame: AirportWorldFrame, phase: LegPhase,
                           reduceMotion: Bool, metalAvailable: Bool) -> WindowWorldRendererSelection {
-        guard metalAvailable, !reduceMotion, frame.airportCode == "SFO",
-              phase == .takeoffRoll || phase == .climb else {
-            return .procedural
-        }
-        return .authoredSFO
+        // Always use the illustrated procedural canvas — the authored SFO Metal
+        // scene replaced the hand-drawn runway/tower look passengers expect.
+        _ = (frame, phase, reduceMotion, metalAvailable)
+        return .procedural
     }
 }
 

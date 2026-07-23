@@ -11,7 +11,6 @@ struct FlightVisualContext {
     let showsSunset: Bool
     let showsAurora: Bool
     let realWorldTwinEnabled: Bool
-    let isVisible: Bool
     /// Which world the passenger chose to look out at.
     var worldMode: WindowWorldMode = .real
 }
@@ -57,7 +56,6 @@ struct WindowSceneView: View {
             case .real:
                 RealWorldTwinView(
                     pose: WorldCameraPose(state.camera),
-                    isActive: !isPaused,
                     realWorldTwinEnabled: context.realWorldTwinEnabled,
                     reduceMotion: reduceMotion
                 ) {
@@ -79,20 +77,32 @@ struct WindowSceneView: View {
                     showWing: context.showsWing,
                     isLeftSide: state.camera.side == .left,
                     legElapsed: state.elapsed,
-                    phaseElapsed: state.phaseProgress * 60,
+                    phaseElapsed: phaseElapsed(for: state),
                     weatherSnapshot: weather
                 )
             }
         }
+        .allowsHitTesting(false)
     }
 
     private var isPaused: Bool {
-        scenePhase != .active || !context.isVisible
+        scenePhase != .active
     }
 
     private var frameInterval: TimeInterval {
         let phase = context.trajectory.schedule.phase(at: clockAnchor.legElapsed)
         return phase == .cruise ? 1.0 / 30.0 : 1.0 / 60.0
+    }
+
+    private func phaseElapsed(for state: FlightVisualState) -> TimeInterval {
+        let schedule = context.trajectory.schedule
+        switch state.phase {
+        case .takeoffRoll: return state.elapsed
+        case .climb: return max(0, state.elapsed - schedule.takeoffEnd)
+        case .cruise: return max(0, state.elapsed - schedule.climbEnd)
+        case .descent: return max(0, state.elapsed - schedule.descentStart)
+        case .landing: return max(0, state.elapsed - schedule.landingStart)
+        }
     }
 
     @ViewBuilder
@@ -117,15 +127,8 @@ struct WindowSceneView: View {
                 reduceMotion: reduceMotion
             )
 
-            if context.showsWing && state.phase != .takeoffRoll && state.phase != .landing {
-                PassengerWingLayer(
-                    side: state.camera.side,
-                    bankDegrees: state.aircraft.bankDegrees,
-                    elapsed: state.elapsed,
-                    isNight: context.isNight,
-                    reduceMotion: reduceMotion
-                )
-            }
+            // Real-world scenery omits the illustrated wing — it reads as a
+            // sticker on streamed satellite tiles.
 
             if context.showsAurora && context.isNight && state.phase == .cruise {
                 LinearGradient(

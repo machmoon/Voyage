@@ -55,17 +55,10 @@ struct IllustratedWindowSceneView: View {
 
     // MARK: Real scenery (satellite flyover)
 
-    /// Real imagery only makes sense near the ground, online, at an airport
-    /// with runway choreography, and in weather you could actually see
-    /// through. Everything else stays procedural.
-    private var realSceneryActive: Bool {
-        SettingsStore.shared.realSceneryEnabled
-            && RealSceneryReachability.shared.isOnline
-            && airport.runway != nil
-            && phase != .cruise
-            && realSceneryOpacity > 0.02
-            && (condition == .clear || condition == .partlyCloudy || condition == .cloudy)
-    }
+    /// Illustrated mode never mounts streamed tiles — that path lives on
+    /// `WindowSceneView`'s `.real` branch. Keeping this off avoids low-poly
+    /// satellite bleeding through the drawn cloud deck during climb.
+    private var realSceneryActive: Bool { false }
 
     /// Crossfade to the procedural renderer as the ground stops reading:
     /// fully real below ~15% of cruise altitude, fully procedural by ~30%.
@@ -118,37 +111,36 @@ struct IllustratedWindowSceneView: View {
                 if showAurora && isNight && phase == .cruise { drawAurora(context, scene) }
                 drawCirrus(context, scene)
 
-                if scene.onGround {
-                    // Landing: the airport rises into view over the first
-                    // moments of the flare instead of popping in.
-                    let appear = phase == .landing ? min(1.0, scene.tPhase / 1.6) : 1.0
-                    // Runway rumble: the ground judders more the faster we roll.
-                    let speedT = reduceMotion ? 0 : min(1.0, scene.groundScroll / (920 * max(1, scene.tPhase)))
-                    let shake = sin(scene.time * 31) * 1.4 * speedT
-                        + sin(scene.time * 53 + 1.3) * 0.7 * speedT
-                    if appear >= 1 {
-                        var ctx = context
-                        ctx.translateBy(x: 0, y: shake)
-                        drawAirportGround(ctx, scene)
-                    } else {
-                        var ctx = context
-                        ctx.opacity = appear
+                let airportOpacity = scene.airportGroundOpacity
+                if airportOpacity > 0.01 {
+                    var ctx = context
+                    if scene.onGround && phase == .landing {
+                        let appear = min(1.0, scene.tPhase / 1.6)
+                        let speedT = reduceMotion ? 0 : min(1.0, scene.groundScroll / (920 * max(1, scene.tPhase)))
+                        let shake = sin(scene.time * 31) * 1.4 * speedT
+                            + sin(scene.time * 53 + 1.3) * 0.7 * speedT
+                        ctx.opacity = appear * airportOpacity
                         ctx.translateBy(x: 0, y: scene.size.height * (1 - appear) * 0.35 + shake)
-                        drawAirportGround(ctx, scene)
-                    }
-                } else if phase == .climb {
-                    // Rotation: the airport sinks away below and fades out
-                    // rather than cutting straight to sky.
-                    let recedeSpan = FlightSession.shortFlightsEnabled ? 2.0 : 6.0
-                    let recede = min(1.0, scene.tPhase / recedeSpan)
-                    if recede < 1 {
-                        var ctx = context
-                        ctx.opacity = (1 - recede) * (1 - recede)
+                    } else if phase == .climb {
+                        let recedeSpan = FlightSession.shortFlightsEnabled ? 2.5 : 8.0
+                        let recede = min(1.0, scene.tPhase / recedeSpan)
+                        ctx.opacity = airportOpacity
                         ctx.translateBy(x: 0, y: scene.size.height * recede * 0.9)
-                        drawAirportGround(ctx, scene)
+                    } else {
+                        let speedT = reduceMotion ? 0 : min(1.0, scene.groundScroll / (920 * max(1, scene.tPhase)))
+                        let shake = sin(scene.time * 31) * 1.4 * speedT
+                            + sin(scene.time * 53 + 1.3) * 0.7 * speedT
+                        ctx.opacity = airportOpacity
+                        ctx.translateBy(x: 0, y: shake)
                     }
-                } else if phase == .cruise || phase == .descent {
-                    drawFarTerrain(context, scene)
+                    drawAirportGround(ctx, scene)
+                }
+
+                let terrainOpacity = scene.farTerrainOpacity
+                if terrainOpacity > 0.01 {
+                    var ctx = context
+                    ctx.opacity = terrainOpacity
+                    drawFarTerrain(ctx, scene)
                 }
 
                 drawClouds(context, scene)
@@ -174,14 +166,15 @@ struct IllustratedWindowSceneView: View {
             }
     }
 
-    /// The aircraft rotates and banks away on climb-out: the horizon tips a
-    /// few degrees, easing back to level as we approach altitude. The slight
+    /// Climb-out attitude: the nose pitches up, so the view tips so the seat
+    /// side of the window rises — you feel the aircraft elevate rather than sit
+    /// level. Eases back to level as we approach cruise altitude. The slight
     /// scale-up hides the window corners while rotated.
     private var bankAngle: Double {
         guard !reduceMotion, phase == .climb else { return 0 }
         let rise = min(1, phaseElapsed / 1.4)
         let levelOff = 1 - min(1, max(0, altitudeFraction) / 0.85)
-        return -6.0 * rise * levelOff
+        return 8.0 * rise * levelOff
     }
 
     // MARK: Frame pacing
@@ -220,18 +213,66 @@ struct IllustratedWindowSceneView: View {
 
         var onGround: Bool { phase == .takeoffRoll || phase == .landing }
 
+        /// Opacity for the airport ground layers (runway, terminal band).
+        var airportGroundOpacity: Double {
+            if onGround { return 1 }
+            if phase == .climb {
+                let recedeSpan = FlightSession.shortFlightsEnabled ? 2.5 : 8.0
+                let recede = min(1.0, tPhase / recedeSpan)
+                return max(0, (1 - recede) * (1 - recede))
+            }
+            if phase == .descent {
+                // Terrain hands off to the airport during the last part of descent.
+                let blend = min(1, max(0, (0.50 - altitude) / 0.22))
+                return blend * blend
+            }
+            return 0
+        }
+
+        /// Opacity for the patchwork terrain visible from cruise altitude.
+        var farTerrainOpacity: Double {
+            switch phase {
+            case .cruise: return 1
+            case .descent:
+                return min(1, max(0, (altitude - 0.18) / 0.28))
+            case .climb:
+                // Crossfade terrain in as the airport recedes.
+                let recedeSpan = FlightSession.shortFlightsEnabled ? 2.5 : 8.0
+                let recede = min(1.0, tPhase / recedeSpan)
+                let altitudeBlend = min(1, max(0, (altitude - 0.12) / 0.25))
+                return max(recede * 0.55, altitudeBlend)
+            default:
+                return 0
+            }
+        }
+
         /// Where the ground meets the sky, as a height fraction.
         var horizonY: Double {
-            if onGround { return 0.60 }
+            if onGround {
+                // Ease between cruise-like horizon during landing approach and
+                // the low runway sightline.
+                if phase == .landing {
+                    let settle = min(1, max(0, (0.42 - altitude) / 0.22))
+                    let cruiseLevel = 0.60 - 0.18 * min(1, altitude)
+                    return cruiseLevel + (0.60 - cruiseLevel) * settle
+                }
+                return 0.60
+            }
             // Higher altitude pushes the horizon toward the upper third.
             let level = 0.60 - 0.18 * min(1, altitude)
             guard phase == .climb else { return level }
-            // Altitude alone would raise the horizon as soon as the wheels
-            // leave the ground, which reads as the nose dropping. A climbing
-            // aircraft is pitched up, so the horizon sinks toward the sill and
-            // sky fills the pane; the pitch washes out as the climb shallows.
-            let pitch = 0.26 * (1 - min(1, altitude / 0.55))
-            return level + pitch
+            // Hold a nose-up sightline (horizon low, sky filling the pane) for
+            // the bulk of the climb, easing to the cruise horizon only near
+            // top-of-climb. Keying the wash-out to altitude/0.55 (as before)
+            // let the horizon rise through the frame for ~60% of the climb —
+            // because climbAltitudeFraction front-loads altitude — which read
+            // as a descent. Ease in only after 70% altitude instead.
+            // Horizon sits low (ground tilting away below, sky filling most of
+            // the pane) but stays *visible* so the climb tilt reads, then eases
+            // up to the cruise horizon near top-of-climb.
+            let noseUp = 0.80
+            let ease = min(1, max(0, (altitude - 0.70) / 0.25))
+            return noseUp + (level - noseUp) * ease * ease
         }
 
         var showsPrecipitation: Bool {
@@ -626,6 +667,11 @@ struct IllustratedWindowSceneView: View {
     // MARK: Clouds
 
     private func drawClouds(_ context: GraphicsContext, _ s: SceneModel) {
+        if s.phase == .climb {
+            drawClimbCloudDeck(context, s)
+            return
+        }
+
         let layerCount = 4
         for layer in 0..<layerCount {
             let opacity = cloudOpacity(s, layer: layer, layerCount: layerCount)
@@ -730,9 +776,12 @@ struct IllustratedWindowSceneView: View {
         switch s.phase {
         case .takeoffRoll: base = amount > 0.7 ? 0.30 : amount * 0.25
         case .climb:
-            // Deck eases in as the ground falls away, so rotation reads as
-            // one continuous moment instead of a scene swap.
-            base = 0.78 * min(1.0, 0.25 + s.tPhase / 2.5)
+            // Deck eases in as the ground falls away; keep opacity bounded so
+            // overlapping lobes never stack past full white.
+            let recedeSpan = FlightSession.shortFlightsEnabled ? 2.5 : 8.0
+            let recede = min(1.0, s.tPhase / recedeSpan)
+            let ramp = min(1.0, 0.22 + s.tPhase / (recedeSpan * 1.6))
+            base = min(0.62, 0.28 + recede * 0.34) * ramp
         case .cruise: base = 0.2 + amount * 0.35
         case .descent: base = 0.62
         case .landing: base = amount > 0.7 ? 0.35 : 0.15
@@ -754,40 +803,81 @@ struct IllustratedWindowSceneView: View {
         blurFarLayer: Bool
     ) {
         var rng = SeededRandom(seed: seed)
-        let lobeCount = 5 + Int(rng.next() * 3.99)
+        let lobeCount = 4 + Int(rng.next() * 2.99)
 
         let fillColor: Color
-        let highlight: Color
         if s.isNight {
-            fillColor = Color(hex: "2A3558")
-            highlight = Color(hex: "4A5A82")
+            fillColor = Color(hex: "D8DFF0")
         } else if s.golden {
-            fillColor = Color(hex: "FFE4D0")
-            highlight = Color(hex: "FFF6EE")
+            fillColor = Color(hex: "FFF6EE")
         } else if s.condition == .storm || s.condition == .rain {
-            fillColor = Color(hex: "94A0B2")
-            highlight = Color(hex: "C3CCD8")
+            fillColor = Color(hex: "E8EDF5")
         } else {
-            fillColor = Color(hex: "F4F7FC")
-            highlight = .white
+            fillColor = .white
         }
 
         var layerContext = context
-        if blurFarLayer {
-            layerContext.addFilter(.blur(radius: max(1.5, height * 0.12)))
-        }
+        layerContext.addFilter(.blur(radius: max(2.0, height * (blurFarLayer ? 0.16 : 0.10))))
 
         for lobe in 0..<lobeCount {
-            let ox = (rng.next() - 0.5) * width * 0.72
-            let oy = (rng.next() - 0.45) * height * 0.55
-            let w = width * (0.32 + rng.next() * 0.48)
-            let h = height * (0.5 + rng.next() * 0.55)
+            let ox = (rng.next() - 0.5) * width * 0.68
+            let oy = (rng.next() - 0.45) * height * 0.5
+            let w = width * (0.36 + rng.next() * 0.42)
+            let h = height * (0.55 + rng.next() * 0.45)
             let rect = CGRect(x: center.x + ox - w / 2, y: center.y + oy - h / 2,
                               width: w, height: h)
-            let isHighlight = lobe % 3 == 0
-            let color = isHighlight ? highlight : fillColor
-            let lobeAlpha = opacity * (isHighlight ? 0.55 : 0.72)
-            layerContext.fill(Path(ellipseIn: rect), with: .color(color.opacity(lobeAlpha)))
+            let lobeAlpha = opacity * (0.22 + rng.next() * 0.18)
+            layerContext.fill(
+                Path(ellipseIn: rect),
+                with: .radialGradient(
+                    Gradient(colors: [fillColor.opacity(lobeAlpha), fillColor.opacity(0)]),
+                    center: CGPoint(x: rect.midX, y: rect.midY - h * 0.08),
+                    startRadius: 0,
+                    endRadius: max(w, h) * 0.55
+                )
+            )
+        }
+    }
+
+    /// Soft, continuous cloud deck for the climb phase — avoids the harsh
+    /// stacked-ellipse artifacts that read as overlapping ovals in the pane.
+    private func drawClimbCloudDeck(_ context: GraphicsContext, _ s: SceneModel) {
+        let w = s.size.width
+        let h = s.size.height
+        let recedeSpan = FlightSession.shortFlightsEnabled ? 2.5 : 8.0
+        let deckStrength = min(1.0, max(0, (s.tPhase - 0.35) / (recedeSpan * 0.55)))
+        guard deckStrength > 0.02 else { return }
+
+        let drift = s.time * 18 * driftFactor(s)
+        let fillColor: Color = s.isNight ? Color(hex: "C8D0E4") : .white
+
+        for band in 0..<5 {
+            let bandT = Double(band) / 4
+            let bandHeight = h * (0.16 + bandT * 0.10)
+            let baseY = h * (0.18 + bandT * 0.42) + s.time * (24 + bandT * 18)
+            let wrappedY = baseY.truncatingRemainder(dividingBy: h * 1.35)
+
+            var bandPath = Path()
+            bandPath.move(to: CGPoint(x: -40, y: wrappedY + bandHeight))
+            for index in 0...14 {
+                let x = (Double(index) / 14) * (w + 80) - 40
+                let wave = sin((x + drift) / (58 + bandT * 22) + Double(band) * 1.7) * bandHeight * 0.34
+                bandPath.addLine(to: CGPoint(x: x, y: wrappedY + wave))
+            }
+            bandPath.addLine(to: CGPoint(x: w + 40, y: wrappedY + bandHeight))
+            bandPath.closeSubpath()
+
+            let bandAlpha = deckStrength * (0.14 + bandT * 0.10) * (s.isNight ? 0.72 : 1.0)
+            var bandContext = context
+            bandContext.addFilter(.blur(radius: 6 + bandT * 4))
+            bandContext.fill(
+                bandPath,
+                with: .linearGradient(
+                    Gradient(colors: [fillColor.opacity(bandAlpha), fillColor.opacity(bandAlpha * 0.35)]),
+                    startPoint: CGPoint(x: 0, y: wrappedY),
+                    endPoint: CGPoint(x: 0, y: wrappedY + bandHeight)
+                )
+            )
         }
     }
 

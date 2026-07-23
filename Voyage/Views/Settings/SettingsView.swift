@@ -128,6 +128,9 @@ struct SettingsView: View {
                         Label("Window view", systemImage: "airplane.departure")
                     }
                     .pickerStyle(.inline)
+                    .onChange(of: settings.windowWorldMode) { _, mode in
+                        settings.realWorldTwinEnabled = mode == .real
+                    }
                 } header: {
                     Text("Window")
                 } footer: {
@@ -158,6 +161,22 @@ struct SettingsView: View {
 
                 Section {
                     Button {
+                        settings.hasCompletedOnboarding = false
+                        dismiss()
+                    } label: {
+                        Label("Replay the preflight briefing", systemImage: "arrow.counterclockwise")
+                    }
+                } header: {
+                    Text("Help")
+                } footer: {
+                    Text("Walks through how a Voyage flight works, the same way it did on first launch.")
+                }
+
+                // Seeded demo history is a development affordance, not a
+                // shipping feature — it would wipe a real traveler's logbook.
+                #if DEBUG
+                Section {
+                    Button {
                         TestModeSeeder.seed(into: modelContext)
                         hasSeededData = true
                     } label: {
@@ -176,18 +195,16 @@ struct SettingsView: View {
                 } footer: {
                     Text("Fills the logbook with a few weeks of focus flights — an active streak, Gold status, and a well-stamped passport — so you can see the app as a returning traveler would. Replaces any existing history.")
                 }
+                #endif
 
                 Section {
                     LabeledContent("Version", value: "1.0")
                     LabeledContent("Airline", value: "Voyage Air")
-                    LabeledContent("Window world", value: "Route-aware 3D")
                     LabeledContent("Cabin voice", value: "AI voice by ElevenLabs")
                     Link("Voyage Terms of Use", destination: URL(string: "https://github.com/machmoon/Voyage/blob/main/TERMS.md")!)
                     Link("Voyage Privacy Notice", destination: URL(string: "https://github.com/machmoon/Voyage/blob/main/PRIVACY.md")!)
-                    Link("Google Maps Platform Terms", destination: URL(string: "https://cloud.google.com/maps-platform/terms")!)
-                    Link("Google Privacy Policy", destination: URL(string: "https://policies.google.com/privacy")!)
                 } footer: {
-                    Text("Real-world scenery may use Google Maps 3D or Apple Maps. Provider attribution remains visible in the airplane window; Voyage's deterministic offline world is used as a safe fallback.")
+                    Text("Illustrated window views work offline. If you choose Real world, map provider attribution appears in the airplane window.")
                 }
             }
             .navigationTitle("Settings")

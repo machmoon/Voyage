@@ -13,7 +13,7 @@ final class FlightVisualEngineTests: XCTestCase {
             shortFlights: false
         )
 
-        XCTAssertEqual(schedule.takeoffDuration, 35, accuracy: 0.001)
+        XCTAssertEqual(schedule.takeoffDuration, 36, accuracy: 0.001)
         XCTAssertEqual(schedule.climbDuration, 20 * 60, accuracy: 0.001)
         XCTAssertEqual(schedule.descentDuration, 25 * 60, accuracy: 0.001)
         XCTAssertEqual(schedule.landingDuration, 30, accuracy: 0.001)
@@ -33,8 +33,8 @@ final class FlightVisualEngineTests: XCTestCase {
             shortFlights: true
         )
 
-        XCTAssertEqual(schedule.takeoffEnd, 5, accuracy: 0.001)
-        XCTAssertEqual(schedule.climbEnd, 16, accuracy: 0.001)
+        XCTAssertEqual(schedule.takeoffEnd, 28, accuracy: 0.001)
+        XCTAssertEqual(schedule.climbEnd, 180, accuracy: 0.001)
         XCTAssertEqual(schedule.descentDuration, 165, accuracy: 0.001)
         XCTAssertEqual(schedule.landingDuration, 15, accuracy: 0.001)
     }
@@ -191,6 +191,186 @@ final class FlightVisualEngineTests: XCTestCase {
                 quaternionAngleDegrees(before.orientation, after.orientation),
                 0.02
             )
+        }
+    }
+
+    /// The altitude readout is live, so the number a passenger sees five
+    /// minutes after takeoff has to be one a narrow-body could actually be at.
+    func testEarlyClimbAltitudeStaysBelievableAndLevelsOffAtAPlausibleFlightLevel() {
+        let trajectory = makeTrajectory()
+        let feetPerMeter = 3.280_839_895
+        let liftoffFeet = (trajectory.departureRunway.threshold.altitudeMeters + 18) * feetPerMeter
+
+        let fiveMinutes = trajectory.state(at: 5 * 60, seat: "A8").aircraft.altitudeMeters * feetPerMeter
+        XCTAssertLessThanOrEqual(
+            fiveMinutes - liftoffFeet,
+            5 * 2_500,
+            "five minutes of climb implies more than 2,500 fpm"
+        )
+
+        let cruise = trajectory.state(
+            at: trajectory.schedule.climbEnd + 60,
+            seat: "A8"
+        ).aircraft.altitudeMeters * feetPerMeter
+        XCTAssertGreaterThan(cruise, 25_000, "transcon should cruise in the flight levels")
+        XCTAssertLessThanOrEqual(cruise, 38_000, "above a narrow-body's service ceiling")
+        XCTAssertLessThanOrEqual(
+            (cruise - liftoffFeet) / (trajectory.schedule.climbDuration / 60),
+            2_500,
+            "average climb rate to cruise is faster than a narrow-body flies"
+        )
+    }
+
+    func testTakeoffRollStaysLevelAndClimbIsMonotonic() {
+        let trajectory = makeTrajectory(shortFlights: true)
+        let schedule = trajectory.schedule
+        let runway = trajectory.departureRunway
+        let liftoff = runway.threshold.altitudeMeters + 18
+
+        let rollTimes = strideTimes(
+            from: 0,
+            through: max(0, schedule.rotationStart - 0.001),
+            count: 80
+        )
+        for elapsed in rollTimes {
+            let state = trajectory.state(at: elapsed, seat: "A8")
+            let surface = runwaySurfaceAltitude(runway, at: state.aircraft.coordinate)
+            XCTAssertEqual(
+                state.aircraft.altitudeMeters,
+                surface,
+                accuracy: 0.2,
+                "altitude rose during roll at elapsed \(elapsed)"
+            )
+        }
+
+        let climbTimes = strideTimes(
+            from: schedule.takeoffEnd,
+            through: schedule.climbEnd,
+            count: 120
+        )
+        var lastAltitude = liftoff
+        for (index, elapsed) in climbTimes.enumerated() {
+            let altitude = trajectory.state(at: elapsed, seat: "A8").aircraft.altitudeMeters
+            if index == 0 {
+                XCTAssertEqual(altitude, liftoff, accuracy: 0.2, "liftoff altitude at climb start")
+            } else {
+                XCTAssertGreaterThanOrEqual(
+                    altitude,
+                    lastAltitude - 0.05,
+                    "altitude dipped at elapsed \(elapsed)"
+                )
+            }
+            lastAltitude = altitude
+        }
+        XCTAssertGreaterThan(
+            trajectory.state(at: schedule.climbEnd, seat: "A8").aircraft.altitudeMeters,
+            liftoff + 500,
+            "climb should reach meaningful altitude"
+        )
+    }
+
+    func testShortFlightGroundSpeedsStayBelievableDuringDeparture() {
+        let trajectory = makeTrajectory(shortFlights: true)
+        let schedule = trajectory.schedule
+        let checkpoints: [(TimeInterval, Double)] = [
+            (schedule.takeoffEnd * 0.5, 95),
+            (schedule.takeoffEnd + schedule.climbDuration * 0.35, 135),
+            (schedule.climbEnd + schedule.cruiseDuration * 0.2, 250),
+        ]
+        for (elapsed, maxMetersPerSecond) in checkpoints {
+            let speed = trajectory.state(at: elapsed, seat: "A8").aircraft.groundSpeedMetersPerSecond
+            XCTAssertLessThan(
+                speed,
+                maxMetersPerSecond,
+                "ground speed \(speed) m/s too high at elapsed \(elapsed)"
+            )
+        }
+    }
+
+    func testShortFlightInitialClimbRateStaysBelievable() {
+        let trajectory = makeTrajectory(shortFlights: true)
+        let schedule = trajectory.schedule
+        let liftoff = trajectory.departureRunway.threshold.altitudeMeters + 18
+        let climbStart = schedule.takeoffEnd
+        let sampleSpan = schedule.climbDuration * 0.75
+
+        for index in 1...40 {
+            let earlierElapsed = climbStart + sampleSpan * Double(index - 1) / 40
+            let laterElapsed = climbStart + sampleSpan * Double(index) / 40
+            let deltaSeconds = laterElapsed - earlierElapsed
+            guard deltaSeconds > 0 else { continue }
+
+            let earlier = trajectory.state(at: earlierElapsed, seat: "A8").aircraft.altitudeMeters
+            let later = trajectory.state(at: laterElapsed, seat: "A8").aircraft.altitudeMeters
+            let feetPerMinute = (later - earlier) / deltaSeconds * 3.280_839_895 * 60
+            let secondsIntoClimb = laterElapsed - climbStart
+
+            // The first ~25 s after liftoff build vertical speed gradually.
+            if secondsIntoClimb < 25 { continue }
+            // The final level-off segment is intentionally slower than en-route climb.
+            if secondsIntoClimb > schedule.climbDuration * 0.88 { continue }
+
+            XCTAssertGreaterThanOrEqual(
+                feetPerMinute,
+                800,
+                "climb too slow at elapsed \(laterElapsed)"
+            )
+            XCTAssertLessThanOrEqual(
+                feetPerMinute,
+                3_800,
+                "climb too fast at elapsed \(laterElapsed)"
+            )
+        }
+
+        let qaCeiling = 1_520.0
+        XCTAssertEqual(
+            trajectory.state(at: schedule.climbEnd - 0.001, seat: "A8").aircraft.altitudeMeters,
+            qaCeiling,
+            accuracy: 0.5,
+            "compressed climb should level at the QA ceiling"
+        )
+        XCTAssertLessThan(
+            trajectory.state(at: climbStart + 25, seat: "A8").aircraft.altitudeMeters - liftoff,
+            400,
+            "twenty-five seconds into climb should still be in the gentle initial segment"
+        )
+    }
+
+    func testEarlyClimbKeepsNoseUpAndMapTiltNearHorizon() {
+        let trajectory = makeTrajectory(shortFlights: true)
+        let schedule = trajectory.schedule
+        let start = schedule.takeoffEnd
+        let end = schedule.takeoffEnd + schedule.climbDuration * 0.55
+        var lastCameraAlt = 0.0
+        var lastTilt = 0.0
+        for index in 0...180 {
+            let elapsed = start + (end - start) * Double(index) / 180
+            let state = trajectory.state(at: elapsed, seat: "A8")
+            XCTAssertGreaterThan(
+                state.aircraft.pitchDegrees,
+                1.5,
+                "nose dropped at elapsed \(elapsed)"
+            )
+            XCTAssertGreaterThanOrEqual(
+                state.camera.altitudeMeters,
+                state.aircraft.altitudeMeters + 0.5,
+                "eye below fuselage at elapsed \(elapsed)"
+            )
+            if index > 0 {
+                XCTAssertGreaterThanOrEqual(
+                    state.camera.altitudeMeters,
+                    lastCameraAlt - 0.5,
+                    "camera altitude dipped at elapsed \(elapsed)"
+                )
+                let projection = WorldSceneryProjection(pose: WorldCameraPose(state.camera))
+                XCTAssertGreaterThanOrEqual(
+                    projection.tiltDegrees,
+                    lastTilt - 1.5,
+                    "map tilt dove at elapsed \(elapsed)"
+                )
+            }
+            lastCameraAlt = state.camera.altitudeMeters
+            lastTilt = WorldSceneryProjection(pose: WorldCameraPose(state.camera)).tiltDegrees
         }
     }
 
@@ -523,7 +703,8 @@ final class FlightVisualEngineTests: XCTestCase {
 
     private func makeTrajectory(
         departureWeather: WeatherSnapshot? = nil,
-        aircraft: AircraftProfile = .boeing737800
+        aircraft: AircraftProfile = .boeing737800,
+        shortFlights: Bool = false
     ) -> FlightTrajectory {
         let leg = routeLeg()
         let environment = FlightEnvironmentSnapshot(
@@ -535,7 +716,7 @@ final class FlightVisualEngineTests: XCTestCase {
             for: leg,
             aircraft: aircraft,
             environment: environment,
-            shortFlights: false
+            shortFlights: shortFlights
         )
     }
 
@@ -729,9 +910,14 @@ final class FlightVisualEngineTests: XCTestCase {
         let pitchedUp = worldUp * cos(pitch) - horizontalForward * sin(pitch)
         let bodyRight = horizontalRight * cos(bank) - pitchedUp * sin(bank)
         let bodyUp = horizontalRight * sin(bank) + pitchedUp * cos(bank)
-        return bodyForward * forwardOffset
+        var offset = bodyForward * forwardOffset
             + bodyRight * lateralOffset
             + bodyUp * aircraft.windowHeight
+        let minimumUp = aircraft.windowHeight * 0.72
+        if offset.z < minimumUp {
+            offset.z = minimumUp
+        }
+        return offset
     }
 
     private func ecef(_ pose: AircraftPose) -> SIMD3<Double> {
@@ -789,11 +975,10 @@ final class WorldSceneryProviderPolicyTests: XCTestCase {
         )
     }
 
-    func testMapKitIsPrimaryWhenEnabledVisibleActiveAndOnline() {
+    func testMapKitIsPrimaryWhenEnabledActiveAndOnline() {
         XCTAssertEqual(
             WorldSceneryProviderPolicy.provider(
                 realWorldTwinEnabled: true,
-                isVisible: true,
                 appIsActive: true,
                 isOnline: true,
                 thermalState: .nominal
@@ -807,7 +992,6 @@ final class WorldSceneryProviderPolicyTests: XCTestCase {
             XCTAssertEqual(
                 WorldSceneryProviderPolicy.provider(
                     realWorldTwinEnabled: true,
-                    isVisible: true,
                     appIsActive: true,
                     isOnline: true,
                     thermalState: thermalState
@@ -817,18 +1001,16 @@ final class WorldSceneryProviderPolicyTests: XCTestCase {
         }
     }
 
-    func testOfflineHiddenInactiveAndDisabledStatesUseProceduralFallback() {
-        let inputs: [(enabled: Bool, visible: Bool, active: Bool, online: Bool)] = [
-            (true, true, true, false),
-            (true, false, true, true),
-            (true, true, false, true),
-            (false, true, true, true),
+    func testOfflineInactiveAndDisabledStatesUseProceduralFallback() {
+        let inputs: [(enabled: Bool, active: Bool, online: Bool)] = [
+            (true, true, false),
+            (true, false, true),
+            (false, true, true),
         ]
         for input in inputs {
             XCTAssertEqual(
                 WorldSceneryProviderPolicy.provider(
                     realWorldTwinEnabled: input.enabled,
-                    isVisible: input.visible,
                     appIsActive: input.active,
                     isOnline: input.online,
                     thermalState: .nominal

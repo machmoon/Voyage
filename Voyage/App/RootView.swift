@@ -7,10 +7,18 @@ struct RootView: View {
     @State private var session: FlightSession?
     @Environment(\.scenePhase) private var scenePhase
     @State private var scheduler = FlightScheduler.shared
+    @State private var settings = SettingsStore.shared
 
     var body: some View {
         ZStack {
-            if let session {
+            if !settings.hasCompletedOnboarding {
+                OnboardingView {
+                    withAnimation(.smooth(duration: 0.6)) {
+                        settings.hasCompletedOnboarding = true
+                    }
+                }
+                .transition(.opacity)
+            } else if let session {
                 sessionFlow(session)
                     .transition(.opacity)
             } else {
@@ -22,7 +30,10 @@ struct RootView: View {
                 .transition(.opacity)
             }
         }
-        .animation(.smooth(duration: 0.45), value: sessionStageKey)
+        // Cross-dissolve every full-screen stage swap — including the departure
+        // curtain → in-flight window — so takeoff reads as one clean fade rather
+        // than a hard cut.
+        .animation(.smooth(duration: 0.55), value: sessionStageKey)
         .onChange(of: scenePhase) { _, newPhase in
             session?.handleScenePhase(newPhase)
             if newPhase == .active {

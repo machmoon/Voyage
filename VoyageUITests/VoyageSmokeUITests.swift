@@ -10,7 +10,7 @@ final class VoyageSmokeUITests: XCTestCase {
     @MainActor
     func testBookingThroughBoardingPass() throws {
         let app = XCUIApplication()
-        app.launchArguments += ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launchArguments += ["-AppleLanguages", "(en)", "-AppleLocale", "en_US", "-VoyageSkipOnboarding"]
         app.launch()
 
         dismissLocationPromptIfPresent()
@@ -53,7 +53,7 @@ final class VoyageSmokeUITests: XCTestCase {
     @MainActor
     func testScheduleBoardIsReadableAndMultiCarrier() throws {
         let app = XCUIApplication()
-        app.launchArguments += ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launchArguments += ["-AppleLanguages", "(en)", "-AppleLocale", "en_US", "-VoyageSkipOnboarding"]
         app.launch()
 
         dismissLocationPromptIfPresent()
@@ -86,7 +86,7 @@ final class VoyageSmokeUITests: XCTestCase {
     @MainActor
     func testPassportCollectionLayout() throws {
         let app = XCUIApplication()
-        app.launchArguments += ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launchArguments += ["-AppleLanguages", "(en)", "-AppleLocale", "en_US", "-VoyageSkipOnboarding"]
         app.launch()
 
         dismissLocationPromptIfPresent()
@@ -114,7 +114,7 @@ final class VoyageSmokeUITests: XCTestCase {
     @MainActor
     func testWeeklyReplayDesignAndPlayback() throws {
         let app = XCUIApplication()
-        app.launchArguments += ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launchArguments += ["-AppleLanguages", "(en)", "-AppleLocale", "en_US", "-VoyageSkipOnboarding"]
         app.launch()
 
         dismissLocationPromptIfPresent()

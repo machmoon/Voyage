@@ -16,6 +16,8 @@ struct BoardingFlowView: View {
 
     private var isCabinStep: Bool { step == .seat }
 
+    private var leg: FlightLeg { session.itinerary.legs[0] }
+
     var body: some View {
         ZStack {
             Group {
@@ -31,11 +33,22 @@ struct BoardingFlowView: View {
             .ignoresSafeArea()
             .animation(.smooth(duration: 0.35), value: step)
 
-            VStack(spacing: 0) {
-                topBar
-                    .opacity(isDeparting ? 0 : 1)
-                    .allowsHitTesting(!isDeparting)
-                content
+            if !isDeparting {
+                VStack(spacing: 0) {
+                    topBar
+                    content
+                }
+            }
+
+            if isDeparting {
+                DepartureCurtainOverlay(
+                    originCode: leg.origin.code,
+                    destinationCode: leg.destination.code,
+                    durationText: session.itinerary.totalFocusDuration.shortDurationText,
+                    compact: FlightSession.shortFlightsEnabled
+                )
+                .transition(.opacity)
+                .zIndex(10)
             }
         }
     }
@@ -105,16 +118,9 @@ struct BoardingFlowView: View {
             }
             .transition(stepTransition)
         case .pass:
-            // The pass owns the tear animation and only reports back once the
-            // rip commits — tearing is departing, so the chrome leaves with it.
             BoardingPassView(
                 session: session,
-                onBoarded: {
-                    withAnimation(.easeOut(duration: 0.2)) {
-                        isDeparting = true
-                    }
-                    session.departFirstLeg()
-                }
+                onBoarded: beginDeparture
             )
             .transition(stepTransition)
         }
@@ -130,6 +136,17 @@ struct BoardingFlowView: View {
     private func advance(to next: Step) {
         withAnimation(.smooth(duration: 0.45)) {
             step = next
+        }
+    }
+
+    private func beginDeparture() {
+        withAnimation(.easeOut(duration: 0.2)) {
+            isDeparting = true
+        }
+        let quick = FlightSession.shortFlightsEnabled
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(quick ? 1_600 : 2_800))
+            session.departFirstLeg()
         }
     }
 }

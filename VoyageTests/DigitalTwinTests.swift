@@ -70,24 +70,20 @@ final class DigitalTwinTests: XCTestCase {
             airport: Airport.byCode("SFO"), aircraft: .voyageClassic, seat: "C8", weather: nil
         )
         let frame = simulation.frame(phase: .takeoffRoll, legElapsed: 4, altitudeFeet: 0)
-        XCTAssertEqual(
-            WindowWorldRendererPolicy.selection(
-                for: frame, phase: .takeoffRoll, reduceMotion: false, metalAvailable: true
-            ),
-            .authoredSFO
-        )
-        XCTAssertEqual(
-            WindowWorldRendererPolicy.selection(
-                for: frame, phase: .takeoffRoll, reduceMotion: true, metalAvailable: true
-            ),
-            .procedural
-        )
-        XCTAssertEqual(
-            WindowWorldRendererPolicy.selection(
-                for: frame, phase: .landing, reduceMotion: false, metalAvailable: true
-            ),
-            .procedural
-        )
+        // Illustrated procedural canvas is always selected — the authored SFO Metal
+        // scene was retired in favor of the hand-drawn runway/tower look.
+        for (phase, reduceMotion) in [
+            (LegPhase.takeoffRoll, false),
+            (LegPhase.takeoffRoll, true),
+            (LegPhase.landing, false),
+        ] {
+            XCTAssertEqual(
+                WindowWorldRendererPolicy.selection(
+                    for: frame, phase: phase, reduceMotion: reduceMotion, metalAvailable: true
+                ),
+                .procedural
+            )
+        }
     }
 
     func testCatalogAlwaysProvidesTenUpcomingRows() {

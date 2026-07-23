@@ -44,10 +44,12 @@ final class ScreenshotTourUITests: XCTestCase {
 
         let stub = app.otherElements["boarding-pass-stub"]
         XCTAssertTrue(stub.waitForExistence(timeout: 10), "Expected boarding pass stub")
-        sleep(2) // let print animation finish
+        // The button shows "Tear & board" but its accessibility label is
+        // "Tear and board" — match the label.
+        let tearButton = app.buttons["Tear and board"]
+        XCTAssertTrue(tearButton.waitForExistence(timeout: 15), "Expected Tear & board once the pass finishes printing")
         save("qa-04-boarding-pass-pre-tear")
-
-        app.buttons["Tear & board"].tap()
+        tearButton.tap()
 
         // Ripping the pass departs directly: stub flies, curtain lifts,
         // short-flight takeoff roll (~3s) then climb (~8s total).

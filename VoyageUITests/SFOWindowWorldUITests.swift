@@ -57,7 +57,7 @@ final class SFOWindowWorldUITests: XCTestCase {
         let stub = app.otherElements["boarding-pass-stub"]
         XCTAssertTrue(stub.waitForExistence(timeout: 10))
         Thread.sleep(forTimeInterval: 2)
-        stub.swipeRight()
+        stub.swipeDown(velocity: .slow)
 
         let scenery = app.otherElements["real-world-twin-scenery"]
         XCTAssertTrue(

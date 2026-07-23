@@ -31,6 +31,7 @@
 		1BB004AE4363B8528A7852C9 /* FlightSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9968ED4F95A2D37CDE0A2494 /* FlightSessionTests.swift */; };
 		1D9FAA4FF9C6A6DB5C9F5992 /* crew_beverage.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 2F20ED08225FD46B874E403D /* crew_beverage.m4a */; };
 		1EAD722054B83F4EEE63287B /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 793C5C9DEF97C291C6FABE16 /* RootView.swift */; };
+		1EE78AA8B9FC081A917B453A /* MapWarmer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10566A414E4D9EAE24BC0E96 /* MapWarmer.swift */; };
 		1FBF59A50F64FA311BA44904 /* crew_layover_san-francisco.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 761C4F732B7F49F6FCDE2B53 /* crew_layover_san-francisco.m4a */; };
 		20A8C7EB2CFF723133FF303F /* crew_finalcall_san-francisco.m4a in Resources */ = {isa = PBXBuildFile; fileRef = CC2D70F215661D57F2673B60 /* crew_finalcall_san-francisco.m4a */; };
 		22916C44E8510AA1BA7CB56E /* Announcer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A93104A963095B69587AD9F3 /* Announcer.swift */; };
@@ -67,6 +68,7 @@
 		46EA8DBD5FEBA0A688144736 /* crew_midpoint_vancouver.m4a in Resources */ = {isa = PBXBuildFile; fileRef = E8257D03576EAFBC1DB7AA5C /* crew_midpoint_vancouver.m4a */; };
 		4988E370A735BF5D60C834F7 /* CabinAudioEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0C5C9C32760DDC7FD61A5E7 /* CabinAudioEngine.swift */; };
 		49A3835CFA98EF8FC1963F9A /* crew_descent_boston.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 4F98FC08D65248552ABD63AE /* crew_descent_boston.m4a */; };
+		49C4809073DCCF532388C4DE /* DepartureCurtainOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D4AA23E0CA6F27E6C563DD9 /* DepartureCurtainOverlay.swift */; };
 		4B1E5C71B8C79E668C1CF874 /* crew_descent_san-francisco.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 2735915B59A844391BEBF214 /* crew_descent_san-francisco.m4a */; };
 		4BBE6F969B25390B8F76A1CA /* crew_finalcall_vancouver.m4a in Resources */ = {isa = PBXBuildFile; fileRef = FBD246B87A65192A7369C0D6 /* crew_finalcall_vancouver.m4a */; };
 		4C9B2B23F0456EEEB0F4668C /* WorldSceneryProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3BA29790DFA35129048F8DB /* WorldSceneryProvider.swift */; };
@@ -128,6 +130,7 @@
 		98ED87FCA4FC2081F0CEB279 /* FlightAtmosphereLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE842B9AA8563F9D94816316 /* FlightAtmosphereLayer.swift */; };
 		99DC7D43CB111E9E76D998F6 /* crew_finalcall_new-york.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 5E0F3420E15A6384027BE7CA /* crew_finalcall_new-york.m4a */; };
 		9A956CB9203B010E8C28FB7F /* FlightActivityController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A03A9E0E2A8FB0FC316F94E /* FlightActivityController.swift */; };
+		9CA8B5599618A7590FA87C45 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB3F19E7F55471BBB8D955FD /* OnboardingView.swift */; };
 		9D946DB8E6AE558EEF61F351 /* FlightReceiptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5022D636444E7F0D836371D1 /* FlightReceiptView.swift */; };
 		9DB55F6AA827DB83B7F4F4AD /* FlightVisualEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A32B0AC3F6B4A577B3EA051 /* FlightVisualEngineTests.swift */; };
 		A039217A0F00ECD48B3C0C94 /* FlightSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CB0E8E2B49F73535A03C4E3 /* FlightSession.swift */; };
@@ -152,6 +155,7 @@
 		BE9AA8546F6A8F7E93F04228 /* crew_preview.m4a in Resources */ = {isa = PBXBuildFile; fileRef = F44071B8E0327A74FF5D7D50 /* crew_preview.m4a */; };
 		BEEC020E7B00A161632E72BC /* VoyageSmokeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B08FC90B909634E033DBB2B /* VoyageSmokeUITests.swift */; };
 		C3D0DA87C3A260120110D617 /* crew_landed_raleigh-durham.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 39BF15532E3111871FE32A10 /* crew_landed_raleigh-durham.m4a */; };
+		C6A224EEDC8399DCCF214A22 /* OnboardingUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF9D0F0A8DEEE9D163BE0277 /* OnboardingUITests.swift */; };
 		C7FDAF2BD88333F514059BF5 /* ScreenshotTourUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C6FBB0F4116077FBF34D6A5 /* ScreenshotTourUITests.swift */; };
 		C8201A0E76B2053A2174980B /* DigitalTwinTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEAB439A61F321209907F358 /* DigitalTwinTests.swift */; };
 		CA83C3068C95AA77618D681E /* FlightEnvironmentWeatherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 853B8FF443DB125E3A6254B8 /* FlightEnvironmentWeatherTests.swift */; };
@@ -247,6 +251,7 @@
 		0DF13B0FF6F67EF0797DAFA7 /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
 		0E1A44A112EA4A374D264C3A /* DemoTourUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoTourUITests.swift; sourceTree = "<group>"; };
 		0F8AFBE9EFBCB5E93699E0D5 /* captain_layover_regina.m4a */ = {isa = PBXFileReference; path = captain_layover_regina.m4a; sourceTree = "<group>"; };
+		10566A414E4D9EAE24BC0E96 /* MapWarmer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapWarmer.swift; sourceTree = "<group>"; };
 		11487234A9EE6620ACB08159 /* captain_landed_raleigh-durham.m4a */ = {isa = PBXFileReference; path = "captain_landed_raleigh-durham.m4a"; sourceTree = "<group>"; };
 		12E458668041C9519447B5BB /* crew_landed_los-angeles.m4a */ = {isa = PBXFileReference; path = "crew_landed_los-angeles.m4a"; sourceTree = "<group>"; };
 		16CCD736997AEA6801E13426 /* crew_midpoint_new-york.m4a */ = {isa = PBXFileReference; path = "crew_midpoint_new-york.m4a"; sourceTree = "<group>"; };
@@ -340,6 +345,7 @@
 		8AB9E2B12781602B785FA7FE /* crew_midpoint_boston.m4a */ = {isa = PBXFileReference; path = crew_midpoint_boston.m4a; sourceTree = "<group>"; };
 		8BC502018702C4D4B4D54602 /* crew_midpoint_regina.m4a */ = {isa = PBXFileReference; path = crew_midpoint_regina.m4a; sourceTree = "<group>"; };
 		8C5C70CC4052CFAD39B33D3D /* crew_finalcall_raleigh-durham.m4a */ = {isa = PBXFileReference; path = "crew_finalcall_raleigh-durham.m4a"; sourceTree = "<group>"; };
+		8D4AA23E0CA6F27E6C563DD9 /* DepartureCurtainOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepartureCurtainOverlay.swift; sourceTree = "<group>"; };
 		8EA806FC94716821E564176F /* crew_descent_new-york.m4a */ = {isa = PBXFileReference; path = "crew_descent_new-york.m4a"; sourceTree = "<group>"; };
 		8EB6C0907262DAFAE144A0CC /* captain_midpoint_san-francisco.m4a */ = {isa = PBXFileReference; path = "captain_midpoint_san-francisco.m4a"; sourceTree = "<group>"; };
 		8F8C967F7B680DFEE8371514 /* captain_landed_los-angeles.m4a */ = {isa = PBXFileReference; path = "captain_landed_los-angeles.m4a"; sourceTree = "<group>"; };
@@ -375,6 +381,7 @@
 		C74D05E810950DD393865A96 /* AirportWorldSceneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirportWorldSceneView.swift; sourceTree = "<group>"; };
 		CA93F9C86955AB5BB4D19771 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		CAE328D769F7CC7D57744FF9 /* Airport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Airport.swift; sourceTree = "<group>"; };
+		CB3F19E7F55471BBB8D955FD /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		CBE81C5820E0ED57F7ACBBBB /* SeatSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeatSelectionView.swift; sourceTree = "<group>"; };
 		CBF143AFB2BEA541CE1E5216 /* FocusIntegration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusIntegration.swift; sourceTree = "<group>"; };
 		CC2D70F215661D57F2673B60 /* crew_finalcall_san-francisco.m4a */ = {isa = PBXFileReference; path = "crew_finalcall_san-francisco.m4a"; sourceTree = "<group>"; };
@@ -394,6 +401,7 @@
 		DD193A9019AB2772DA78B50E /* crew_layover_los-angeles.m4a */ = {isa = PBXFileReference; path = "crew_layover_los-angeles.m4a"; sourceTree = "<group>"; };
 		DD7705DAB62E1CCFB2ED9BFE /* InFlightView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InFlightView.swift; sourceTree = "<group>"; };
 		DE842B9AA8563F9D94816316 /* FlightAtmosphereLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightAtmosphereLayer.swift; sourceTree = "<group>"; };
+		DF9D0F0A8DEEE9D163BE0277 /* OnboardingUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingUITests.swift; sourceTree = "<group>"; };
 		E1C29AE0581B3A1D05AE669B /* FlightNotifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightNotifications.swift; sourceTree = "<group>"; };
 		E29771D86F89BBD9C6ADB9A2 /* VoyageClock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoyageClock.swift; sourceTree = "<group>"; };
 		E4639BD8F909C425C8B7EC5D /* WindowSceneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowSceneView.swift; sourceTree = "<group>"; };
@@ -426,6 +434,7 @@
 			children = (
 				0E1A44A112EA4A374D264C3A /* DemoTourUITests.swift */,
 				80DF8DC44A094F25C9BF7BDB /* NinetySecondTourUITests.swift */,
+				DF9D0F0A8DEEE9D163BE0277 /* OnboardingUITests.swift */,
 				9C6FBB0F4116077FBF34D6A5 /* ScreenshotTourUITests.swift */,
 				6B4B0BB4DDA53541AF9E921B /* SeatMapTourUITests.swift */,
 				0A0FE05364955A8866252542 /* SFOWindowWorldUITests.swift */,
@@ -512,6 +521,7 @@
 			children = (
 				B66571CD21FE7457375B9B67 /* AirportWorldMetalView.swift */,
 				C74D05E810950DD393865A96 /* AirportWorldSceneView.swift */,
+				8D4AA23E0CA6F27E6C563DD9 /* DepartureCurtainOverlay.swift */,
 				EEADBF54A9BE3BC765AB6B39 /* DivertedView.swift */,
 				DE842B9AA8563F9D94816316 /* FlightAtmosphereLayer.swift */,
 				56D4D40BAD9F85F05F7C581A /* FlightMapView.swift */,
@@ -679,6 +689,14 @@
 			path = Voyage;
 			sourceTree = "<group>";
 		};
+		6BAAAA4E8C8024F43EB2EC5D /* Onboarding */ = {
+			isa = PBXGroup;
+			children = (
+				CB3F19E7F55471BBB8D955FD /* OnboardingView.swift */,
+			);
+			path = Onboarding;
+			sourceTree = "<group>";
+		};
 		883001297A7E0FDA259DEFC2 /* Settings */ = {
 			isa = PBXGroup;
 			children = (
@@ -737,6 +755,7 @@
 				B70FBEA0B46FD0957AAA4B6E /* Home */,
 				2949B626BE076965871A30FA /* Landing */,
 				2D04D6C3AA1CC3C07A046492 /* Logbook */,
+				6BAAAA4E8C8024F43EB2EC5D /* Onboarding */,
 				883001297A7E0FDA259DEFC2 /* Settings */,
 				22104EE78A4044171DF0DAF1 /* Sharing */,
 			);
@@ -779,6 +798,7 @@
 				CBF143AFB2BEA541CE1E5216 /* FocusIntegration.swift */,
 				685811A683D09ECDC6325F88 /* Info.plist */,
 				5C88294A662E6C2C66610A47 /* LocationManager.swift */,
+				10566A414E4D9EAE24BC0E96 /* MapWarmer.swift */,
 				0DF13B0FF6F67EF0797DAFA7 /* SettingsStore.swift */,
 				DB5F0208829F37BC0518AB7B /* Shaders.metal */,
 				4117C4E6EEA3358F00D1B5B4 /* TestModeSeeder.swift */,
@@ -1063,6 +1083,7 @@
 			files = (
 				15BEF97DF9B4093ED9142A65 /* DemoTourUITests.swift in Sources */,
 				DB6E0FBC7A8C23F896FCA196 /* NinetySecondTourUITests.swift in Sources */,
+				C6A224EEDC8399DCCF214A22 /* OnboardingUITests.swift in Sources */,
 				A9129418EED5173845FA52B8 /* SFOWindowWorldUITests.swift in Sources */,
 				C7FDAF2BD88333F514059BF5 /* ScreenshotTourUITests.swift in Sources */,
 				19EB6951B3D0FE183843B6DB /* SeatMapTourUITests.swift in Sources */,
@@ -1083,6 +1104,7 @@
 				509AD1FB19B3E07CD307F67E /* BoardingPassView.swift in Sources */,
 				4988E370A735BF5D60C834F7 /* CabinAudioEngine.swift in Sources */,
 				4F7E70505E499E1103321554 /* CheckBagView.swift in Sources */,
+				49C4809073DCCF532388C4DE /* DepartureCurtainOverlay.swift in Sources */,
 				8CBB9D65D0801A6D4C7B2A9B /* DigitalTwin.swift in Sources */,
 				D9F03FA5FBAE43273A7FFE79 /* DivertedView.swift in Sources */,
 				1A88FA173CEFD3DDF011BD82 /* FlightActivity.swift in Sources */,
@@ -1105,6 +1127,8 @@
 				28268935EDB310EBE897F19F /* LocationManager.swift in Sources */,
 				6B99E16B21802902D1DEA935 /* LogbookEntry.swift in Sources */,
 				0056CD7616753D1EF62C48F1 /* LogbookView.swift in Sources */,
+				1EE78AA8B9FC081A917B453A /* MapWarmer.swift in Sources */,
+				9CA8B5599618A7590FA87C45 /* OnboardingView.swift in Sources */,
 				3573E8F27242AF37FB6A92BF /* PassportView.swift in Sources */,
 				6C4CB85B98BC15BB86423990 /* RealWorldSceneView.swift in Sources */,
 				2635C6D98348BF8F3626F340 /* RealWorldTwinView.swift in Sources */,

@@ -15,13 +15,7 @@ struct InFlightView: View {
     @State private var showInfoPill = false
     @State private var showExitConfirm = false
     @State private var settings = SettingsStore.shared
-    /// Cabin-lights curtain shown while the stage transition settles —
-    /// doubles as the polish moment and as cover for arming the Canvas.
-    @State private var curtainVisible = true
-    @State private var curtainProgress: CGFloat = 0.5
-    @State private var curtainPulse = false
     @State private var windowSceneArmed = false
-    @State private var windowShadeRaised = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var sceneAirport: Airport {
@@ -52,10 +46,6 @@ struct InFlightView: View {
                 .animation(.smooth(duration: 2.5), value: session.phase)
 
             VStack(spacing: 0) {
-                topBar
-                    .padding(.horizontal, 20)
-                    .padding(.top, 6)
-
                 Spacer(minLength: 14)
 
                 studyContent
@@ -85,7 +75,15 @@ struct InFlightView: View {
             }
             .animation(.snappy(duration: 0.4), value: session.beverageCartUntil)
 
-            departureCurtain
+            // Keep controls above the window shade gesture layer — the shade
+            // GeometryReader can extend past the clipped pane and steal taps.
+            VStack(spacing: 0) {
+                topBar
+                    .padding(.horizontal, 20)
+                    .padding(.top, 6)
+                Spacer(minLength: 0)
+            }
+            .zIndex(2)
         }
         .statusBarHidden()
         .confirmationDialog("Leave this flight?", isPresented: $showExitConfirm, titleVisibility: .visible) {
@@ -97,117 +95,18 @@ struct InFlightView: View {
             Text("Diverting ends the session. Miles are only earned for completed legs.")
         }
         .task {
-            // Let RootView finish the stage swap behind the curtain,
-            // then arm the Canvas and raise the lights. QA short flights
-            // Compress the moment so the short QA takeoff roll isn't missed.
+            // Departure curtain already played during boarding. Fade the window
+            // scene in and let it play — no interactive shade to fight with.
             let quick = reduceMotion || FlightSession.shortFlightsEnabled
-            await Task.yield()
-            windowSceneArmed = true
-            withAnimation(.smooth(duration: quick ? 0.28 : 0.65)) {
-                curtainProgress = 1
-                curtainPulse = true
-            }
-            try? await Task.sleep(for: .milliseconds(quick ? 320 : 760))
-            withAnimation(.easeOut(duration: quick ? 0.24 : 0.42)) {
-                curtainVisible = false
-            }
+            try? await Task.sleep(for: .milliseconds(quick ? 80 : 160))
             if reduceMotion {
-                windowShadeRaised = true
+                windowSceneArmed = true
             } else {
-                try? await Task.sleep(for: .milliseconds(quick ? 60 : 140))
-                withAnimation(.smooth(duration: quick ? 0.35 : 1.25)) {
-                    windowShadeRaised = true
+                withAnimation(.smooth(duration: quick ? 0.4 : 1.1)) {
+                    windowSceneArmed = true
                 }
             }
         }
-    }
-
-    // MARK: Departure curtain
-
-    @ViewBuilder
-    private var departureCurtain: some View {
-        if curtainVisible {
-            ZStack {
-                LinearGradient(
-                    colors: [Color(hex: "0D1531"), Color(hex: "050713")],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
-
-                RadialGradient(
-                    colors: [Theme.accent.opacity(0.24), Theme.accent.opacity(0.04), .clear],
-                    center: .center,
-                    startRadius: 8,
-                    endRadius: 330
-                )
-                .scaleEffect(curtainPulse ? 1.2 : 0.75)
-                .opacity(curtainPulse ? 1 : 0.35)
-                .ignoresSafeArea()
-
-                VStack(spacing: 22) {
-                    ZStack {
-                        Circle()
-                            .fill(Theme.accent.opacity(0.14))
-                            .frame(width: 82, height: 82)
-                        Circle()
-                            .strokeBorder(Theme.accent.opacity(0.3), lineWidth: 1)
-                            .frame(width: 66, height: 66)
-                        Image(systemName: "airplane.departure")
-                            .font(.system(size: 26, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .symbolEffect(.pulse, value: curtainPulse)
-                    }
-
-                    VStack(spacing: 8) {
-                        Text("CLEARED FOR DEPARTURE")
-                            .font(.system(size: 11, weight: .heavy, design: .monospaced))
-                            .kerning(1.7)
-                            .foregroundStyle(Theme.accent.opacity(0.95))
-
-                        HStack(spacing: 14) {
-                            Text(session.currentLeg.origin.code)
-                            curtainRouteTrack
-                            Text(session.currentLeg.destination.code)
-                        }
-                        .font(.system(size: 28, weight: .heavy, design: .monospaced))
-                        .foregroundStyle(.white)
-
-                        Text("\(session.currentLeg.duration.shortDurationText) focus flight")
-                            .font(.subheadline.weight(.medium))
-                            .foregroundStyle(.white.opacity(0.52))
-                    }
-                }
-                .padding(.horizontal, 28)
-            }
-            .transition(.scale(scale: 1.025).combined(with: .opacity))
-            .zIndex(10)
-            .accessibilityHidden(true)
-        }
-    }
-
-    private var curtainRouteTrack: some View {
-        GeometryReader { geo in
-            let travel = max(0, geo.size.width - 14)
-            ZStack(alignment: .leading) {
-                Capsule()
-                    .fill(.white.opacity(0.18))
-                    .frame(height: 2)
-                Capsule()
-                    .fill(Theme.accent.opacity(0.95))
-                    .frame(width: max(2, geo.size.width * curtainProgress), height: 2)
-                Circle()
-                    .fill(.white.opacity(0.9))
-                    .frame(width: 5, height: 5)
-                Image(systemName: "airplane")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(.white)
-                    .shadow(color: Theme.accent.opacity(0.8), radius: 5)
-                    .offset(x: travel * curtainProgress)
-            }
-            .frame(maxHeight: .infinity)
-        }
-        .frame(width: 84, height: 18)
     }
 
     // MARK: Top bar
@@ -328,57 +227,31 @@ struct InFlightView: View {
     private var airplaneWindow: some View {
         let shape = RoundedRectangle(cornerRadius: 110, style: .continuous)
         return ZStack {
-            Group {
-                if windowSceneArmed {
-                    if let trajectory = session.currentTrajectory {
-                        WindowSceneView(
-                            context: FlightVisualContext(
-                                trajectory: trajectory,
-                                seat: session.seat,
-                                isNight: isNight,
-                                showsWing: session.hasWingView,
-                                showsSunset: session.hasSunsetScene,
-                                showsAurora: session.hasAuroraScene,
-                                realWorldTwinEnabled: settings.realWorldTwinEnabled,
-                                isVisible: studyView == .window,
-                                worldMode: settings.windowWorldMode
-                            ),
-                            clockAnchor: FlightVisualClockAnchor(
-                                legElapsed: session.legElapsed,
-                                displayDate: .now
-                            )
-                        )
-                    } else {
-                        Color(hex: isNight ? "0B0910" : "5C8FAD")
-                    }
-                } else {
-                    Color(hex: isNight ? "0B0910" : "1A1E2A")
-                }
+            // The scene just plays. It never takes touches, so pulling or
+            // tapping the pane can't glitch it — the study screen stays calm.
+            if windowSceneArmed, let trajectory = session.currentTrajectory {
+                WindowSceneView(
+                    context: FlightVisualContext(
+                        trajectory: trajectory,
+                        seat: session.seat,
+                        isNight: isNight,
+                        showsWing: false,
+                        showsSunset: session.hasSunsetScene,
+                        showsAurora: session.hasAuroraScene,
+                        realWorldTwinEnabled: settings.streamsRealWorldScenery,
+                        worldMode: settings.windowWorldMode
+                    ),
+                    clockAnchor: FlightVisualClockAnchor(
+                        legElapsed: session.legElapsed,
+                        displayDate: .now
+                    )
+                )
+                .transition(.opacity)
+            } else {
+                Color(hex: isNight ? "0B0910" : "1A1E2A")
             }
-
-            GeometryReader { geometry in
-                let height = geometry.size.height
-                ZStack(alignment: .bottom) {
-                    RoundedRectangle(cornerRadius: 22, style: .continuous)
-                        .fill(
-                            LinearGradient(colors: [Color(hex: "E8E9EB"), Color(hex: "B9BDC4")],
-                                           startPoint: .top, endPoint: .bottom)
-                        )
-                    Capsule()
-                        .fill(.black.opacity(0.24))
-                        .frame(width: 54, height: 7)
-                        .padding(.bottom, 16)
-                }
-                .frame(height: height * 1.03)
-                // Clear the entire pane once raised. The previous 92% offset
-                // intentionally left the shade lip and handle visible.
-                .offset(y: windowShadeRaised ? -height * 1.10 : 0)
-                .shadow(color: .black.opacity(0.35), radius: 8, y: 5)
-            }
-            .opacity(reduceMotion && windowShadeRaised ? 0 : 1)
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
         }
+        .allowsHitTesting(false)
         .aspectRatio(0.72, contentMode: .fit)
         .clipShape(shape)
         .overlay(
@@ -417,14 +290,14 @@ struct InFlightView: View {
 
     private var countdown: some View {
         VStack(spacing: 6) {
-            Text(session.legRemaining.clockText)
+            Text(session.legRemaining.focusCountdownText)
                 .font(.system(size: 56, weight: .bold, design: .monospaced))
                 .foregroundStyle(.white)
                 // No content transition: `.numericText` cross-dissolves the old
                 // and new glyph, and on a monospaced clock ticking every second
                 // that morph is visible as a smeared, doubled digit. A plain
                 // swap on a fixed-width face is clean at any capture instant.
-                .animation(nil, value: session.legRemaining.clockText)
+                .animation(nil, value: session.legRemaining.focusCountdownText)
 
             Text("to \(session.currentLeg.destination.city)")
                 .font(.subheadline.weight(.medium))
@@ -453,7 +326,7 @@ struct InFlightView: View {
             withAnimation(.snappy) { showInfoPill.toggle() }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(session.legRemaining.clockText) remaining to \(session.currentLeg.destination.city)")
+        .accessibilityLabel("\(session.legRemaining.focusCountdownText) remaining to \(session.currentLeg.destination.city)")
         .accessibilityHint(showInfoPill ? "Hide flight details" : "Show flight details")
         .accessibilityAddTraits(.isButton)
     }

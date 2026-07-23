@@ -96,7 +96,19 @@ final class SettingsStore {
     /// along the route; `illustrated` draws the hand-made weather scene, which
     /// works offline and shows the sky you'd actually expect.
     var windowWorldMode: WindowWorldMode {
-        didSet { defaults.set(windowWorldMode.rawValue, forKey: "windowWorldMode") }
+        didSet {
+            defaults.set(windowWorldMode.rawValue, forKey: "windowWorldMode")
+            realWorldTwinEnabled = windowWorldMode == .real
+        }
+    }
+
+    /// Whether the in-flight window should mount Apple's streamed 3D scenery.
+    var streamsRealWorldScenery: Bool { windowWorldMode == .real }
+
+    /// Whether the first-run preflight onboarding has been seen. Gated by
+    /// `RootView` so it shows exactly once.
+    var hasCompletedOnboarding: Bool {
+        didSet { defaults.set(hasCompletedOnboarding, forKey: "hasCompletedOnboarding") }
     }
 
     var homeAirport: Airport {
@@ -124,15 +136,41 @@ final class SettingsStore {
         flightFocusRemindersEnabled = defaults.object(forKey: "flightFocusRemindersEnabled") as? Bool ?? true
         cabinServiceEnabled = defaults.object(forKey: "cabinServiceEnabled") as? Bool ?? true
         flightTrailsEnabled = defaults.object(forKey: "flightTrailsEnabled") as? Bool ?? true
+        hasCompletedOnboarding = defaults.bool(forKey: "hasCompletedOnboarding")
         realWorldTwinEnabled = defaults.object(forKey: "realWorldTwinEnabled") as? Bool
             ?? defaults.object(forKey: "realSceneryEnabled") as? Bool
-            ?? true
+            ?? false
         windowWorldMode = defaults.string(forKey: "windowWorldMode")
-            .flatMap(WindowWorldMode.init(rawValue:)) ?? .real
+            .flatMap(WindowWorldMode.init(rawValue:)) ?? .illustrated
+        if defaults.object(forKey: "realWorldTwinEnabled") == nil,
+           defaults.object(forKey: "realSceneryEnabled") == nil {
+            realWorldTwinEnabled = windowWorldMode == .real
+        }
 
         // Deterministic QA hook for authored airport worlds. Production never
         // supplies this argument; UI tests use it instead of location services.
         let arguments = ProcessInfo.processInfo.arguments
+
+        // UI tests drive straight into the home/flight flow and never expect the
+        // first-run onboarding. An explicit allow-list of test flags bypasses it
+        // — deliberately not a blanket `-Voyage` prefix match, so a future flag
+        // (or a stray arg on a real launch) can't silently skip onboarding.
+        let onboardingSkipFlags: Set<String> = [
+            "-VoyageSkipOnboarding",
+            "-VoyageShortFlights",
+            "-VoyageRealWorldTwinEnabled",
+            "-VoyageHomeAirport"
+        ]
+        if arguments.contains(where: onboardingSkipFlags.contains) {
+            hasCompletedOnboarding = true
+        }
+
+        // Evaluate reset last so it always wins over the skip flags above.
+        if arguments.contains("-VoyageResetOnboarding") {
+            hasCompletedOnboarding = false
+            defaults.set(false, forKey: "hasCompletedOnboarding")
+        }
+
         if arguments.contains("-VoyageRealWorldTwinEnabled") {
             realWorldTwinEnabled = true
         }

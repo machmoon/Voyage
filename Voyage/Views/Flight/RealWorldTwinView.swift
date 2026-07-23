@@ -1,4 +1,5 @@
 import MapKit
+import simd
 import SwiftUI
 
 /// Continuous in-window world renderer. Apple's satellite flyover is the one
@@ -6,7 +7,6 @@ import SwiftUI
 /// offline and transition frame beneath it.
 struct RealWorldTwinView<ProceduralFallback: View, ForegroundOverlay: View>: View {
     let pose: WorldCameraPose
-    let isActive: Bool
     let realWorldTwinEnabled: Bool
     let reduceMotion: Bool
 
@@ -17,17 +17,18 @@ struct RealWorldTwinView<ProceduralFallback: View, ForegroundOverlay: View>: Vie
     @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
     @ObservedObject private var availability = WorldSceneryAvailability.shared
     @State private var mapKitLoadState: WorldSceneryLoadState = .loading
+    /// Once MapKit has rendered a frame, keep it visible through tile refreshes
+    /// and shade interaction so the procedural fallback never flashes through.
+    @State private var mapKitHasRenderedFrame = false
 
     init(
         pose: WorldCameraPose,
-        isActive: Bool,
         realWorldTwinEnabled: Bool,
         reduceMotion: Bool,
         @ViewBuilder proceduralFallback: @escaping () -> ProceduralFallback,
         @ViewBuilder foregroundOverlay: @escaping () -> ForegroundOverlay
     ) {
         self.pose = pose
-        self.isActive = isActive
         self.realWorldTwinEnabled = realWorldTwinEnabled
         self.reduceMotion = reduceMotion
         self.proceduralFallback = proceduralFallback
@@ -47,16 +48,24 @@ struct RealWorldTwinView<ProceduralFallback: View, ForegroundOverlay: View>: Vie
                 )
                 .opacity(mapKitIsVisible ? 1 : 0)
                 .transition(.opacity)
+
+                // While the satellite tiles are still loading, a neutral cover
+                // hides the procedural ("fake") scene — the traveler sees a calm
+                // dark pane (matching the departure curtain) that fades to the
+                // live map, never the illustrated fallback. Offline/failed
+                // states drop the cover and reveal the procedural world instead.
+                if !mapKitIsVisible {
+                    neutralLoadingCover
+                        .transition(.opacity)
+                }
             }
 
             AttributionProtectedOverlay {
-                ZStack {
-                    WorldAtmosphereOverlay(altitudeMeters: pose.altitudeMeters)
-
-                    // Wing, glass, precipitation, and richer Metal atmosphere
-                    // stay outside either SDK and outside its attribution zone.
-                    foregroundOverlay()
-                }
+                // Wing, glass, precipitation, and forecast-driven Metal
+                // atmosphere. The old always-on altitude film was removed — the
+                // map stays clear unless the forecast actually calls for haze or
+                // cloud (which the shader draws across the whole pane).
+                foregroundOverlay()
             }
         }
         .clipped()
@@ -67,6 +76,9 @@ struct RealWorldTwinView<ProceduralFallback: View, ForegroundOverlay: View>: Vie
                WorldSceneryLayerPolicy.needsMapKit(under: newProvider) {
                 mapKitLoadState = .loading
             }
+            if !WorldSceneryLayerPolicy.needsMapKit(under: newProvider) {
+                mapKitHasRenderedFrame = false
+            }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Real-world passenger window scenery")
@@ -76,7 +88,6 @@ struct RealWorldTwinView<ProceduralFallback: View, ForegroundOverlay: View>: Vie
     private var provider: WorldSceneryProviderKind {
         WorldSceneryProviderPolicy.provider(
             realWorldTwinEnabled: realWorldTwinEnabled,
-            isVisible: isActive,
             appIsActive: scenePhase == .active,
             isOnline: availability.isOnline &&
                 WorldSceneryConfiguration.streamedSceneryAllowedByProcess,
@@ -89,29 +100,40 @@ struct RealWorldTwinView<ProceduralFallback: View, ForegroundOverlay: View>: Vie
     }
 
     private var mapKitIsVisible: Bool {
-        WorldSceneryLayerPolicy.mapKitIsVisible(
-            under: provider,
-            loadState: mapKitLoadState
+        guard WorldSceneryLayerPolicy.needsMapKit(under: provider) else { return false }
+        return mapKitHasRenderedFrame || mapKitLoadState.hasRenderableFrame
+    }
+
+    /// Calm dark pane shown over the window until the satellite is ready, in the
+    /// departure-curtain tone so the hand-off reads as one continuous load.
+    private var neutralLoadingCover: some View {
+        LinearGradient(
+            colors: [Color(hex: "0D1531"), Color(hex: "050713")],
+            startPoint: .top, endPoint: .bottom
         )
+        .accessibilityHidden(true)
     }
 
     private func mapKitLoadStateDidChange(_ state: WorldSceneryLoadState) {
         guard mapKitLoadState != state else { return }
         mapKitLoadState = state
+        if state == .ready {
+            mapKitHasRenderedFrame = true
+        } else if state == .failed {
+            mapKitHasRenderedFrame = false
+        }
     }
 }
 
 extension RealWorldTwinView where ForegroundOverlay == EmptyView {
     init(
         pose: WorldCameraPose,
-        isActive: Bool,
         realWorldTwinEnabled: Bool,
         reduceMotion: Bool,
         @ViewBuilder proceduralFallback: @escaping () -> ProceduralFallback
     ) {
         self.init(
             pose: pose,
-            isActive: isActive,
             realWorldTwinEnabled: realWorldTwinEnabled,
             reduceMotion: reduceMotion,
             proceduralFallback: proceduralFallback,
@@ -126,13 +148,11 @@ extension RealWorldTwinView where
 {
     init(
         pose: WorldCameraPose,
-        isActive: Bool,
         realWorldTwinEnabled: Bool,
         reduceMotion: Bool
     ) {
         self.init(
             pose: pose,
-            isActive: isActive,
             realWorldTwinEnabled: realWorldTwinEnabled,
             reduceMotion: reduceMotion,
             proceduralFallback: {
@@ -185,27 +205,6 @@ struct DefaultWorldSceneryFallback: View {
             }
         }
         .allowsHitTesting(false)
-    }
-}
-
-private struct WorldAtmosphereOverlay: View {
-    let altitudeMeters: Double
-
-    var body: some View {
-        let haze = min(0.18, max(0.035, altitudeMeters / 120_000))
-        LinearGradient(
-            stops: [
-                .init(color: Color(red: 0.62, green: 0.79, blue: 0.93).opacity(haze), location: 0),
-                .init(color: .white.opacity(haze * 0.55), location: 0.42),
-                .init(color: .clear, location: 0.78),
-                .init(color: .clear, location: 1)
-            ],
-            startPoint: .top,
-            endPoint: .bottom
-        )
-        .blendMode(.screen)
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
     }
 }
 
@@ -284,7 +283,10 @@ private struct MapKitSceneryView: UIViewRepresentable {
         private weak var map: MKMapView?
         private let loadStateChanged: @MainActor (WorldSceneryLoadState) -> Void
         private var loadState: WorldSceneryLoadState = .loading
-        private var lastPose: WorldCameraPose?
+        private var didFallbackFromFlyover = false
+        private var departureAltitudeFloor: Double?
+        private var displayedPose: WorldCameraPose?
+        private var lastFrameTime: CFTimeInterval?
 
         init(loadStateChanged: @escaping @MainActor (WorldSceneryLoadState) -> Void) {
             self.loadStateChanged = loadStateChanged
@@ -297,20 +299,97 @@ private struct MapKitSceneryView: UIViewRepresentable {
         func detach() {
             map?.delegate = nil
             map = nil
+            displayedPose = nil
+            lastFrameTime = nil
         }
 
         func update(pose: WorldCameraPose) {
-            // A failed hidden map must not continue receiving 60/30 Hz camera
-            // writes that provoke tile and mesh work behind the fallback.
-            guard loadState != .failed, let map, pose != lastPose else { return }
-            lastPose = pose
-            let projection = WorldSceneryProjection(pose: pose)
+            guard loadState != .failed, let map else { return }
+            var pose = pose
+            if pose.altitudeMeters < 3_000 {
+                let incoming = pose.altitudeMeters
+                if let floor = departureAltitudeFloor {
+                    pose = WorldCameraPose(
+                        coordinate: pose.coordinate,
+                        altitudeMeters: max(floor, incoming),
+                        headingDegrees: pose.headingDegrees,
+                        tiltDegrees: pose.tiltDegrees,
+                        rollDegrees: pose.rollDegrees,
+                        rangeMeters: pose.rangeMeters,
+                        fieldOfViewDegrees: pose.fieldOfViewDegrees
+                    )
+                }
+                departureAltitudeFloor = max(departureAltitudeFloor ?? incoming, incoming)
+            } else {
+                departureAltitudeFloor = nil
+            }
+
+            let now = CACurrentMediaTime()
+            let delta = lastFrameTime.map { now - $0 } ?? 0
+            lastFrameTime = now
+            // Keep altitude responsive during compressed QA climbs — heavy
+            // smoothing reads as feet stuck low while the HUD keeps ticking up.
+            let timeConstant = FlightSession.shortFlightsEnabled ? 0.08 : 0.35
+            let blend = delta > 0 ? min(1, 1 - exp(-delta / timeConstant)) : 1
+            let smoothed = Self.blendedPose(from: displayedPose ?? pose, to: pose, amount: blend)
+            displayedPose = smoothed
+
+            let projection = WorldSceneryProjection(pose: smoothed)
             map.camera = MKMapCamera(
                 lookingAtCenter: projection.targetCoordinate,
                 fromDistance: projection.rangeMeters,
                 pitch: projection.tiltDegrees,
                 heading: projection.headingDegrees
             )
+        }
+
+        private static func blendedPose(
+            from source: WorldCameraPose,
+            to target: WorldCameraPose,
+            amount: Double
+        ) -> WorldCameraPose {
+            let t = min(1, max(0, amount))
+            let sourceECEF = FlightGeodesy.ecef(
+                FlightGeodeticPoint(
+                    coordinate: source.coordinate,
+                    altitudeMeters: source.altitudeMeters
+                )
+            )
+            let targetECEF = FlightGeodesy.ecef(
+                FlightGeodeticPoint(
+                    coordinate: target.coordinate,
+                    altitudeMeters: target.altitudeMeters
+                )
+            )
+            let blendedECEF = sourceECEF + (targetECEF - sourceECEF) * t
+            let blendedPoint = FlightGeodesy.geodetic(fromECEF: blendedECEF)
+            let heading = lerpAngleDegrees(source.headingDegrees, target.headingDegrees, t: t)
+            let tilt = source.tiltDegrees + (target.tiltDegrees - source.tiltDegrees) * t
+            let roll = source.rollDegrees + (target.rollDegrees - source.rollDegrees) * t
+            let range: Double?
+            if let sourceRange = source.rangeMeters, let targetRange = target.rangeMeters {
+                range = sourceRange + (targetRange - sourceRange) * t
+            } else {
+                range = target.rangeMeters ?? source.rangeMeters
+            }
+            let fieldOfView = source.fieldOfViewDegrees
+                + (target.fieldOfViewDegrees - source.fieldOfViewDegrees) * t
+            return WorldCameraPose(
+                coordinate: blendedPoint.coordinate,
+                altitudeMeters: blendedPoint.altitudeMeters,
+                headingDegrees: heading,
+                tiltDegrees: tilt,
+                rollDegrees: roll,
+                rangeMeters: range,
+                fieldOfViewDegrees: fieldOfView
+            )
+        }
+
+        private static func lerpAngleDegrees(_ from: Double, _ to: Double, t: Double) -> Double {
+            var delta = (to - from).truncatingRemainder(dividingBy: 360)
+            if delta > 180 { delta -= 360 }
+            if delta < -180 { delta += 360 }
+            return from + delta * t
         }
 
         func mapViewWillStartLoadingMap(_ mapView: MKMapView) {
@@ -331,6 +410,12 @@ private struct MapKitSceneryView: UIViewRepresentable {
         }
 
         func mapViewDidFailLoadingMap(_ mapView: MKMapView, withError error: Error) {
+            if !didFallbackFromFlyover, mapView.mapType == .satelliteFlyover {
+                didFallbackFromFlyover = true
+                mapView.mapType = .hybridFlyover
+                publish(.loading)
+                return
+            }
             publish(.failed)
         }
 

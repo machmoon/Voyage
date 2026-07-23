@@ -29,10 +29,10 @@ struct FlightPhaseSchedule: Equatable, Codable {
         let duration = max(0.1, rawDuration)
 
         if shortFlights {
-            // These are the existing QA boundaries. The clamps match
-            // FlightSession's behavior for synthetic, very short unit-test legs.
-            let takeoffEnd = min(5, duration * 0.15)
-            let climbEnd = min(16, max(takeoffEnd + 0.01, duration * 0.35))
+            // Compressed QA timings, but the ground roll and initial climb still
+            // read like a narrow-body: ~28s roll, then ~90s of gradual climb.
+            let takeoffEnd = min(28, duration * 0.25)
+            let climbEnd = min(180, max(takeoffEnd + 120, duration * 0.42))
             let landingStart = max(climbEnd, duration - 15)
             let descentStart = max(
                 climbEnd,
@@ -47,11 +47,13 @@ struct FlightPhaseSchedule: Equatable, Codable {
             )
         }
 
+        // Real narrow-body ground rolls run ~30–40s (V1 ~20s, liftoff ~30s,
+        // then a few seconds to rotation attitude).
         let roll: TimeInterval
         switch aircraft {
-        case .voyageClassic: roll = 30
-        case .boeing737800: roll = 35
-        case .airbusA320neo: roll = 33
+        case .voyageClassic: roll = 32
+        case .boeing737800: roll = 36
+        case .airbusA320neo: roll = 34
         }
 
         let climb = min(20 * 60, max(8 * 60, duration * 0.18))
@@ -445,6 +447,8 @@ struct FlightTrajectory {
 
     private let path: FlightSplinePath
     private let distanceTiming: FlightDistanceTiming
+    private let pathBoundaryDistances: [Double]
+    private let horizontalBoundaryDistances: [Double]?
 
     init(leg: FlightLeg,
          aircraft: AircraftProfile,
@@ -483,9 +487,13 @@ struct FlightTrajectory {
 
         let departureCorridor = Self.makeDepartureCorridor(
             runway: departureRunway,
-            routeCourse: departureCourse
+            routeCourse: departureCourse,
+            shortFlights: shortFlights
         )
-        let arrivalCorridor = Self.makeArrivalCorridor(runway: arrivalRunway)
+        let arrivalCorridor = Self.makeArrivalCorridor(
+            runway: arrivalRunway,
+            shortFlights: shortFlights
+        )
         let built = Self.buildPath(
             leg: leg,
             aircraft: aircraft,
@@ -500,30 +508,107 @@ struct FlightTrajectory {
             points: built.points,
             tangentOverrides: built.tangentOverrides
         )
-        let boundaryDistances = [
+        let path3DBoundaries = [
             0,
             path.knotDistance(at: built.takeoffEndIndex),
             path.knotDistance(at: built.climbEndIndex),
             path.knotDistance(at: built.descentStartIndex),
             path.knotDistance(at: built.landingStartIndex),
-            path.totalDistanceMeters
+            path.totalDistanceMeters,
         ]
+        let timingDistances: [Double]
+        let horizontalBoundaries: [Double]?
+        if shortFlights {
+            let horizontal = [
+                0,
+                Self.horizontalDistance(points: built.points, to: built.takeoffEndIndex),
+                Self.horizontalDistance(points: built.points, to: built.climbEndIndex),
+                Self.horizontalDistance(points: built.points, to: built.descentStartIndex),
+                Self.horizontalDistance(points: built.points, to: built.landingStartIndex),
+                Self.horizontalDistance(points: built.points, to: built.points.count - 1),
+            ]
+            timingDistances = horizontal
+            horizontalBoundaries = horizontal
+        } else {
+            timingDistances = path3DBoundaries
+            horizontalBoundaries = nil
+        }
         let boundaryTimes = [
             0,
+            schedule.rotationStart,
             schedule.takeoffEnd,
             schedule.climbEnd,
             schedule.descentStart,
             schedule.landingStart,
-            schedule.legEnd
+            schedule.legEnd,
         ]
-        let desiredSpeeds = [
-            0,
-            aircraft.rotationKnots * 0.514_444,
-            235,
-            225,
-            aircraft.flightTwinTouchdownSpeedMetersPerSecond,
-            0
+        let rotationSpeed = aircraft.rotationKnots * 0.514_444
+        let v1Speed = rotationSpeed * 0.93
+        let desiredSpeeds: [Double]
+        if shortFlights {
+            // QA legs keep session timing compressed; cap knot speeds so the
+            // spline timing cannot outrun a believable window view.
+            desiredSpeeds = [
+                0,
+                v1Speed,
+                rotationSpeed,
+                min(78, rotationSpeed * 1.08),
+                min(74, rotationSpeed * 1.02),
+                aircraft.flightTwinTouchdownSpeedMetersPerSecond,
+                0,
+            ]
+        } else {
+            desiredSpeeds = [
+                0,
+                v1Speed,
+                rotationSpeed,
+                235,
+                225,
+                aircraft.flightTwinTouchdownSpeedMetersPerSecond,
+                0,
+            ]
+        }
+
+        let rollTimeFraction = schedule.takeoffEnd > 0
+            ? (schedule.rotationStart / schedule.takeoffEnd)
+            : 0
+        // Constant-acceleration roll: distance grows with time squared (V1 at ~68%
+        // of roll time is only ~46% of the runway distance covered).
+        let rollDistanceFraction = rollTimeFraction * rollTimeFraction
+        let timingAtRotation = timingDistances[1] * rollDistanceFraction
+        let pathAtRotation = path3DBoundaries[1] * rollDistanceFraction
+        let expandedTimingDistances = [
+            timingDistances[0],
+            timingAtRotation,
+            timingDistances[1],
+            timingDistances[2],
+            timingDistances[3],
+            timingDistances[4],
+            timingDistances[5],
         ]
+        let expandedPathBoundaries = [
+            path3DBoundaries[0],
+            pathAtRotation,
+            path3DBoundaries[1],
+            path3DBoundaries[2],
+            path3DBoundaries[3],
+            path3DBoundaries[4],
+            path3DBoundaries[5],
+        ]
+        let expandedHorizontal: [Double]?
+        if let horizontal = horizontalBoundaries {
+            expandedHorizontal = [
+                horizontal[0],
+                timingAtRotation,
+                horizontal[1],
+                horizontal[2],
+                horizontal[3],
+                horizontal[4],
+                horizontal[5],
+            ]
+        } else {
+            expandedHorizontal = nil
+        }
 
         self.leg = leg
         self.aircraft = aircraft
@@ -534,9 +619,11 @@ struct FlightTrajectory {
         self.departureCorridor = departureCorridor
         self.arrivalCorridor = arrivalCorridor
         self.path = path
+        self.pathBoundaryDistances = expandedPathBoundaries
+        self.horizontalBoundaryDistances = expandedHorizontal
         self.distanceTiming = FlightDistanceTiming(
             times: boundaryTimes,
-            distances: boundaryDistances,
+            distances: expandedTimingDistances,
             desiredSpeeds: desiredSpeeds
         )
     }
@@ -546,12 +633,23 @@ struct FlightTrajectory {
                reduceMotion: Bool = false) -> FlightVisualState {
         let elapsed = min(schedule.legEnd, max(0, rawElapsed))
         let distanceSample = distanceTiming.sample(at: elapsed)
+        let pathDistance = pathDistanceMeters(
+            at: elapsed,
+            timingDistance: distanceSample.distanceMeters
+        )
         let routeProgress = min(
             1,
-            max(0, distanceSample.distanceMeters / max(1, path.totalDistanceMeters))
+            max(0, pathDistance / max(1, path.totalDistanceMeters))
         )
-        let pathSample = path.sample(at: distanceSample.distanceMeters)
-        let point = FlightGeodesy.geodetic(fromECEF: pathSample.ecef)
+        let pathSample = path.sample(at: pathDistance)
+        let phase = schedule.phase(at: elapsed)
+        let phaseProgress = schedule.progress(at: elapsed)
+        let point = resolveDepartureAltitude(
+            raw: FlightGeodesy.geodetic(fromECEF: pathSample.ecef),
+            phase: phase,
+            phaseProgress: phaseProgress,
+            elapsed: elapsed
+        )
         let localTangent = FlightGeodesy.enuVector(
             fromECEFVector: pathSample.tangent,
             at: point
@@ -561,8 +659,6 @@ struct FlightTrajectory {
             atan2(localTangent.x, localTangent.y).degrees
         )
         let flightPathPitch = atan2(localTangent.z, max(0.000_001, horizontal)).degrees
-        let phase = schedule.phase(at: elapsed)
-        let phaseProgress = schedule.progress(at: elapsed)
         let pitch = aircraftPitch(
             flightPathPitch: flightPathPitch,
             phase: phase,
@@ -570,9 +666,13 @@ struct FlightTrajectory {
             elapsed: elapsed
         )
         let bank = bankDegrees(
-            atDistance: distanceSample.distanceMeters,
+            atDistance: pathDistance,
             speed: distanceSample.speedMetersPerSecond,
             reduceMotion: reduceMotion
+        )
+        let groundSpeed = cappedGroundSpeed(
+            raw: distanceSample.speedMetersPerSecond,
+            phase: phase
         )
         let aircraftPose = AircraftPose(
             coordinate: point.coordinate,
@@ -580,7 +680,7 @@ struct FlightTrajectory {
             courseDegrees: course,
             pitchDegrees: reduceMotion ? min(8, max(-5, pitch)) : min(12, max(-8, pitch)),
             bankDegrees: bank,
-            groundSpeedMetersPerSecond: max(0, distanceSample.speedMetersPerSecond)
+            groundSpeedMetersPerSecond: groundSpeed
         )
         let camera = passengerCamera(
             aircraftPose: aircraftPose,
@@ -704,7 +804,10 @@ struct FlightTrajectory {
         let curvature = turn / (afterDistance - beforeDistance)
         let coordinatedBank = atan(speed * speed * curvature / 9.806_65).degrees
         let limit = reduceMotion ? 5.0 : 22.0
-        return min(limit, max(-limit, coordinatedBank))
+        // Near the runway, full coordinated bank reads as a dive in the window.
+        let departureScale = min(1, max(0.15, distance / 2_500))
+        let scaledBank = coordinatedBank * departureScale
+        return min(limit, max(-limit, scaledBank))
     }
 
     /// Flight-path angle supplies the baseline attitude. During rotation and
@@ -722,8 +825,13 @@ struct FlightTrajectory {
             return flightPathPitch
                 + (11 - flightPathPitch) * smoothstep(0, 1, rotationProgress)
         case .climb:
-            let rotationBlend = 1 - smoothstep(0, 0.14, phaseProgress)
-            return flightPathPitch + (11 - flightPathPitch) * rotationBlend
+            // Path tangents near the runway still read near-level right after
+            // liftoff. Fade the rotation attitude out slowly and never let the
+            // nose drop below a climb-out floor while we're still low.
+            let rotationBlend = 1 - smoothstep(0, 0.38, phaseProgress)
+            let blended = flightPathPitch + (11 - flightPathPitch) * rotationBlend
+            let liftoffFloor = max(1.51, 7.0 * (1 - smoothstep(0.18, 0.55, phaseProgress)))
+            return max(blended, liftoffFloor)
         case .cruise:
             return flightPathPitch
         case .descent:
@@ -735,9 +843,183 @@ struct FlightTrajectory {
         }
     }
 
+    private func pathDistanceMeters(at elapsed: TimeInterval, timingDistance: Double) -> Double {
+        guard let horizontal = horizontalBoundaryDistances else {
+            return timingDistance
+        }
+        let times = [
+            0.0,
+            schedule.rotationStart,
+            schedule.takeoffEnd,
+            schedule.climbEnd,
+            schedule.descentStart,
+            schedule.landingStart,
+            schedule.legEnd,
+        ]
+        for index in 0..<(times.count - 1) {
+            let end = times[index + 1]
+            guard elapsed <= end + 0.000_001 else { continue }
+            let start = times[index]
+            let horizontalSpan = horizontal[index + 1] - horizontal[index]
+            let pathSpan = pathBoundaryDistances[index + 1] - pathBoundaryDistances[index]
+            guard horizontalSpan > 0.000_001 else { return pathBoundaryDistances[index + 1] }
+            let progress = min(1, max(0, (timingDistance - horizontal[index]) / horizontalSpan))
+            return pathBoundaryDistances[index] + pathSpan * progress
+        }
+        return path.totalDistanceMeters
+    }
+
+    private static func horizontalDistance(points: [FlightGeodeticPoint], to index: Int) -> Double {
+        guard index > 0 else { return 0 }
+        let end = min(index, points.count - 1)
+        var total = 0.0
+        for pointIndex in 1...end {
+            let previous = points[pointIndex - 1]
+            let current = points[pointIndex]
+            let flatPrevious = FlightGeodeticPoint(
+                coordinate: previous.coordinate,
+                altitudeMeters: 0
+            )
+            let flatCurrent = FlightGeodeticPoint(
+                coordinate: current.coordinate,
+                altitudeMeters: 0
+            )
+            total += simd_distance(
+                FlightGeodesy.ecef(flatPrevious),
+                FlightGeodesy.ecef(flatCurrent)
+            )
+        }
+        return total
+    }
+
     private func smoothstep(_ lower: Double, _ upper: Double, _ value: Double) -> Double {
         let amount = min(1, max(0, (value - lower) / max(0.000_001, upper - lower)))
         return amount * amount * (3 - 2 * amount)
+    }
+
+    /// Compressed QA legs can have steep 3D spline arcs (ground roll + steep
+    /// climb-out) that imply impossible knot speeds. Cap what the window and
+    /// map consume while altitude still follows the departure profile.
+    private func cappedGroundSpeed(raw: Double, phase: LegPhase) -> Double {
+        guard schedule.climbDuration < 3 * 60 else { return max(0, raw) }
+        let limit: Double
+        switch phase {
+        case .takeoffRoll:
+            limit = aircraft.rotationKnots * 0.514_444 * 1.12
+        case .climb:
+            limit = 85
+        case .cruise:
+            limit = 250
+        default:
+            return max(0, raw)
+        }
+        return max(0, min(raw, limit))
+    }
+
+    /// Normalized 0…1 altitude fraction during climb. A cosine ease keeps vertical
+    /// speed near zero at liftoff, peaks in the mid-climb en-route segment, then
+    /// eases into cruise without a late spike.
+    private func climbAltitudeFraction(_ progress: Double) -> Double {
+        let t = min(1, max(0, progress))
+        if t <= 0.90 {
+            return 0.94 * (1 - cos(.pi * t / 0.90)) / 2
+        }
+        let u = (t - 0.90) / 0.10
+        return 0.94 + 0.06 * smoothstep(0, 1, u)
+    }
+
+    /// QA legs cap below FL360 — ~5,000 ft is reachable in ~2.5 min at believable
+    /// narrow-body rates without a final rocket segment.
+    private static let compressedClimbCeilingMeters = 1_520.0
+
+    /// Level-off altitude for this leg. Two things bound it, and the lower wins:
+    ///
+    /// - **Stage length.** Real dispatch doesn't send a 40-minute hop to FL360;
+    ///   short sectors level in the twenties, long hauls sit in the mid-thirties.
+    /// - **Climb rate.** The altitude readout is live, so whatever we pick has to
+    ///   be reachable inside `climbDuration` at a rate a narrow-body can actually
+    ///   fly (~2,100 fpm average). Without this a short leg showed FL300 five
+    ///   minutes after takeoff, which no passenger would believe.
+    static func cruiseAltitudeMeters(leg: FlightLeg,
+                                     schedule: FlightPhaseSchedule,
+                                     departureRunway: RunwayProfile) -> Double {
+        // Compressed QA climbs level far lower; matching keeps the spline's
+        // cruise knot continuous with the climb profile.
+        guard schedule.climbDuration >= 3 * 60 else { return compressedClimbCeilingMeters }
+
+        let feetPerMeter = 3.280_839_895
+        let distanceKm = leg.origin.location.distance(from: leg.destination.location) / 1_000
+        let byStageLength = min(37_000, max(19_000, 19_000 + distanceKm * 8))
+
+        let liftoffFeet = (departureRunway.threshold.altitudeMeters + 18) * feetPerMeter
+        let byClimbRate = liftoffFeet + schedule.climbDuration / 60 * 2_100
+
+        return max(9_000, min(byStageLength, byClimbRate)) / feetPerMeter
+    }
+
+    private func compressedClimbAltitude(liftoff: Double,
+                                         climbElapsed: TimeInterval) -> Double {
+        let duration = max(0.001, schedule.climbDuration)
+        let progress = min(1, max(0, climbElapsed / duration))
+        let ceiling = Self.compressedClimbCeilingMeters
+        return liftoff + (ceiling - liftoff) * climbAltitudeFraction(progress)
+    }
+
+    /// The departure spline can overshoot between authored knots. Drive altitude
+    /// from a monotonic profile during takeoff/climb so the map never dips.
+    private func resolveDepartureAltitude(
+        raw: FlightGeodeticPoint,
+        phase: LegPhase,
+        phaseProgress: Double,
+        elapsed: TimeInterval
+    ) -> FlightGeodeticPoint {
+        guard let profileAltitude = departureAltitudeProfile(
+            raw: raw,
+            phase: phase,
+            phaseProgress: phaseProgress,
+            elapsed: elapsed
+        ) else {
+            return raw
+        }
+        return FlightGeodeticPoint(
+            coordinate: raw.coordinate,
+            altitudeMeters: profileAltitude
+        )
+    }
+
+    private func departureAltitudeProfile(raw: FlightGeodeticPoint,
+                                          phase: LegPhase,
+                                          phaseProgress: Double,
+                                          elapsed: TimeInterval) -> Double? {
+        switch phase {
+        case .takeoffRoll:
+            // Wheels stay on the runway until rotation (~68% through the roll),
+            // then altitude eases up over the last third — ~2°/s nose rise, not
+            // an instant hop when the climb phase begins.
+            guard elapsed >= schedule.rotationStart else { return nil }
+            let rotationSpan = max(0.000_001, schedule.takeoffEnd - schedule.rotationStart)
+            let rotationProgress = min(1, (elapsed - schedule.rotationStart) / rotationSpan)
+            let runwaySurface = raw.altitudeMeters
+            let liftoff = runwaySurface + 18
+            return runwaySurface + (liftoff - runwaySurface) * smoothstep(0, 1, rotationProgress)
+        case .climb:
+            let liftoff = departureRunway.threshold.altitudeMeters + 18
+            let cruiseAltitude = Self.cruiseAltitudeMeters(
+                leg: leg,
+                schedule: schedule,
+                departureRunway: departureRunway
+            )
+            let climbElapsed = elapsed - schedule.takeoffEnd
+            if schedule.climbDuration < 3 * 60 {
+                return compressedClimbAltitude(
+                    liftoff: liftoff,
+                    climbElapsed: climbElapsed
+                )
+            }
+            return liftoff + (cruiseAltitude - liftoff) * climbAltitudeFraction(phaseProgress)
+        default:
+            return nil
+        }
     }
 
     private func passengerCamera(aircraftPose: AircraftPose,
@@ -766,7 +1048,7 @@ struct FlightTrajectory {
         let eyeOffset = bodyForward * forwardOffset
             + bodyRight * lateralOffset
             + bodyUp * aircraft.windowHeight
-        let cameraPoint = FlightGeodesy.offset(
+        var cameraPoint = FlightGeodesy.offset(
             from: FlightGeodeticPoint(
                 coordinate: aircraftPose.coordinate,
                 altitudeMeters: aircraftPose.altitudeMeters
@@ -775,6 +1057,15 @@ struct FlightTrajectory {
             northMeters: eyeOffset.y,
             upMeters: eyeOffset.z
         )
+        // Coordinated bank can pull the cabin eye geodetically downward even while
+        // the aircraft is climbing — keep the viewpoint above the window line.
+        let minimumEyeAltitude = aircraftPose.altitudeMeters + aircraft.windowHeight * 0.72
+        if cameraPoint.altitudeMeters < minimumEyeAltitude {
+            cameraPoint = FlightGeodeticPoint(
+                coordinate: cameraPoint.coordinate,
+                altitudeMeters: minimumEyeAltitude
+            )
+        }
 
         // Rotate the passenger's fixed side-and-slightly-down view through the
         // same aircraft body basis used for the eye position.
@@ -792,7 +1083,7 @@ struct FlightTrajectory {
             bodyForward * localForward + bodyRight * localRight + bodyUp * localUp
         )
         let cameraHeading = FlightVisualEngine.normalizedDegrees(atan2(view.x, view.y).degrees)
-        let cameraPitch = atan2(view.z, hypot(view.x, view.y)).degrees
+        var cameraPitch = atan2(view.z, hypot(view.x, view.y)).degrees
 
         // Orbit-style map cameras describe a point being viewed rather than
         // the physical eye position. Pick a slant range that reconstructs the
@@ -806,7 +1097,16 @@ struct FlightTrajectory {
             aircraft.windowHeight,
             cameraPoint.altitudeMeters - referenceElevation
         )
-        let providerTilt = min(87.5, max(0, 90 + cameraPitch))
+        // A sudden look-down tilt shrinks the orbit range and reads as diving
+        // even while altitude is increasing — keep the window near the horizon
+        // through the first few thousand feet.
+        if routeProgress < 0.08, cameraPoint.altitudeMeters < 2_500 {
+            cameraPitch = max(cameraPitch, -1.5)
+        }
+        var providerTilt = min(87.5, max(0, 90 + cameraPitch))
+        if routeProgress < 0.1, cameraPoint.altitudeMeters < 3_000 {
+            providerTilt = max(providerTilt, 85.5)
+        }
         let verticalRangeFraction = max(0.043_619, cos(providerTilt.radians))
         let range = min(450_000, max(4, heightAboveReference / verticalRangeFraction))
 
@@ -869,14 +1169,33 @@ struct FlightTrajectory {
             takeoffFraction + liftoffTravel / departureRunway.usableLengthMeters
         )
         append(departureRunway.point(along: liftoffFraction, heightAboveRunwayMeters: 18))
-        departureCorridor.controlPoints.forEach { append($0.point) }
+        if shortFlights {
+            // Gentle climb-out knots — steep 3D arcs read as impossible vertical
+            // speed in the passenger window even when altitude is profile-driven.
+            let heading = departureRunway.trueHeadingDegrees.radians
+            let liftoffPoint = departureRunway.oppositeThreshold
+            append(FlightGeodesy.offset(
+                from: liftoffPoint,
+                eastMeters: sin(heading) * 900,
+                northMeters: cos(heading) * 900,
+                upMeters: 55
+            ))
+            append(FlightGeodesy.offset(
+                from: liftoffPoint,
+                eastMeters: sin(heading) * 2_200,
+                northMeters: cos(heading) * 2_200,
+                upMeters: 160
+            ))
+        } else {
+            departureCorridor.controlPoints.forEach { append($0.point) }
+        }
 
         let routeDistance = max(1, leg.origin.location.distance(from: leg.destination.location))
         let climbTravel = shortFlights
-            ? min(routeDistance * 0.16, max(15_000, schedule.climbDuration * 180))
+            ? min(routeDistance * 0.02, max(650, schedule.climbDuration * 32))
             : min(routeDistance * 0.34, max(85_000, schedule.climbDuration * 205))
         let descentTravel = shortFlights
-            ? min(routeDistance * 0.18, max(25_000, schedule.descentDuration * 190))
+            ? min(routeDistance * 0.05, max(2_000, schedule.descentDuration * 68))
             : min(routeDistance * 0.34, max(110_000, schedule.descentDuration * 210))
         var departureFraction = min(0.38, climbTravel / routeDistance)
         var arrivalFraction = min(0.38, descentTravel / routeDistance)
@@ -886,7 +1205,11 @@ struct FlightTrajectory {
             arrivalFraction *= scale
         }
 
-        let cruiseAltitude = 10_972.8 // FL360
+        let cruiseAltitude = cruiseAltitudeMeters(
+            leg: leg,
+            schedule: schedule,
+            departureRunway: departureRunway
+        )
         append(FlightGeodeticPoint(
             coordinate: GreatCircle.point(
                 from: leg.origin.coordinate,
@@ -953,16 +1276,28 @@ struct FlightTrajectory {
     }
 
     private static func makeDepartureCorridor(runway: RunwayProfile,
-                                              routeCourse: Double) -> AirportCorridor {
+                                              routeCourse: Double,
+                                              shortFlights: Bool) -> AirportCorridor {
         let heading = runway.trueHeadingDegrees
         let turn = FlightVisualEngine.shortestAngle(from: heading, to: routeCourse)
         let sfoScale = runway.airportCode == "SFO" ? 1.0 : 0.82
-        let specs: [(Double, Double, Double, String)] = [
-            (2_000, heading, 120, "runway extension"),
-            (8_000, heading + turn * 0.16, 850, "initial climb"),
-            (20_000 * sfoScale, heading + turn * 0.42, 2_400, "departure turn"),
-            (42_000 * sfoScale, heading + turn * 0.72, 4_800, "terminal exit")
-        ]
+        let specs: [(Double, Double, Double, String)]
+        if shortFlights {
+            // Compressed QA departures: keep the SID shape but shrink distances
+            // so climb phase path length matches the 8s/30s session window.
+            specs = [
+                (280, heading, 85, "runway extension"),
+                (520, heading + turn * 0.2, 200, "initial climb"),
+                (780, heading + turn * 0.55, 480, "departure turn"),
+            ]
+        } else {
+            specs = [
+                (2_000, heading, 120, "runway extension"),
+                (8_000, heading + turn * 0.16, 850, "initial climb"),
+                (20_000 * sfoScale, heading + turn * 0.42, 2_400, "departure turn"),
+                (42_000 * sfoScale, heading + turn * 0.72, 4_800, "terminal exit")
+            ]
+        }
         let origin = runway.oppositeThreshold
         let controls = specs.map { distance, course, altitude, role in
             FlightPathControlPoint(
@@ -984,15 +1319,26 @@ struct FlightTrajectory {
         )
     }
 
-    private static func makeArrivalCorridor(runway: RunwayProfile) -> AirportCorridor {
+    private static func makeArrivalCorridor(runway: RunwayProfile,
+                                            shortFlights: Bool) -> AirportCorridor {
         let reciprocal = runway.trueHeadingDegrees + 180
-        let specs: [(Double, Double, String)] = [
-            (65_000, 6_000, "terminal entry"),
-            (32_000, 3_000, "approach capture"),
-            (14_000, 1_250, "final approach"),
-            (5_000, 360, "short final"),
-            (1_300, 90, "flare setup")
-        ]
+        let specs: [(Double, Double, String)]
+        if shortFlights {
+            specs = [
+                (8_500, 1_100, "terminal entry"),
+                (4_200, 520, "approach capture"),
+                (1_800, 220, "final approach"),
+                (700, 95, "flare setup"),
+            ]
+        } else {
+            specs = [
+                (65_000, 6_000, "terminal entry"),
+                (32_000, 3_000, "approach capture"),
+                (14_000, 1_250, "final approach"),
+                (5_000, 360, "short final"),
+                (1_300, 90, "flare setup")
+            ]
+        }
         let controls = specs.map { distance, altitude, role in
             FlightPathControlPoint(
                 point: FlightGeodesy.offset(

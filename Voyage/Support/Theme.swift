@@ -126,6 +126,19 @@ extension TimeInterval {
         return "\(m)m"
     }
 
+    /// The in-flight countdown face. Above ten minutes it reads in whole
+    /// minutes ("1h 23m") — a ticking seconds column on a two-hour study
+    /// session just invites clock-watching. Inside the last ten minutes it
+    /// switches to "09:59", where the seconds actually mean something.
+    var focusCountdownText: String {
+        guard self >= 600 else { return clockText }
+        let minutes = Int((self / 60).rounded(.up))
+        let h = minutes / 60
+        let m = minutes % 60
+        if h > 0 { return m > 0 ? "\(h)h \(m)m" : "\(h)h" }
+        return "\(m)m"
+    }
+
     /// "1:23:45" or "23:45" countdown formatting.
     var clockText: String {
         let total = max(0, Int(self.rounded()))

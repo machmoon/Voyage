@@ -345,9 +345,9 @@ struct HomeView: View {
                 routeSummary(itinerary)
             } else {
                 VStack(spacing: 3) {
-                    Text("Choose your focus flight")
+                    Text("Where to today?")
                         .font(.headline)
-                    Text("Each route is an uninterrupted study session")
+                    Text("Flight time is focus time — pick a destination")
                         .font(.caption)
                         .foregroundStyle(.white.opacity(0.72))
                 }
@@ -495,6 +495,14 @@ struct HomeView: View {
                                     modelContext: modelContext,
                                     tier: LogbookStats.tier(entries))
         session.prepareRealWorldTwin()
+
+        // Start warming the satellite tiles around the origin runway now, so the
+        // real-world window has a rendered frame ready by the time it mounts.
+        if settings.streamsRealWorldScenery {
+            MapWarmer.shared.warm(around: origin.coordinate,
+                                  headingDegrees: origin.runway?.heading ?? 0)
+        }
+
         Haptics.success()
         onDepart(session)
     }

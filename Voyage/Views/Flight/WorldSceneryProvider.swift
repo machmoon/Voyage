@@ -112,12 +112,11 @@ struct WorldSceneryLayerPolicy {
 struct WorldSceneryProviderPolicy {
     static func provider(
         realWorldTwinEnabled: Bool,
-        isVisible: Bool,
         appIsActive: Bool,
         isOnline: Bool,
         thermalState: ProcessInfo.ThermalState
     ) -> WorldSceneryProviderKind {
-        guard realWorldTwinEnabled, isVisible, appIsActive else {
+        guard realWorldTwinEnabled, appIsActive else {
             return .procedural
         }
         guard isOnline else { return .procedural }

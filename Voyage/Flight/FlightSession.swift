@@ -101,12 +101,13 @@ final class FlightSession {
             || ProcessInfo.processInfo.environment["VOYAGE_SHORT_FLIGHTS"] == "1"
     }
 
-    /// Long enough for engine spool and acceleration to read, without making
-    /// the user wait through a real-time runway roll.
-    nonisolated static var takeoffRollDuration: TimeInterval { shortFlightsEnabled ? 5 : 30 }
+    /// Ground-roll length the illustrated window's runway kinematics use. Kept
+    /// in sync with `FlightPhaseSchedule.make`'s roll (~34s real / ~13s QA) so a
+    /// real narrow-body takeoff (V1 ~20s, liftoff ~30s) reads at proper length.
+    nonisolated static var takeoffRollDuration: TimeInterval { shortFlightsEnabled ? 13 : 34 }
     /// Compatibility constants for dormant procedural artwork. Live session
     /// boundaries come from the aircraft- and block-time-specific schedule.
-    nonisolated static var climbEndsAt: TimeInterval { shortFlightsEnabled ? 16 : 8.5 * 60 }
+    nonisolated static var climbEndsAt: TimeInterval { shortFlightsEnabled ? 30 : 8.5 * 60 }
     nonisolated static let descentDuration: TimeInterval = 25 * 60
     nonisolated static let landingDuration: TimeInterval = 30
     nonisolated static let graceDuration: TimeInterval = 30
