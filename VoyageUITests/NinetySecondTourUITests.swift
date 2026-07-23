@@ -121,7 +121,7 @@ final class NinetySecondTourUITests: XCTestCase {
 
     @MainActor
     private func tourSchedule(in app: XCUIApplication) {
-        guard tap(app.buttons["Schedule focus"], timeout: 2) else { pause(6); return }
+        guard tap(app.buttons["Schedule"], timeout: 2) else { pause(6); return }
         pause(3.0)
         app.swipeUp(velocity: .slow)
         pause(1.5)

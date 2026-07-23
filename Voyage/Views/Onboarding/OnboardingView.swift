@@ -41,24 +41,24 @@ struct OnboardingView: View {
         OnboardingPage(
             kicker: "PREFLIGHT",
             title: "A focus timer you have to land.",
-            body: "Every study session becomes a real flight with a real destination. Once you take off, leaving the app diverts you — so the only way out is to finish."
+            body: "Every study session is a real airline route, flown in real time. Once you're airborne, leaving the app diverts the flight — the only clean ending is landing."
         ),
         OnboardingPage(
             kicker: "HOW IT WORKS",
-            title: "Three moves, gate to gate.",
+            title: "Three steps, gate to gate.",
             steps: [
                 .init(symbol: "airplane.departure", headline: "Book a route",
-                      detail: "Pick a real city pair. The real flight time becomes your timer."),
+                      detail: "Pick a city pair. The airline's real flight time sets your session length."),
                 .init(symbol: "window.vertical.closed", headline: "Study through the window",
-                      detail: "Watch the world roll by. Stay in the app and you land; leave it and the flight diverts."),
-                .init(symbol: "seal.fill", headline: "Land & earn stamps",
-                      detail: "Every landing logs miles and a passport stamp.")
+                      detail: "The window and the moving map track your real position. Stay in the app and the flight keeps flying."),
+                .init(symbol: "seal.fill", headline: "Land and log it",
+                      detail: "Every completed flight stamps your passport and adds its miles to your logbook.")
             ]
         ),
         OnboardingPage(
             kicker: "READY",
             title: "Cleared for departure.",
-            body: "You're already at your nearest airport. Pick a destination and take off.",
+            body: "Your origin is set to the nearest airport. Choose a destination on the globe and take off.",
             showsOpenSource: true
         )
     ]
@@ -234,7 +234,7 @@ struct OnboardingView: View {
             }
 
             Button(action: advance) {
-                Text(page == Self.pages.count - 1 ? "Start" : "Continue")
+                Text(page == Self.pages.count - 1 ? "Start flying" : "Continue")
                     .contentTransition(.opacity)
             }
             .buttonStyle(VoyagePrimaryButtonStyle())

@@ -32,7 +32,7 @@ final class OnboardingUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Cleared for departure."].waitForExistence(timeout: 5))
         capture(app, name: "onboarding-3-ready")
 
-        app.buttons["Start"].tap()
+        app.buttons["Start flying"].tap()
 
         // Hands off to the home globe.
         XCTAssertTrue(app.staticTexts["VOYAGE"].waitForExistence(timeout: 10))
