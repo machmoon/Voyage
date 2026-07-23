@@ -48,7 +48,7 @@ struct LayoverLoungeView: View {
                 .font(.title2.bold())
                 .foregroundStyle(.white)
 
-            Text("Leg 1 complete — nicely done. Take a real break.")
+            Text("First leg complete. Take a real break before the next one.")
                 .font(.subheadline)
                 .foregroundStyle(.white.opacity(0.6))
         }
@@ -64,7 +64,7 @@ struct LayoverLoungeView: View {
                 Text(session.finalCallRemaining.clockText)
                     .font(.system(size: 64, weight: .bold, design: .monospaced))
                     .foregroundStyle(.red)
-                Text("Gate closing — board now or lose the connection")
+                Text("Gate closing — board now to keep your connection")
                     .font(.footnote.weight(.medium))
                     .foregroundStyle(.red.opacity(0.85))
             } else {
@@ -91,7 +91,7 @@ struct LayoverLoungeView: View {
     }
 
     private var suggestions: some View {
-        Text("Suggested: stretch, hydrate, rest your eyes")
+        Text("Stretch, hydrate, rest your eyes")
             .font(.caption.weight(.medium))
             .foregroundStyle(.white.opacity(0.45))
             .multilineTextAlignment(.center)

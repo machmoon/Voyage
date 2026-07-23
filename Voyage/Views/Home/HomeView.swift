@@ -276,7 +276,7 @@ struct HomeView: View {
         VStack(spacing: 8) {
             scheduledBannerRow(flight, status: status)
             if scheduler.notificationsDenied {
-                Text("Notifications are off — boarding calls and final-call alerts can't ring. Enable them in Settings.")
+                Text("Notifications are off, so boarding and final calls won't reach you. Turn them on in Settings.")
                     .font(.caption2)
                     .foregroundStyle(.orange)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -347,7 +347,7 @@ struct HomeView: View {
                 VStack(spacing: 3) {
                     Text("Where to today?")
                         .font(.headline)
-                    Text("Flight time is focus time — pick a destination")
+                    Text("Pick a destination — its real flight time sets your session")
                         .font(.caption)
                         .foregroundStyle(.white.opacity(0.72))
                 }
@@ -461,7 +461,7 @@ struct HomeView: View {
             Button {
                 showingSchedule = true
             } label: {
-                Label("Schedule focus", systemImage: "clock")
+                Label("Schedule", systemImage: "clock")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
@@ -474,7 +474,7 @@ struct HomeView: View {
                     depart(to: destination)
                 }
             } label: {
-                Label("Start focus flight", systemImage: "airplane.departure")
+                Label("Depart now", systemImage: "airplane.departure")
                     .font(.subheadline.weight(.bold))
                     .foregroundStyle(.black)
                     .frame(maxWidth: .infinity)

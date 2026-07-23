@@ -199,7 +199,7 @@ private struct BaggageClaimView: View {
                     Text("Baggage claim")
                         .font(.title2.bold())
                         .foregroundStyle(.white)
-                    Text("Carousel 3 · which bags made the trip?")
+                    Text("Carousel 3 · claim what you finished")
                         .font(.subheadline)
                         .foregroundStyle(.white.opacity(0.55))
                 }

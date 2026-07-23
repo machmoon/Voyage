@@ -87,12 +87,12 @@ struct InFlightView: View {
         }
         .statusBarHidden()
         .confirmationDialog("Leave this flight?", isPresented: $showExitConfirm, titleVisibility: .visible) {
-            Button("Divert flight (session lost)", role: .destructive) {
+            Button("Divert and end the session", role: .destructive) {
                 session.abandonFlight()
             }
             Button("Keep flying", role: .cancel) {}
         } message: {
-            Text("Diverting ends the session. Miles are only earned for completed legs.")
+            Text("Diverting ends the session here. You keep the miles for legs you completed.")
         }
         .task {
             // Departure curtain already played during boarding. Fade the window
@@ -335,8 +335,8 @@ struct InFlightView: View {
         switch session.phase {
         case .takeoffRoll: return "Cleared for takeoff"
         case .climb: return "Climbing through the cloud deck"
-        case .cruise: return "Cruising · seatbelt sign off · deep work"
-        case .descent: return "Descending · finish your final items"
+        case .cruise: return "Cruising · seatbelt sign off"
+        case .descent: return "Descending · start wrapping up"
         case .landing: return "Landing"
         }
     }
@@ -408,15 +408,15 @@ struct InFlightView: View {
                     .font(.title3)
                     .foregroundStyle(Theme.accent)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Stay hydrated")
+                    Text("Beverage service")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.white.opacity(0.95))
-                    Text("You've been flying a while — have some water")
+                    Text("The cart is at your row")
                         .font(.caption)
                         .foregroundStyle(.white.opacity(0.55))
                 }
                 Spacer()
-                Text("Take a sip")
+                Text("Take a water")
                     .font(.caption.weight(.bold))
                     .foregroundStyle(.black)
                     .padding(.horizontal, 12)

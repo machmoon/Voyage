@@ -15,12 +15,12 @@ struct DivertedView: View {
     private var subtitle: String {
         switch kind {
         case .missedConnection:
-            return "The gate closed before you boarded. Your connection left without you."
+            return "The gate closed before you boarded. The miles you flew getting here are still logged."
         case .diverted:
             if session.diversionReason == .voluntary {
-                return "You chose to end the flight early. Partial credit applies for completed legs."
+                return "You ended the flight early. Miles from the legs you completed are still logged."
             }
-            return "You were away from the cabin for more than 30 seconds, so we had to put her down early."
+            return "The app was in the background for over 30 seconds, so the flight put down at the nearest field. Your completed miles are still logged."
         }
     }
 
@@ -70,7 +70,7 @@ struct DivertedView: View {
 
     private var statsRow: some View {
         HStack(spacing: 28) {
-            stat("Logged", "Incomplete")
+            stat("Status", "Incomplete")
             stat("Focus time", (session.logEntry?.focusSeconds ?? 0).shortDurationText)
             stat("Miles earned", "\(Int(session.completedMiles).formatted())")
         }

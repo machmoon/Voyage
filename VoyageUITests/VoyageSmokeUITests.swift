@@ -65,7 +65,7 @@ final class VoyageSmokeUITests: XCTestCase {
         XCTAssertTrue(card.waitForExistence(timeout: 5))
         card.tap()
 
-        let schedule = app.buttons["Schedule focus"]
+        let schedule = app.buttons["Schedule"]
         XCTAssertTrue(schedule.waitForExistence(timeout: 5))
         schedule.tap()
 
