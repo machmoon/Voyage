@@ -8,6 +8,11 @@ import MapKit
 struct FlightMapView: View {
     @Bindable var session: FlightSession
 
+    /// False while the card is mounted only to warm MapKit behind the window
+    /// view. A map nobody can see needs no camera/style controls, and leaving
+    /// them in the hierarchy would expose them to VoiceOver and to taps.
+    var showsControls: Bool = true
+
     enum CameraMode: String, CaseIterable {
         case route = "Route"
         case follow = "Follow"
@@ -43,7 +48,9 @@ struct FlightMapView: View {
             // restarts every 0.5 s and makes the tracking pulse.
             if cameraMode == .follow { updateCamera(animated: true, tracking: true) }
         }
-        .overlay(alignment: .bottom) { controls }
+        .overlay(alignment: .bottom) {
+            if showsControls { controls }
+        }
     }
 
     /// Two honest choices — "Standard vs Terrain" looked identical at route

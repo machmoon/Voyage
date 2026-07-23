@@ -7,9 +7,17 @@ struct DepartureCurtainOverlay: View {
     let destinationCode: String
     let durationText: String
     var compact: Bool = false
+    /// How long the curtain is expected to hold at minimum. The route track
+    /// paces its sweep to this, so the plane is still travelling when the
+    /// hand-off normally happens instead of parking at the end.
+    var sweepDuration: TimeInterval = 2.8
 
     @State private var progress: CGFloat = 0.5
     @State private var pulse = false
+    /// Set once the first sweep lands. The curtain may hold past its minimum
+    /// while the satellite window finishes loading, so the track keeps taxiing
+    /// rather than sitting still and reading as a freeze.
+    @State private var isHolding = false
 
     var body: some View {
         ZStack {
@@ -68,9 +76,21 @@ struct DepartureCurtainOverlay: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Cleared for departure, \(originCode) to \(destinationCode)")
         .onAppear {
-            withAnimation(.smooth(duration: compact ? 0.28 : 0.65)) {
-                progress = 1
+            // Breathing glow, not a one-shot: whatever the hold turns out to
+            // be, the screen is always moving.
+            withAnimation(.easeInOut(duration: compact ? 1.1 : 1.7).repeatForever(autoreverses: true)) {
                 pulse = true
+            }
+            // Pace the sweep to the expected hold rather than finishing in a
+            // fraction of it.
+            withAnimation(.easeInOut(duration: max(0.28, sweepDuration * 0.86))) {
+                progress = 1
+            }
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(Int(max(0.28, sweepDuration * 0.86) * 1_000)))
+                withAnimation(.easeInOut(duration: compact ? 0.5 : 0.9).repeatForever(autoreverses: true)) {
+                    isHolding = true
+                }
             }
         }
     }
@@ -83,7 +103,7 @@ struct DepartureCurtainOverlay: View {
                     .fill(.white.opacity(0.18))
                     .frame(height: 2)
                 Capsule()
-                    .fill(Theme.accent.opacity(0.95))
+                    .fill(Theme.accent.opacity(isHolding ? 0.55 : 0.95))
                     .frame(width: max(2, geo.size.width * progress), height: 2)
                 Circle()
                     .fill(.white.opacity(0.9))
@@ -91,8 +111,10 @@ struct DepartureCurtainOverlay: View {
                 Image(systemName: "airplane")
                     .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(.white)
-                    .shadow(color: Theme.accent.opacity(0.8), radius: 5)
-                    .offset(x: travel * progress)
+                    .shadow(color: Theme.accent.opacity(isHolding ? 1 : 0.8), radius: isHolding ? 8 : 5)
+                    // A gentle hold-short bob keeps the track alive if the
+                    // curtain waits past its minimum for the window to load.
+                    .offset(x: travel * progress + (isHolding ? 2.5 : 0))
             }
             .frame(maxHeight: .infinity)
         }

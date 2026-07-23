@@ -13,6 +13,7 @@ struct BoardingFlowView: View {
 
     @State private var step: Step = .seat
     @State private var isDeparting = false
+    @State private var settings = SettingsStore.shared
 
     private var isCabinStep: Bool { step == .seat }
 
@@ -45,7 +46,10 @@ struct BoardingFlowView: View {
                     originCode: leg.origin.code,
                     destinationCode: leg.destination.code,
                     durationText: session.itinerary.totalFocusDuration.shortDurationText,
-                    compact: FlightSession.shortFlightsEnabled
+                    compact: FlightSession.shortFlightsEnabled,
+                    sweepDuration: DepartureGate.minimumHold(
+                        shortFlights: FlightSession.shortFlightsEnabled
+                    )
                 )
                 .transition(.opacity)
                 .zIndex(10)
@@ -139,13 +143,35 @@ struct BoardingFlowView: View {
         }
     }
 
+    /// The curtain is the map's loading screen, so it holds until the satellite
+    /// window actually has a frame — floored by the minimum beat so it never
+    /// flashes past, and capped so the app always departs.
     private func beginDeparture() {
         withAnimation(.easeOut(duration: 0.2)) {
             isDeparting = true
         }
+
         let quick = FlightSession.shortFlightsEnabled
+        let minimum = DepartureGate.minimumHold(shortFlights: quick)
+        let maximum = DepartureGate.maximumHold(shortFlights: quick)
+        let waitsForMap = DepartureGate.waitsForMap(
+            worldMode: settings.windowWorldMode,
+            streamedSceneryAllowed: WorldSceneryConfiguration.streamedSceneryAllowedByProcess,
+            isOnline: WorldSceneryAvailability.shared.isOnline
+        )
+
         Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(quick ? 1_600 : 2_800))
+            let started = Date()
+            while !DepartureGate.shouldDepart(
+                mapHasRenderedFrame: DepartureReadiness.shared.mapHasRenderedFrame,
+                elapsed: Date().timeIntervalSince(started),
+                minimum: minimum,
+                maximum: maximum,
+                waitsForMap: waitsForMap
+            ) {
+                try? await Task.sleep(for: .milliseconds(80))
+                if Task.isCancelled { break }
+            }
             session.departFirstLeg()
         }
     }

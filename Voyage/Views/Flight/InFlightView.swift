@@ -18,6 +18,44 @@ struct InFlightView: View {
     @State private var windowSceneArmed = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    // MARK: Study-map warm-up
+    //
+    // SwiftUI's `Map` reports no rendered-frame callback, so the map card is
+    // warmed ahead of first use rather than gated on a signal that never comes.
+    @State private var inFlightSince: Date?
+    @State private var mapMountedAt: Date?
+    @State private var mapLeftAt: Date?
+    @State private var hasOpenedMap = false
+    @State private var mapIsMounted = false
+    @State private var showsMapCover = true
+
+    private var shortFlights: Bool { FlightSession.shortFlightsEnabled }
+
+    /// Re-evaluates the pure warm-up policy against the wall clock.
+    private func refreshMapWarmup() {
+        let now = Date()
+        let shouldMount = StudyMapWarmup.shouldMountMap(
+            isShowingMap: studyView == .map,
+            hasOpenedMap: hasOpenedMap,
+            secondsSinceInFlightBegan: inFlightSince.map { now.timeIntervalSince($0) },
+            secondsSinceLeftMap: mapLeftAt.map { now.timeIntervalSince($0) },
+            warmingIsUseful: StudyMapWarmup.warmingIsUseful(
+                streamedSceneryAllowed: WorldSceneryConfiguration.streamedSceneryAllowedByProcess,
+                isOnline: WorldSceneryAvailability.shared.isOnline
+            ),
+            shortFlights: shortFlights
+        )
+
+        if shouldMount != mapIsMounted {
+            mapIsMounted = shouldMount
+            mapMountedAt = shouldMount ? now : nil
+        }
+
+        showsMapCover = StudyMapWarmup.showsFirstPaintCover(
+            secondsMounted: mapMountedAt.map { now.timeIntervalSince($0) }
+        )
+    }
+
     private var sceneAirport: Airport {
         session.phase >= .descent ? session.currentLeg.destination : session.currentLeg.origin
     }
@@ -107,6 +145,15 @@ struct InFlightView: View {
                 }
             }
         }
+        .task {
+            // Drives the map warm-up policy. Cheap: a boolean re-evaluation a
+            // few times a second, and it stops with the view.
+            inFlightSince = Date()
+            while !Task.isCancelled {
+                withAnimation(.easeInOut(duration: 0.3)) { refreshMapWarmup() }
+                try? await Task.sleep(for: .milliseconds(250))
+            }
+        }
     }
 
     // MARK: Top bar
@@ -184,7 +231,7 @@ struct InFlightView: View {
         let isOn = studyView == view
         return Button {
             Haptics.tap()
-            withAnimation(.smooth(duration: 0.35)) { studyView = view }
+            selectStudyView(view)
         } label: {
             Label(view.rawValue, systemImage: view == .window ? "airplane" : "map")
                 .font(.system(size: 11, weight: .bold, design: .rounded))
@@ -200,6 +247,28 @@ struct InFlightView: View {
         .accessibilityAddTraits(isOn ? .isSelected : [])
     }
 
+    /// Switching study views. The map is placed in the hierarchy *before* the
+    /// crossfade starts, so the fade always lands on a real card — warm tiles
+    /// if it was pre-warmed, the calm cover if it is genuinely cold — and never
+    /// on an empty slot or a bare MapKit placeholder.
+    private func selectStudyView(_ view: StudyView) {
+        guard view != studyView else { return }
+
+        if view == .map {
+            hasOpenedMap = true
+            mapLeftAt = nil
+            if !mapIsMounted {
+                mapIsMounted = true
+                mapMountedAt = Date()
+                showsMapCover = true
+            }
+        } else if studyView == .map {
+            mapLeftAt = Date()
+        }
+
+        withAnimation(.smooth(duration: 0.35)) { studyView = view }
+    }
+
     private var toolbarDivider: some View {
         Rectangle()
             .fill(.white.opacity(0.12))
@@ -210,17 +279,33 @@ struct InFlightView: View {
 
     // MARK: Study content
 
-    @ViewBuilder
+    /// Both study views share one stable slot. The map keeps its identity
+    /// across warm-hidden and visible states — remounting it on every switch is
+    /// exactly what made it cold-start into a placeholder.
     private var studyContent: some View {
-        switch studyView {
-        case .window:
+        ZStack {
+            // Reserves the taller of the two cards for the whole flight, so
+            // mounting the hidden map can never shift the countdown beneath it.
+            Color.clear
+                .aspectRatio(0.78, contentMode: .fit)
+                .padding(.horizontal, 20)
+                .accessibilityHidden(true)
+
             airplaneWindow
                 .padding(.horizontal, 44)
-                .transition(.opacity.combined(with: .scale(scale: 0.98)))
-        case .map:
-            mapCard
-                .padding(.horizontal, 20)
-                .transition(.opacity.combined(with: .scale(scale: 0.98)))
+                .opacity(studyView == .window ? 1 : 0)
+                .scaleEffect(studyView == .window ? 1 : 0.98)
+                .allowsHitTesting(studyView == .window)
+                .accessibilityHidden(studyView != .window)
+
+            if mapIsMounted {
+                mapCard
+                    .padding(.horizontal, 20)
+                    .opacity(studyView == .map ? 1 : 0)
+                    .scaleEffect(studyView == .map ? 1 : 0.98)
+                    .allowsHitTesting(studyView == .map)
+                    .accessibilityHidden(studyView != .map)
+            }
         }
     }
 
@@ -276,8 +361,22 @@ struct InFlightView: View {
     }
 
     private var mapCard: some View {
-        FlightMapView(session: session)
+        FlightMapView(session: session, showsControls: studyView == .map)
             .aspectRatio(0.78, contentMode: .fit)
+            .overlay {
+                // A warmed map is long past the cover interval and shows this
+                // not at all. A genuinely cold one crossfades from the same
+                // calm palette as the departure curtain — never bare MapKit.
+                if showsMapCover {
+                    LinearGradient(
+                        colors: [Color(hex: "0D1531"), Color(hex: "050713")],
+                        startPoint: .top, endPoint: .bottom
+                    )
+                    .transition(.opacity)
+                    .accessibilityHidden(true)
+                }
+            }
+            .animation(.easeInOut(duration: 0.32), value: showsMapCover)
             .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 28, style: .continuous)

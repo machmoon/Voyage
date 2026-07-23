@@ -119,6 +119,11 @@ struct RealWorldTwinView<ProceduralFallback: View, ForegroundOverlay: View>: Vie
         mapKitLoadState = state
         if state == .ready {
             mapKitHasRenderedFrame = true
+            // The window owns a real frame now, so the departure gate is
+            // satisfied and the invisible warm map has done its job — release
+            // it rather than carry an extra MKMapView through the flight.
+            DepartureReadiness.shared.markMapRendered()
+            MapWarmer.shared.cancel()
         } else if state == .failed {
             mapKitHasRenderedFrame = false
         }

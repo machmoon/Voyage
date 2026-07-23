@@ -58,8 +58,11 @@ struct RootView: View {
         switch session.stage {
         case .preflight:
             BoardingFlowView(session: session) {
-                // Ritual dismissed before the rip: back to the gate.
+                // Ritual dismissed before the rip: back to the gate. Nothing is
+                // going to mount a window, so drop the warm map now.
                 session.cancelBeforeDeparture()
+                MapWarmer.shared.cancel()
+                DepartureReadiness.shared.resetForNewBooking()
                 self.session = nil
             }
         case .inFlight:
