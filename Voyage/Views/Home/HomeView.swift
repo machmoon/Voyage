@@ -52,6 +52,10 @@ struct HomeView: View {
             globe
                 .ignoresSafeArea()
 
+            // Calm cover over the globe's blank first frames at cold start —
+            // above the map, below the chrome — dissolved once MapKit paints.
+            StartupGlobeCover()
+
             VStack(spacing: 0) {
                 header
                 if let scheduled = scheduler.scheduled {

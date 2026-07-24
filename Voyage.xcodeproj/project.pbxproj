@@ -86,6 +86,7 @@
 		56FF23C161103D50E1408D29 /* crew_landed_los-angeles.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 12E458668041C9519447B5BB /* crew_landed_los-angeles.m4a */; };
 		573E37E770BDDA9B063AAA69 /* crew_layover_new-york.m4a in Resources */ = {isa = PBXBuildFile; fileRef = B15AC396FD3E4ECE3FCFC968 /* crew_layover_new-york.m4a */; };
 		5A9781BA132793585B048488 /* SFOAirportWorldData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D73111F4672CFB7C953DCD /* SFOAirportWorldData.swift */; };
+		5B2C7F00477E7536E11EB8A9 /* StartupGlobeGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B52995320B0ADDC04BC4692B /* StartupGlobeGate.swift */; };
 		5B3C88C7C436A0DE9D421053 /* crew_finalcall_raleigh-durham.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 8C5C70CC4052CFAD39B33D3D /* crew_finalcall_raleigh-durham.m4a */; };
 		5D29901E080702153EC4FF2C /* captain_finalcall_seattle.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 52B08EF860955B29A30B1D09 /* captain_finalcall_seattle.m4a */; };
 		5E4059C7A6871E4AE6967802 /* ArrivalFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40BDCC51D903FA09B7B40B74 /* ArrivalFlowView.swift */; };
@@ -138,6 +139,7 @@
 		9CA8B5599618A7590FA87C45 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB3F19E7F55471BBB8D955FD /* OnboardingView.swift */; };
 		9D946DB8E6AE558EEF61F351 /* FlightReceiptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5022D636444E7F0D836371D1 /* FlightReceiptView.swift */; };
 		9DB55F6AA827DB83B7F4F4AD /* FlightVisualEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A32B0AC3F6B4A577B3EA051 /* FlightVisualEngineTests.swift */; };
+		9E852205ACE106C0C902093A /* StartupGlobeGateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1685B50688FF739A1D7D183D /* StartupGlobeGateTests.swift */; };
 		A039217A0F00ECD48B3C0C94 /* FlightSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CB0E8E2B49F73535A03C4E3 /* FlightSession.swift */; };
 		A2E672A233A29FED8DC34823 /* crew_descent_raleigh-durham.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 9C3EAAF566544849E00467C4 /* crew_descent_raleigh-durham.m4a */; };
 		A635E1C06C1D7F25293B5DA9 /* FlightScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66C90DE9B3A81CF67A2ED3A5 /* FlightScheduler.swift */; };
@@ -195,6 +197,7 @@
 		EC52F779CF1E3F0ECA3677E5 /* FlightVisualEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 358B888860361493B6366533 /* FlightVisualEngine.swift */; };
 		ED9339E9798A3987FA78A55C /* WeatherMappingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9C6A8900000325A9B0AEC28 /* WeatherMappingTests.swift */; };
 		F2B95849F958E5025187B57E /* crew_landed_san-francisco.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 0CC3FEEBABF6F092F5A82772 /* crew_landed_san-francisco.m4a */; };
+		F42857A0BA1CF0C013401D1F /* StartupGlobeCover.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E3D55D19B23027BB0992231 /* StartupGlobeCover.swift */; };
 		F539099ECED8D80CDCA8CE15 /* VoyageWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 0D68B05EFC09E000DA1DDF10 /* VoyageWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		F5A2E846485825E19FF558C1 /* VoyageAppIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 256772C2F15D221799B2A8B9 /* VoyageAppIntents.swift */; };
 		F746B35FA5512CD02529D043 /* crew_welcome.m4a in Resources */ = {isa = PBXBuildFile; fileRef = CDE51E8DD9A8AE7392F748BB /* crew_welcome.m4a */; };
@@ -265,10 +268,12 @@
 		11487234A9EE6620ACB08159 /* captain_landed_raleigh-durham.m4a */ = {isa = PBXFileReference; path = "captain_landed_raleigh-durham.m4a"; sourceTree = "<group>"; };
 		12E458668041C9519447B5BB /* crew_landed_los-angeles.m4a */ = {isa = PBXFileReference; path = "crew_landed_los-angeles.m4a"; sourceTree = "<group>"; };
 		134BB3C9048429012FAC668C /* AppFeedbackTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppFeedbackTests.swift; sourceTree = "<group>"; };
+		1685B50688FF739A1D7D183D /* StartupGlobeGateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupGlobeGateTests.swift; sourceTree = "<group>"; };
 		16CCD736997AEA6801E13426 /* crew_midpoint_new-york.m4a */ = {isa = PBXFileReference; path = "crew_midpoint_new-york.m4a"; sourceTree = "<group>"; };
 		17759691F50D2E22E23694E9 /* captain_descent_los-angeles.m4a */ = {isa = PBXFileReference; path = "captain_descent_los-angeles.m4a"; sourceTree = "<group>"; };
 		1B4D7F1D6773B175406CC8F4 /* crew_layover_regina.m4a */ = {isa = PBXFileReference; path = crew_layover_regina.m4a; sourceTree = "<group>"; };
 		1C5605B00A8994113D8123E0 /* captain_finalcall_regina.m4a */ = {isa = PBXFileReference; path = captain_finalcall_regina.m4a; sourceTree = "<group>"; };
+		1E3D55D19B23027BB0992231 /* StartupGlobeCover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupGlobeCover.swift; sourceTree = "<group>"; };
 		21DF43DD51750D57EB40C3BF /* VoyageTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = VoyageTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		2250BE09A57429CDBCC6FF5E /* StudyMapWarmupTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyMapWarmupTests.swift; sourceTree = "<group>"; };
 		2383FDD5245C999AB4D11CFA /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
@@ -387,6 +392,7 @@
 		B15AC396FD3E4ECE3FCFC968 /* crew_layover_new-york.m4a */ = {isa = PBXFileReference; path = "crew_layover_new-york.m4a"; sourceTree = "<group>"; };
 		B19D06ABCF8CF69C62358B08 /* PassportStamp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PassportStamp.swift; sourceTree = "<group>"; };
 		B32E3BBACEDDD2F260A6DB5C /* DigitalTwin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DigitalTwin.swift; sourceTree = "<group>"; };
+		B52995320B0ADDC04BC4692B /* StartupGlobeGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupGlobeGate.swift; sourceTree = "<group>"; };
 		B5780AD54B7CADA1C817EAF8 /* captain_layover_seattle.m4a */ = {isa = PBXFileReference; path = captain_layover_seattle.m4a; sourceTree = "<group>"; };
 		B66571CD21FE7457375B9B67 /* AirportWorldMetalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirportWorldMetalView.swift; sourceTree = "<group>"; };
 		B677A2CF7162DBB0F3C7D092 /* RoutePlanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutePlanner.swift; sourceTree = "<group>"; };
@@ -499,6 +505,7 @@
 				D852A33B5FE2C0E2F34BB75C /* LogbookMigrationTests.swift */,
 				FF3BFC67E078E4199B9419D6 /* RouteCatalogTests.swift */,
 				CE7C38C4A1700E1751034581 /* RoutePlannerTests.swift */,
+				1685B50688FF739A1D7D183D /* StartupGlobeGateTests.swift */,
 				2250BE09A57429CDBCC6FF5E /* StudyMapWarmupTests.swift */,
 				E9C6A8900000325A9B0AEC28 /* WeatherMappingTests.swift */,
 			);
@@ -770,6 +777,7 @@
 				DF7C67C71E57809196E243DF /* HomeGreeting.swift */,
 				A0FF1BED67E63D4365884E3C /* HomeView.swift */,
 				3AAB53D2E07097E1378EDA77 /* ScheduleSheet.swift */,
+				1E3D55D19B23027BB0992231 /* StartupGlobeCover.swift */,
 			);
 			path = Home;
 			sourceTree = "<group>";
@@ -830,6 +838,7 @@
 				10566A414E4D9EAE24BC0E96 /* MapWarmer.swift */,
 				0DF13B0FF6F67EF0797DAFA7 /* SettingsStore.swift */,
 				DB5F0208829F37BC0518AB7B /* Shaders.metal */,
+				B52995320B0ADDC04BC4692B /* StartupGlobeGate.swift */,
 				7C0EDF5B41D51CA232306FEE /* StudyMapWarmup.swift */,
 				4117C4E6EEA3358F00D1B5B4 /* TestModeSeeder.swift */,
 				98D80A40384AA0FD2BE7D690 /* Theme.swift */,
@@ -1106,6 +1115,7 @@
 				7ABC500B9DB9CF1AE2C4D682 /* LogbookMigrationTests.swift in Sources */,
 				87603F97599BDD9EBA2488DE /* RouteCatalogTests.swift in Sources */,
 				2AB8D241BA72ABEF44132012 /* RoutePlannerTests.swift in Sources */,
+				9E852205ACE106C0C902093A /* StartupGlobeGateTests.swift in Sources */,
 				BC09D84F3D0598CFFF336DAF /* StudyMapWarmupTests.swift in Sources */,
 				ED9339E9798A3987FA78A55C /* WeatherMappingTests.swift in Sources */,
 			);
@@ -1183,6 +1193,8 @@
 				507D87B2B8B562183973CFB3 /* SettingsStore.swift in Sources */,
 				B3CE3D47A00CDA957DE780C3 /* SettingsView.swift in Sources */,
 				6115BC48B34C1F29DD8F8A28 /* Shaders.metal in Sources */,
+				F42857A0BA1CF0C013401D1F /* StartupGlobeCover.swift in Sources */,
+				5B2C7F00477E7536E11EB8A9 /* StartupGlobeGate.swift in Sources */,
 				F756497ACC73E477F44878E8 /* StudyMapWarmup.swift in Sources */,
 				4D31525631FD4FC74A1A1AF1 /* TestModeSeeder.swift in Sources */,
 				2A6D2CD0EC832A9D6BD443E8 /* Theme.swift in Sources */,

@@ -71,6 +71,10 @@ struct OnboardingView: View {
                 .overlay(alignment: .bottom) { legibilityScrim }
                 .allowsHitTesting(false)
 
+            // Calm cover over the globe's blank first frames at cold start —
+            // above the map, below the copy — dissolved once MapKit paints.
+            StartupGlobeCover()
+
             VStack(spacing: 0) {
                 header
                 Spacer(minLength: 0)
