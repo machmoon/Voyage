@@ -174,6 +174,7 @@
 		D3C399EF9629AC863D188B77 /* crew_midpoint_toronto.m4a in Resources */ = {isa = PBXBuildFile; fileRef = D1C922232FA4D9216FFE5E8B /* crew_midpoint_toronto.m4a */; };
 		D59281AE250FEE4F8D4E047A /* VoyageApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08A62644CD80D9C5F040E411 /* VoyageApp.swift */; };
 		D684AF7F3C52364AD1779CD3 /* captain_landed_boston.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 8341D6251BBA33681C30F9E9 /* captain_landed_boston.m4a */; };
+		D78F136B515C7ECF50F66E3B /* PassportStamp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B19D06ABCF8CF69C62358B08 /* PassportStamp.swift */; };
 		D7CFD62A13E149D69D6077A4 /* RealWorldWindowSceneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6EA3177491BACB00D2315D7 /* RealWorldWindowSceneView.swift */; };
 		D8B008D6634F70291A99CD6E /* crew_midpoint_san-francisco.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 8932B7364F79721178C4C7C3 /* crew_midpoint_san-francisco.m4a */; };
 		D9F03FA5FBAE43273A7FFE79 /* DivertedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEADBF54A9BE3BC765AB6B39 /* DivertedView.swift */; };
@@ -381,6 +382,7 @@
 		B145332E2371200EB461070D /* crew_landed_miami.m4a */ = {isa = PBXFileReference; path = crew_landed_miami.m4a; sourceTree = "<group>"; };
 		B15439F09F917E56AAC4D0C2 /* captain_descent_vancouver.m4a */ = {isa = PBXFileReference; path = captain_descent_vancouver.m4a; sourceTree = "<group>"; };
 		B15AC396FD3E4ECE3FCFC968 /* crew_layover_new-york.m4a */ = {isa = PBXFileReference; path = "crew_layover_new-york.m4a"; sourceTree = "<group>"; };
+		B19D06ABCF8CF69C62358B08 /* PassportStamp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PassportStamp.swift; sourceTree = "<group>"; };
 		B32E3BBACEDDD2F260A6DB5C /* DigitalTwin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DigitalTwin.swift; sourceTree = "<group>"; };
 		B5780AD54B7CADA1C817EAF8 /* captain_layover_seattle.m4a */ = {isa = PBXFileReference; path = captain_layover_seattle.m4a; sourceTree = "<group>"; };
 		B66571CD21FE7457375B9B67 /* AirportWorldMetalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirportWorldMetalView.swift; sourceTree = "<group>"; };
@@ -511,6 +513,7 @@
 			isa = PBXGroup;
 			children = (
 				40BDCC51D903FA09B7B40B74 /* ArrivalFlowView.swift */,
+				B19D06ABCF8CF69C62358B08 /* PassportStamp.swift */,
 			);
 			path = Landing;
 			sourceTree = "<group>";
@@ -1156,6 +1159,7 @@
 				0056CD7616753D1EF62C48F1 /* LogbookView.swift in Sources */,
 				1EE78AA8B9FC081A917B453A /* MapWarmer.swift in Sources */,
 				9CA8B5599618A7590FA87C45 /* OnboardingView.swift in Sources */,
+				D78F136B515C7ECF50F66E3B /* PassportStamp.swift in Sources */,
 				3573E8F27242AF37FB6A92BF /* PassportView.swift in Sources */,
 				6C4CB85B98BC15BB86423990 /* RealWorldSceneView.swift in Sources */,
 				2635C6D98348BF8F3626F340 /* RealWorldTwinView.swift in Sources */,

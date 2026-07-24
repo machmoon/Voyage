@@ -136,6 +136,49 @@ final class FlightSession {
         self.now = t
     }
 
+#if DEBUG
+    /// Builds a session already parked at the gate (`.arrived`) so the
+    /// passport-stamp payoff can be driven directly for QA screenshots,
+    /// bypassing the full descent. Never reachable in release builds.
+    static func debugArrived(modelContext: ModelContext) -> FlightSession {
+        let sfo = Airport.all.first { $0.code == "SFO" } ?? Airport.all[0]
+        let jfk = Airport.all.first { $0.code == "JFK" } ?? Airport.all[1]
+        let itinerary = RoutePlanner.itinerary(from: jfk, to: sfo)
+        let session = FlightSession(itinerary: itinerary,
+                                    modelContext: modelContext,
+                                    tier: .gold)
+        session.seat = "C10"
+        session.intentions = ["Finish problem set 4", "Read chapter 9"]
+        session.completedMiles = itinerary.legs.reduce(0) { $0 + $1.distanceMiles }
+        session.completedFocusSeconds = itinerary.totalFocusDuration
+        session.watersTaken = 2
+        session.stage = .arrived
+        let entry = LogbookEntry(
+            originCode: itinerary.origin.code,
+            destinationCode: itinerary.destination.code,
+            connectionCode: itinerary.connection?.code,
+            flightNumber: itinerary.primaryFlightNumber,
+            seat: session.seat,
+            miles: session.completedMiles,
+            focusSeconds: itinerary.totalFocusDuration,
+            completed: true,
+            intentions: session.intentions,
+            intentionsCompleted: Array(repeating: false, count: session.intentions.count),
+            aircraft: session.aircraft,
+            weatherSnapshot: nil,
+            departureProfile: session.departureProfile,
+            worldRevision: FlightVisualEngine.trajectoryRevision,
+            routeSamples: [],
+            departureCorridorID: nil,
+            arrivalCorridorID: nil,
+            environmentSnapshots: nil,
+            trajectoryLegSamples: nil
+        )
+        session.logEntry = entry
+        return session
+    }
+#endif
+
     // MARK: Derived timing
 
     var currentLeg: FlightLeg {
