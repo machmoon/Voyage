@@ -330,7 +330,6 @@ struct BoardingPassView: View {
         GeometryReader { geo in
             let w = geo.size.width
             let seamY = geo.size.height
-            let cutX = w * cutProgress
             ZStack(alignment: .topLeading) {
                 if !ripped {
                     // Dashes ride just above the seam so the full stroke stays on
@@ -341,16 +340,6 @@ struct BoardingPassView: View {
                     }
                     .stroke(Theme.boardingBackdrop,
                             style: StrokeStyle(lineWidth: 3, lineCap: .butt, dash: [9, 6]))
-
-                    // The parted section: the score opened solid from the leading
-                    // edge to the fingertip, at dash thickness so it reads as a
-                    // cut rather than a dark bar laid across the ticket.
-                    if cutProgress > 0.001 {
-                        Capsule()
-                            .fill(Theme.boardingBackdrop)
-                            .frame(width: max(3, cutX), height: 3)
-                            .position(x: max(3, cutX) / 2, y: seamY - 2)
-                    }
                 }
 
                 // Punched at both ends of the score, centered on the seam: the
