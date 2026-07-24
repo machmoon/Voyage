@@ -23,13 +23,13 @@ final class OnboardingUITests: XCTestCase {
         app.buttons["Continue"].tap()
 
         // Screen 2
-        XCTAssertTrue(app.staticTexts["Book a route"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Book a real route"].waitForExistence(timeout: 5))
         capture(app, name: "onboarding-2-steps")
 
         app.buttons["Continue"].tap()
 
         // Screen 3
-        XCTAssertTrue(app.staticTexts["Cleared for departure."].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Pick your first route."].waitForExistence(timeout: 5))
         capture(app, name: "onboarding-3-ready")
 
         app.buttons["Start flying"].tap()
