@@ -25,6 +25,9 @@ struct HomeView: View {
     @State private var showingLogbook = false
     @State private var showingSettings = false
     @State private var nowTick = Date()
+    /// A fresh line each time Home is built, i.e. every launch. Picked once so
+    /// it stays put while you browse, and never repeats the previous launch.
+    @State private var greeting = HomeGreeting.next()
 
     private let clock = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
@@ -345,11 +348,12 @@ struct HomeView: View {
                 routeSummary(itinerary)
             } else {
                 VStack(spacing: 3) {
-                    Text("Where to today?")
+                    Text(greeting)
                         .font(.headline)
-                    Text("Pick a destination — its real flight time sets your session")
+                    Text(HomeGreeting.subtitle)
                         .font(.caption)
                         .foregroundStyle(.white.opacity(0.72))
+                        .multilineTextAlignment(.center)
                 }
                 .foregroundStyle(.white)
                 .shadow(color: .black.opacity(0.6), radius: 3)
