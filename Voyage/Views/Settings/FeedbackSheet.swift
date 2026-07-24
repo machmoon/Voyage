@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// A note to the flight deck. The text never leaves the device on its own —
-/// tapping the button hands a prefilled issue to GitHub in Safari, where the
-/// traveler posts it publicly under their own account.
+/// The feedback sheet. The text never leaves the device on its own.
+/// Tapping the button hands a prefilled issue to GitHub in Safari, where the
+/// user posts it publicly under their own account.
 struct FeedbackSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
@@ -21,7 +21,7 @@ struct FeedbackSheet: View {
                 Section {
                     Picker("Kind", selection: $kind) {
                         ForEach(AppFeedback.FeedbackKind.allCases) { kind in
-                            Text(kind.title).tag(kind)
+                            Text(kind.issueTitlePrefix).tag(kind)
                         }
                     }
                     .pickerStyle(.segmented)
@@ -31,7 +31,7 @@ struct FeedbackSheet: View {
                 }
 
                 Section {
-                    TextField(kind.prompt, text: $message, axis: .vertical)
+                    TextField("Describe it here.", text: $message, axis: .vertical)
                         .lineLimit(5...12)
                         .focused($writing)
                 } footer: {
@@ -42,8 +42,11 @@ struct FeedbackSheet: View {
                     Button {
                         send()
                     } label: {
-                        Label("Open GitHub to post it", systemImage: "arrow.up.forward.app.fill")
+                        Label("Open GitHub", systemImage: "arrow.up.forward.app.fill")
                             .frame(maxWidth: .infinity)
+                            .multilineTextAlignment(.center)
+                            .minimumScaleFactor(0.7)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(Theme.accent)
@@ -53,7 +56,7 @@ struct FeedbackSheet: View {
                     Text("This opens github.com/\(AppFeedback.repository) in your browser with the form already filled in. Nothing is sent until you press Submit there, and the issue is public and posted from your GitHub account.")
                 }
             }
-            .navigationTitle("Talk to the flight deck")
+            .navigationTitle("Send feedback")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -68,4 +71,11 @@ struct FeedbackSheet: View {
         openURL(url)
         dismiss()
     }
+}
+
+// Largest accessibility Dynamic Type. Verifies the "Open GitHub" button
+// label scales/wraps instead of clipping at AX5.
+#Preview("AX5") {
+    FeedbackSheet()
+        .environment(\.dynamicTypeSize, .accessibility5)
 }

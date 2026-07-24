@@ -165,7 +165,7 @@ struct SettingsView: View {
                         settings.hasCompletedOnboarding = false
                         dismiss()
                     } label: {
-                        Label("Replay the preflight briefing", systemImage: "arrow.counterclockwise")
+                        Label("Replay onboarding", systemImage: "arrow.counterclockwise")
                     }
                     Button {
                         isWritingFeedback = true
