@@ -12,7 +12,12 @@ struct ArrivalFlowView: View {
         case welcome, baggage, stamp
     }
 
-    @State private var step: Step = .welcome
+    @State private var step: Step = {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-VoyageDebugStamp") { return .stamp }
+        #endif
+        return .welcome
+    }()
 
     private var city: Airport { session.itinerary.destination }
 
@@ -271,15 +276,19 @@ private struct BaggageClaimView: View {
 
 // MARK: - Passport stamp
 
-/// The final thunk: a passport-style stamp slams into the logbook,
-/// then a Strava-style share moment — stats card + optional caption.
+/// The final thunk: an inked passport stamp presses into the logbook page and
+/// lands alone, then the receipt and optional caption sequence in behind it.
 private struct StampView: View {
     @Bindable var session: FlightSession
     let onDone: () -> Void
 
     @Environment(\.requestReview) private var requestReview
 
+    /// Two beats: the stamp presses into the page (`stamped`), then once it has
+    /// settled the receipt and share controls reveal (`revealed`). Sequencing
+    /// them keeps the stamp moment clean instead of stacking a form under it.
     @State private var stamped = false
+    @State private var revealed = false
     @State private var shareCaption = ""
     @State private var receiptPNG: Data?
 
@@ -287,60 +296,97 @@ private struct StampView: View {
 
     var body: some View {
         ZStack {
-            Color(hex: "1C1A16").ignoresSafeArea()
+            backdrop
 
             VStack(spacing: 0) {
-                VStack(spacing: 6) {
-                    Text("PASSPORT CONTROL")
-                        .font(.system(size: 12, weight: .heavy))
-                        .kerning(3)
-                        .foregroundStyle(Color(hex: "C8A951"))
-                    Text("One more for the logbook")
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(.white)
-                }
-                .padding(.top, 40)
+                header
+                    .padding(.top, 40)
 
-                Spacer()
+                Spacer(minLength: 12)
 
                 passportPage
+                    .scaleEffect(revealed ? 0.9 : 1)
+                    .padding(.top, revealed ? 0 : 24)
 
-                Spacer()
+                Spacer(minLength: 12)
 
-                if stamped {
+                if revealed {
                     shareSection
                         .padding(.horizontal, 24)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
 
-                Button {
-                    persistShareCaption()
-                    onDone()
-                } label: {
-                    Text(stamped ? "Back to the terminal" : "Continue")
+                    Button {
+                        persistShareCaption()
+                        onDone()
+                    } label: {
+                        Text("Back to the terminal")
+                    }
+                    .buttonStyle(VoyagePrimaryButtonStyle())
+                    .padding(.horizontal, 24)
+                    .padding(.top, 12)
+                    .padding(.bottom, 30)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
-                .buttonStyle(VoyagePrimaryButtonStyle())
-                .padding(.horizontal, 24)
-                .padding(.bottom, 30)
-                .opacity(stamped ? 1 : 0.3)
-                .disabled(!stamped)
             }
         }
-        .onAppear {
-            Task { @MainActor in
-                try? await Task.sleep(for: .milliseconds(700))
-                withAnimation(.spring(duration: 0.28, bounce: 0.45)) {
-                    stamped = true
-                }
-                Haptics.stamp()
-                CabinAudioEngine.shared.playThunk()
-                receiptPNG = FlightReceiptRenderer.pngData(session: session, caption: shareCaption)
-                await askForReviewIfEarned()
-            }
-        }
+        .onAppear { runStampSequence() }
         .onChange(of: shareCaption) { _, _ in
             receiptPNG = FlightReceiptRenderer.pngData(session: session, caption: shareCaption)
             persistShareCaption()
+        }
+    }
+
+    private var backdrop: some View {
+        ZStack {
+            Color(hex: "17140F").ignoresSafeArea()
+            // A warm counter spotlight falling on the open passport.
+            RadialGradient(
+                colors: [Color(hex: "2A2418").opacity(0.9), .clear],
+                center: .center, startRadius: 40, endRadius: 460
+            )
+            .ignoresSafeArea()
+            RadialGradient(
+                colors: [.clear, .black.opacity(0.55)],
+                center: .center, startRadius: 260, endRadius: 640
+            )
+            .ignoresSafeArea()
+        }
+    }
+
+    private var header: some View {
+        VStack(spacing: 6) {
+            Text("PASSPORT CONTROL")
+                .font(.system(size: 12, weight: .heavy))
+                .kerning(3)
+                .foregroundStyle(Theme.statusAmber)
+            Text("One more for the logbook")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(.white)
+        }
+    }
+
+    /// Beat 1: press the stamp (haptic + thunk). Beat 2: after it settles, bring
+    /// up the receipt and share controls.
+    private func runStampSequence() {
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(700))
+            withAnimation(.spring(duration: 0.3, bounce: 0.42)) {
+                stamped = true
+            }
+            Haptics.stamp()
+            CabinAudioEngine.shared.playThunk()
+            receiptPNG = FlightReceiptRenderer.pngData(session: session, caption: shareCaption)
+
+            #if DEBUG
+            // QA hold: keep the stamp beat on screen for a clean capture.
+            if ProcessInfo.processInfo.arguments.contains("-VoyageDebugStampHold") { return }
+            #endif
+
+            try? await Task.sleep(for: .milliseconds(950))
+            withAnimation(.smooth(duration: 0.45)) {
+                revealed = true
+            }
+            await askForReviewIfEarned()
         }
     }
 
@@ -403,57 +449,61 @@ private struct StampView: View {
     }
 
     private var passportPage: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color(hex: "F4EBD6"))
-                .frame(width: 300, height: 360)
-                .shadow(color: .black.opacity(0.4), radius: 18, y: 10)
-                .overlay(
-                    VStack(spacing: 4) {
-                        Text("VOYAGE PASSPORT")
-                            .font(.system(size: 10, weight: .heavy))
-                            .kerning(2.5)
-                            .foregroundStyle(Color(hex: "8A7B57"))
-                        Text("Entries & departures")
-                            .font(.system(size: 9))
-                            .foregroundStyle(Color(hex: "AA9C74"))
-                    }
-                    .padding(.top, 20),
-                    alignment: .top
-                )
-
-            stamp
-                .rotationEffect(.degrees(-9))
-                .scaleEffect(stamped ? 1 : 2.4)
-                .opacity(stamped ? 1 : 0)
+        PassportPage(mrzTop: mrzTop, mrzBottom: mrzBottom) {
+            EntryStamp(
+                code: city.code,
+                city: city.city,
+                dateText: stampDateText,
+                milesText: "+\(Int(session.completedMiles).formatted()) MI"
+            )
+            .rotationEffect(.degrees(-6.5))
+            // The press: comes down slightly oversized and off-angle, then
+            // seats into the page rather than fading up from nothing.
+            .scaleEffect(stamped ? 1 : 1.34)
+            .rotationEffect(.degrees(stamped ? 0 : -5))
+            .opacity(stamped ? 1 : 0)
+            .offset(y: 6)
         }
     }
 
-    private var stamp: some View {
-        VStack(spacing: 5) {
-            Text("ADMITTED")
-                .font(.system(size: 11, weight: .heavy))
-                .kerning(2.5)
-            Text(city.code)
-                .font(.system(size: 40, weight: .black, design: .monospaced))
-            Text(Date.now.formatted(date: .abbreviated, time: .omitted).uppercased())
-                .font(.system(size: 11, weight: .bold, design: .monospaced))
-            Text("+\(Int(session.completedMiles).formatted()) MILES · VOYAGE AIR")
-                .font(.system(size: 8, weight: .heavy))
-                .kerning(1)
-        }
-        .foregroundStyle(city.accentColor)
-        .padding(.horizontal, 26)
-        .padding(.vertical, 20)
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .strokeBorder(city.accentColor, lineWidth: 3)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(city.accentColor.opacity(0.5), lineWidth: 1.5)
-                .padding(-5)
-        )
-        .opacity(0.85)
+    // MARK: Stamp text
+
+    private var stampDateText: String {
+        Self.stampDate.string(from: .now).uppercased()
+    }
+
+    private static let stampDate: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "dd MMM yyyy"
+        return f
+    }()
+
+    /// Passport-style machine-readable zone. Cosmetic, but built from the real
+    /// route so it reads as this trip's page, not boilerplate.
+    private var mrzTop: String {
+        let cityToken = city.city.uppercased()
+            .replacingOccurrences(of: " ", with: "<")
+            .filter { $0.isLetter || $0 == "<" }
+        return pad("P<VOY\(city.code)<\(cityToken)", to: 36)
+    }
+
+    private var mrzBottom: String {
+        let origin = session.itinerary.origin.code
+        let date = Self.mrzDate.string(from: .now)
+        let miles = Int(session.completedMiles)
+        return pad("\(city.code)\(origin)<\(date)<\(miles)MI", to: 36)
+    }
+
+    private static let mrzDate: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "ddMMMyy"
+        return f
+    }()
+
+    private func pad(_ s: String, to width: Int) -> String {
+        s.count >= width ? String(s.prefix(width))
+                         : s + String(repeating: "<", count: width - s.count)
     }
 }

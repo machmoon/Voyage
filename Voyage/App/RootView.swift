@@ -6,6 +6,7 @@ import SwiftData
 struct RootView: View {
     @State private var session: FlightSession?
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.modelContext) private var modelContext
     @State private var scheduler = FlightScheduler.shared
     @State private var settings = SettingsStore.shared
 
@@ -38,14 +39,34 @@ struct RootView: View {
             session?.handleScenePhase(newPhase)
             if newPhase == .active {
                 scheduler.pruneExpired()
-                Task { await FocusIntegration.shared.refresh() }
+                if !Self.debugStampScreenshot {
+                    Task { await FocusIntegration.shared.refresh() }
+                }
             }
         }
         .onAppear {
             Haptics.prepare()
-            Task { await FocusIntegration.shared.refresh() }
+            #if DEBUG
+            // QA-only: jump straight to the passport-stamp payoff, and skip the
+            // Focus authorization prompt so it can't cover the capture.
+            if Self.debugStampScreenshot, session == nil {
+                settings.hasCompletedOnboarding = true
+                session = FlightSession.debugArrived(modelContext: modelContext)
+            }
+            #endif
+            if !Self.debugStampScreenshot {
+                Task { await FocusIntegration.shared.refresh() }
+            }
         }
         .preferredColorScheme(session?.stage == .inFlight ? .dark : nil)
+    }
+
+    private static var debugStampScreenshot: Bool {
+        #if DEBUG
+        ProcessInfo.processInfo.arguments.contains("-VoyageDebugStamp")
+        #else
+        false
+        #endif
     }
 
     private var sessionStageKey: String {
