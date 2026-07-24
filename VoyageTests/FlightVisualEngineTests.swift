@@ -202,10 +202,18 @@ final class FlightVisualEngineTests: XCTestCase {
         let liftoffFeet = (trajectory.departureRunway.threshold.altitudeMeters + 18) * feetPerMeter
 
         let fiveMinutes = trajectory.state(at: 5 * 60, seat: "A8").aircraft.altitudeMeters * feetPerMeter
+        // The climb is now front-loaded, so early altitude is 2–3× higher than the
+        // old symmetric ease — but the average over the first five minutes still
+        // can't exceed a believable initial narrow-body rate (~3,500 fpm).
         XCTAssertLessThanOrEqual(
             fiveMinutes - liftoffFeet,
-            5 * 2_500,
-            "five minutes of climb implies more than 2,500 fpm"
+            5 * 3_500,
+            "five minutes of climb implies more than 3,500 fpm"
+        )
+        XCTAssertGreaterThanOrEqual(
+            fiveMinutes - liftoffFeet,
+            5 * 1_600,
+            "front-loaded climb should clear meaningful altitude in the first five minutes"
         )
 
         let cruise = trajectory.state(
@@ -267,6 +275,21 @@ final class FlightVisualEngineTests: XCTestCase {
             liftoff + 500,
             "climb should reach meaningful altitude"
         )
+
+        // Front-loaded climb: by the halfway point in time the plane has already
+        // covered well over half the altitude to level-off (a symmetric ease would
+        // sit right at ~0.5). This is what makes early altitude 2–3× higher.
+        let ceiling = trajectory.state(at: schedule.climbEnd, seat: "A8").aircraft.altitudeMeters
+        let midpoint = trajectory.state(
+            at: schedule.takeoffEnd + schedule.climbDuration * 0.5,
+            seat: "A8"
+        ).aircraft.altitudeMeters
+        let midFraction = (midpoint - liftoff) / max(1, ceiling - liftoff)
+        XCTAssertGreaterThan(
+            midFraction,
+            0.55,
+            "climb should be front-loaded: past half the altitude by half the time"
+        )
     }
 
     func testShortFlightGroundSpeedsStayBelievableDuringDeparture() {
@@ -305,11 +328,14 @@ final class FlightVisualEngineTests: XCTestCase {
             let feetPerMinute = (later - earlier) / deltaSeconds * 3.280_839_895 * 60
             let secondsIntoClimb = laterElapsed - climbStart
 
-            // The first ~25 s after liftoff build vertical speed gradually.
-            if secondsIntoClimb < 25 { continue }
+            // Skip the very first samples where vertical speed spins up off the
+            // liftoff knot; the boundary finite-difference isn't representative.
+            if secondsIntoClimb < 8 { continue }
             // The final level-off segment is intentionally slower than en-route climb.
             if secondsIntoClimb > schedule.climbDuration * 0.88 { continue }
 
+            // Front-loaded: climb is fastest right after liftoff, tapering toward
+            // level-off — but never above a believable initial narrow-body rate.
             XCTAssertGreaterThanOrEqual(
                 feetPerMinute,
                 800,
@@ -329,10 +355,21 @@ final class FlightVisualEngineTests: XCTestCase {
             accuracy: 0.5,
             "compressed climb should level at the QA ceiling"
         )
-        XCTAssertLessThan(
-            trajectory.state(at: climbStart + 25, seat: "A8").aircraft.altitudeMeters - liftoff,
-            400,
-            "twenty-five seconds into climb should still be in the gentle initial segment"
+        // The front-loaded profile means the plane is meaningfully airborne within
+        // the first 25 s rather than barely rising — but the gain over that window
+        // still implies no more than a believable ~3,500 fpm initial rate.
+        let twentyFiveSecondGain =
+            (trajectory.state(at: climbStart + 25, seat: "A8").aircraft.altitudeMeters - liftoff)
+            * 3.280_839_895
+        XCTAssertGreaterThan(
+            twentyFiveSecondGain,
+            600,
+            "front-loaded climb should already be climbing hard 25 s after liftoff"
+        )
+        XCTAssertLessThanOrEqual(
+            twentyFiveSecondGain / (25.0 / 60.0),
+            3_500,
+            "initial climb rate should stay below a believable narrow-body ceiling"
         )
     }
 

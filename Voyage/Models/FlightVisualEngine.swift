@@ -916,16 +916,18 @@ struct FlightTrajectory {
         return max(0, min(raw, limit))
     }
 
-    /// Normalized 0…1 altitude fraction during climb. A cosine ease keeps vertical
-    /// speed near zero at liftoff, peaks in the mid-climb en-route segment, then
-    /// eases into cruise without a late spike.
+    /// Normalized 0…1 altitude fraction during climb. Front-loaded to match how a
+    /// real narrow-body actually flies: it climbs FASTEST just after liftoff
+    /// (~2,500–3,500 fpm initial) and tapers as it approaches level-off in the
+    /// flight levels (~1,000–1,500 fpm above ~FL250). The `1 - (1 - t)^1.5`
+    /// ease-out gives that steep-then-easing shape, reaches cruise exactly at the
+    /// top (f(1) = 1) and levels smoothly (f'(1) = 0) with no late altitude spike.
+    /// The old symmetric cosine started at ~zero vertical speed, so the plane
+    /// barely rose for the first minute — this puts early altitude 2–3× higher at
+    /// the same elapsed time.
     private func climbAltitudeFraction(_ progress: Double) -> Double {
         let t = min(1, max(0, progress))
-        if t <= 0.90 {
-            return 0.94 * (1 - cos(.pi * t / 0.90)) / 2
-        }
-        let u = (t - 0.90) / 0.10
-        return 0.94 + 0.06 * smoothstep(0, 1, u)
+        return 1 - pow(1 - t, 1.5)
     }
 
     /// QA legs cap below FL360 — ~5,000 ft is reachable in ~2.5 min at believable
@@ -937,9 +939,10 @@ struct FlightTrajectory {
     /// - **Stage length.** Real dispatch doesn't send a 40-minute hop to FL360;
     ///   short sectors level in the twenties, long hauls sit in the mid-thirties.
     /// - **Climb rate.** The altitude readout is live, so whatever we pick has to
-    ///   be reachable inside `climbDuration` at a rate a narrow-body can actually
-    ///   fly (~2,100 fpm average). Without this a short leg showed FL300 five
-    ///   minutes after takeoff, which no passenger would believe.
+    ///   be reachable inside `climbDuration` at an average a narrow-body can
+    ///   actually sustain (~2,300 fpm). Because the climb curve is now
+    ///   front-loaded, the early rate is higher while this average stays
+    ///   plausible, so the number never outruns what a passenger would believe.
     static func cruiseAltitudeMeters(leg: FlightLeg,
                                      schedule: FlightPhaseSchedule,
                                      departureRunway: RunwayProfile) -> Double {
@@ -949,10 +952,13 @@ struct FlightTrajectory {
 
         let feetPerMeter = 3.280_839_895
         let distanceKm = leg.origin.location.distance(from: leg.destination.location) / 1_000
-        let byStageLength = min(37_000, max(19_000, 19_000 + distanceKm * 8))
+        // Optimum cruise altitude rises with stage length: short sectors level in
+        // the mid-20s, transcons sit in the mid-to-high 30s near the service
+        // ceiling. The earlier 19,000 + 8·km curve held shorter legs too low.
+        let byStageLength = min(37_000, max(21_000, 21_000 + distanceKm * 9))
 
         let liftoffFeet = (departureRunway.threshold.altitudeMeters + 18) * feetPerMeter
-        let byClimbRate = liftoffFeet + schedule.climbDuration / 60 * 2_100
+        let byClimbRate = liftoffFeet + schedule.climbDuration / 60 * 2_300
 
         return max(9_000, min(byStageLength, byClimbRate)) / feetPerMeter
     }

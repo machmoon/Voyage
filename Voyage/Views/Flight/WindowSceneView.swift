@@ -115,23 +115,19 @@ struct IllustratedWindowSceneView: View {
                 if airportOpacity > 0.01 {
                     var ctx = context
                     if scene.onGround && phase == .landing {
+                        // Glassy-smooth rollout: the runway rises into frame but
+                        // never jitters — owners flagged the old shake as bumpy.
                         let appear = min(1.0, scene.tPhase / 1.6)
-                        let speedT = reduceMotion ? 0 : min(1.0, scene.groundScroll / (920 * max(1, scene.tPhase)))
-                        let shake = sin(scene.time * 31) * 1.4 * speedT
-                            + sin(scene.time * 53 + 1.3) * 0.7 * speedT
                         ctx.opacity = appear * airportOpacity
-                        ctx.translateBy(x: 0, y: scene.size.height * (1 - appear) * 0.35 + shake)
+                        ctx.translateBy(x: 0, y: scene.size.height * (1 - appear) * 0.35)
                     } else if phase == .climb {
                         let recedeSpan = FlightSession.shortFlightsEnabled ? 2.5 : 8.0
                         let recede = min(1.0, scene.tPhase / recedeSpan)
                         ctx.opacity = airportOpacity
                         ctx.translateBy(x: 0, y: scene.size.height * recede * 0.9)
                     } else {
-                        let speedT = reduceMotion ? 0 : min(1.0, scene.groundScroll / (920 * max(1, scene.tPhase)))
-                        let shake = sin(scene.time * 31) * 1.4 * speedT
-                            + sin(scene.time * 53 + 1.3) * 0.7 * speedT
+                        // Takeoff roll: the ground sits rock-steady, no shake.
                         ctx.opacity = airportOpacity
-                        ctx.translateBy(x: 0, y: shake)
                     }
                     drawAirportGround(ctx, scene)
                 }
