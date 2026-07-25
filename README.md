@@ -12,10 +12,10 @@ Built with **Codex powered by GPT-5.6** for the **Apps for Your Life** track of 
 [![License](https://img.shields.io/badge/license-MIT-2563EB)](LICENSE)
 
 <p align="center">
-  <img src="QA/qa-01-home.png" width="170" alt="Book a focus flight from the globe">
-  <img src="QA/qa-03-seats.png" width="170" alt="Choose a seat in the aircraft">
-  <img src="QA/qa-04-boarding-pass-pre-tear.png" width="170" alt="Tear the boarding pass to commit">
-  <img src="QA/qa-07-inflight-climb-clouds.png" width="170" alt="Focus through the passenger window">
+  <img src="https://raw.githubusercontent.com/machmoon/Voyage-QA/main/qa-01-home.png" width="170" alt="Book a focus flight from the globe">
+  <img src="https://raw.githubusercontent.com/machmoon/Voyage-QA/main/qa-03-seats.png" width="170" alt="Choose a seat in the aircraft">
+  <img src="https://raw.githubusercontent.com/machmoon/Voyage-QA/main/qa-04-boarding-pass-pre-tear.png" width="170" alt="Tear the boarding pass to commit">
+  <img src="https://raw.githubusercontent.com/machmoon/Voyage-QA/main/qa-07-inflight-climb-clouds.png" width="170" alt="Focus through the passenger window">
 </p>
 
 ## The problem
@@ -181,7 +181,7 @@ In Xcode:
 For a compressed demonstration, add `-VoyageShortFlights` under **Scheme → Run → Arguments**, or launch an already installed simulator build with:
 
 ```bash
-xcrun simctl launch booted com.patliu.voyage -VoyageShortFlights
+xcrun simctl launch booted com.patrickliu.voyage -VoyageShortFlights
 ```
 
 This compresses the takeoff roll to approximately 3 seconds and reaches cruise at approximately 8 seconds. Route duration, persistence, and strict-mode logic remain unchanged.
@@ -216,7 +216,7 @@ Add your key to `Config.local.xcconfig`:
 GOOGLE_MAPS_API_KEY = your_key_here
 ```
 
-`Config.local.xcconfig` is git-ignored and is `#include?`-ed by the checked-in base config, so a clean checkout without it still builds. Restrict the key to the `com.patliu.voyage` bundle identifier and to the Maps 3D SDK in the Google Cloud Console — keys embedded in an iOS app are not secrets, so the application and API restrictions are the real security boundary.
+`Config.local.xcconfig` is git-ignored and is `#include?`-ed by the checked-in base config, so a clean checkout without it still builds. Restrict the key to the `com.patrickliu.voyage` bundle identifier and to the Maps 3D SDK in the Google Cloud Console — keys embedded in an iOS app are not secrets, so the application and API restrictions are the real security boundary.
 
 ### Running without the package
 

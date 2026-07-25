@@ -28,10 +28,20 @@ xcuserdata/
 timeline.xctimeline
 playground.xcworkspace
 
-# Local QA log dumps (keep screenshots)
+# Local QA log dumps and generated captures (committed media lives in Voyage-QA)
 QA/*.log
 QA/*.txt
 QA/uitest/
+QA/**/*.png
+QA/**/*.jpg
+QA/**/*.jpeg
+QA/**/*.mp4
+QA/**/*.mov
+QA/**/*.gif
+QA/**/*.webp
+QA/demo/
+QA/gallery/
+QA/voice-candidates/
 
 # Private submission prep — kept locally, never pushed
 BUILD_WEEK_DEMO.md

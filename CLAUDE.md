@@ -39,7 +39,7 @@ xcodebuild ... test -only-testing:VoyageTests/FlightSessionTests/testPhasesProgr
 Run in the simulator with compressed flight phases for QA (takeoff ~3s, climb done by ~8s elapsed instead of ~90s):
 
 ```bash
-xcrun simctl launch booted com.patliu.voyage -VoyageShortFlights
+xcrun simctl launch booted com.patrickliu.voyage -VoyageShortFlights
 ```
 
 ## Architecture
@@ -69,4 +69,4 @@ xcrun simctl launch booted com.patliu.voyage -VoyageShortFlights
 
 ## QA screenshots
 
-`VoyageUITests/ScreenshotTourUITests.swift` runs a full boarding → rip → in-flight tour with `-VoyageShortFlights` and saves PNGs to the repo's `QA/` directory (absolute path is hardcoded in the test). `QA/*.png` is committed; logs (`QA/*.log`, `QA/*.txt`, `QA/uitest/`) are gitignored.
+`VoyageUITests/ScreenshotTourUITests.swift` runs a full boarding → rip → in-flight tour with `-VoyageShortFlights` and saves PNGs to the repo's `QA/` directory (absolute path is hardcoded in the test). Committed reference screenshots and demo media live in [machmoon/Voyage-QA](https://github.com/machmoon/Voyage-QA); logs (`QA/*.log`, `QA/*.txt`, `QA/uitest/`) and local test output are gitignored.
