@@ -8,5 +8,16 @@
 	<string>3QQL2XA4VS</string>
 	<key>uploadSymbols</key>
 	<true/>
+	<key>signingStyle</key>
+	<string>manual</string>
+	<key>signingCertificate</key>
+	<string>Apple Distribution</string>
+	<key>provisioningProfiles</key>
+	<dict>
+		<key>com.patrickliu.voyage</key>
+		<string>Voyage</string>
+		<key>com.patrickliu.voyage.widgets</key>
+		<string>Voyage Widgets</string>
+	</dict>
 </dict>
 </plist>

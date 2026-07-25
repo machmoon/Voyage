@@ -30,6 +30,16 @@ targets:
         ENABLE_PREVIEWS: true
         CODE_SIGN_STYLE: Automatic
         ENABLE_TESTABILITY: true
+      configs:
+        # Release signs manually against the App Store distribution profile.
+        # Automatic signing cannot be used for the archive: it provisions with
+        # a *development* profile, and Apple will not issue one to a team with
+        # no registered devices. Debug stays automatic so simulator builds and
+        # tests are unaffected.
+        Release:
+          CODE_SIGN_STYLE: Manual
+          CODE_SIGN_IDENTITY: "Apple Distribution"
+          PROVISIONING_PROFILE_SPECIFIER: "Voyage"
   VoyageWidgets:
     type: app-extension
     platform: iOS
@@ -50,6 +60,11 @@ targets:
         CODE_SIGN_STYLE: Automatic
         SKIP_INSTALL: true
         GENERATE_INFOPLIST_FILE: false
+      configs:
+        Release:
+          CODE_SIGN_STYLE: Manual
+          CODE_SIGN_IDENTITY: "Apple Distribution"
+          PROVISIONING_PROFILE_SPECIFIER: "Voyage Widgets"
   VoyageTests:
     type: bundle.unit-test
     platform: iOS
