@@ -24,6 +24,9 @@ xcuserdata/
 .build/
 .swiftpm/
 
+# Cloudflare worker dependencies
+worker/node_modules/
+
 # Playgrounds
 timeline.xctimeline
 playground.xcworkspace
