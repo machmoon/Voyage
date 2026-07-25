@@ -16,13 +16,13 @@ final class OnboardingUITests: XCTestCase {
                                 "-VoyageResetOnboarding"]
         app.launch()
 
-        // Screen 1
-        XCTAssertTrue(app.staticTexts["A focus timer you have to land."].waitForExistence(timeout: 10))
-        capture(app, name: "onboarding-1-welcome")
+        // Screen 1, welcome
+        XCTAssertTrue(app.staticTexts["Thank you for downloading Voyage."].waitForExistence(timeout: 10))
+        capture(app, name: "onboarding-1-hello")
 
         app.buttons["Continue"].tap()
 
-        // Screen 2
+        // Screen 2, how it works
         XCTAssertTrue(app.staticTexts["Book a real route"].waitForExistence(timeout: 5))
         capture(app, name: "onboarding-2-steps")
 

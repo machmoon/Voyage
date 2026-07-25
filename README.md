@@ -35,6 +35,7 @@ Voyage borrows that psychological machinery. It is not an airplane placed next t
 5. **Focus through the flight.** Takeoff, climb, cruise, descent, and landing drive the window, map, weather, altitude, cabin lighting, announcements, haptics, and procedural audio.
 6. **Do not abandon the aircraft.** Backgrounding starts a 30-second grace period. Missing the deadline diverts the flight.
 7. **Land and remember it.** Completed flights earn miles, extend streaks, produce passport stamps, preserve completed intentions, and can be replayed from the logbook.
+8. **Optional system hooks.** Location permission sets your nearest home airport on the globe. Flight Focus ties into iOS Focus mode: add the filter once, then grant Focus access when you board for an airplane-mode-style session.
 
 The active flight also appears in a Live Activity and the Dynamic Island, so the remaining time can be checked without reopening the app and accidentally causing an aviation incident.
 
@@ -306,6 +307,18 @@ xcodegen generate
 - **Visual QA:** [`QA/`](QA/)
 
 The required `/feedback` Codex Session ID is supplied in the Devpost submission form.
+
+## Future direction
+
+Voyage is a complete focus loop today, but the flight metaphor opens room to grow:
+
+- **AI study insights:** post-flight summaries of what you worked on, patterns across sessions, and gentle nudges before you board.
+- **Social flights:** study the same route with friends, shared boarding calls, and a group logbook for accountability without turning focus into a feed.
+- **Personal bests and achievements:** route records, streak milestones, and tier unlocks that reward showing up.
+- **Richer replays:** animated journey recaps, shareable route cards, and weekly flight films from your logbook.
+- **More of the world:** expanded route catalog, seasonal scenes, and deeper real-world scenery along popular corridors.
+
+If you build on Voyage or have ideas, the project is [open source](https://github.com/machmoon/Voyage). Issues and PRs are welcome.
 
 ## License
 

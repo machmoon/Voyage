@@ -7,9 +7,8 @@ import MapKit
 /// seam. Copy sits in the app's glass cards, with the kerned VOYAGE header,
 /// monospaced airport codes, a single accent, and the white pill CTA.
 ///
-/// The three "how it works" steps are carried by type and spacing alone:
-/// monospaced index numbers (the same numeric treatment as the airport codes),
-/// a semibold headline, and a secondary line. No decorative symbols in the card.
+/// The flow opens with a welcome from the developer, walks through how it
+/// works, and hands off to Home.
 struct OnboardingView: View {
     /// Called once the traveler taps through the final screen.
     let onFinished: () -> Void
@@ -43,27 +42,38 @@ struct OnboardingView: View {
 
     private static let pages: [OnboardingPage] = [
         OnboardingPage(
-            kicker: "PREFLIGHT",
-            title: "A focus timer you have to land.",
-            body: "A study session is a real airline route, flown in its real flight time. Stay in the app until you land and the time is logged. Leave early and the session ends."
+            kicker: "HELLO",
+            title: "Thank you for downloading Voyage.",
+            body: """
+            I'm Patrick, the developer behind the app. As an avid traveler and student, I had an idea to build a study app around flying. Voyage is open source, and you're welcome to peek under the hood.
+
+            Every session is modeled on a real flight: actual block times set your focus timer, and you study through a 3D window with streamed satellite scenery along your route, or a drawn sky that follows the weather.
+
+            Your nearest airport is home. Voyage will ask for location once to set it, or you can choose manually in Settings. Destinations on the globe are sorted by flight time, so you can pick a route that matches how long you want to study.
+
+            For an airplane-mode feel, add Voyage's Flight Focus filter in iOS Settings. Once it's wired up, the app can ask for Focus access at boarding so your session stays distraction-free.
+
+            After a few journeys, check the logbook to replay your routes, track miles and streaks, and fill your passport. Stay in the app until you land. Leave early and the flight diverts.
+            """,
+            showsOpenSource: true
         ),
         OnboardingPage(
             kicker: "HOW IT WORKS",
             title: "Three steps, start to finish.",
             steps: [
                 .init(headline: "Book a real route",
-                      detail: "Choose an origin and destination. The airline's real flight time becomes your focus timer."),
+                      detail: "Choose a destination. Its real flight time becomes your focus timer."),
                 .init(headline: "Study through the window",
-                      detail: "The window view and moving map follow your real position. Stay in the app and the flight continues."),
+                      detail: "The 3D window and moving map follow your position. Weather matches the forecast when you're on the illustrated view."),
                 .init(headline: "Land to log it",
-                      detail: "A finished flight adds its miles to your logbook and a stamp to your passport.")
+                      detail: "A finished flight posts to your logbook with a route replay, miles, and passport stamps.")
             ]
         ),
         OnboardingPage(
             kicker: "READY",
             title: "Pick your first route.",
-            body: "Your origin is set to the nearest airport. Choose a destination on the globe to begin.",
-            showsOpenSource: true
+            body: "Your home airport is already on the globe. Tap a destination and board when you're ready.",
+            showsRoute: true
         )
     ]
 
@@ -90,7 +100,7 @@ struct OnboardingView: View {
                         // there's no vertical rubber-band to glitch while paging.
                         ScrollView(.vertical) {
                             OnboardingCard(model: model, isActive: page == index,
-                                           route: index == 2 ? routeChip : nil)
+                                           route: model.showsRoute ? routeChip : nil)
                                 .padding(.horizontal, 20)
                         }
                         .scrollBounceBehavior(.basedOnSize)
@@ -98,7 +108,7 @@ struct OnboardingView: View {
                     }
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
-                .frame(height: 400)
+                .frame(height: 430)
 
                 footer
             }
@@ -325,6 +335,7 @@ private struct OnboardingPage {
     var body: String?
     var steps: [Step] = []
     var showsOpenSource: Bool = false
+    var showsRoute: Bool = false
 
     struct Step: Identifiable {
         let id = UUID()
