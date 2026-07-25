@@ -18,6 +18,8 @@ final class LogbookEntry {
     var intentionsCompleted: [Bool]
     /// Optional caption added at share time (Strava-style activity description).
     var shareCaption: String?
+    /// Optional title given to the flight when it is posted to the logbook.
+    var postTitle: String?
     /// World choices are optional to keep existing logbook stores lightweight-migration compatible.
     var aircraftRaw: String?
     var weatherSnapshotData: Data?
@@ -43,6 +45,7 @@ final class LogbookEntry {
          intentions: [String] = [],
          intentionsCompleted: [Bool] = [],
          shareCaption: String? = nil,
+         postTitle: String? = nil,
          aircraft: AircraftProfile? = nil,
          weatherSnapshot: WeatherSnapshot? = nil,
          departureProfile: DepartureProfile? = nil,
@@ -64,6 +67,7 @@ final class LogbookEntry {
         self.intentions = intentions
         self.intentionsCompleted = intentionsCompleted
         self.shareCaption = shareCaption
+        self.postTitle = postTitle
         self.aircraftRaw = aircraft?.rawValue
         self.weatherSnapshotData = weatherSnapshot.flatMap { try? JSONEncoder().encode($0) }
         self.departureProfileRaw = departureProfile?.rawValue
@@ -166,6 +170,38 @@ enum LogbookStats {
         return entries
             .filter { $0.completed && interval.contains($0.date) }
             .sorted { $0.date < $1.date }
+    }
+
+    /// Time-of-day title pre-filled into the post composer. The user can
+    /// overwrite it before posting.
+    static func defaultPostTitle(
+        at date: Date = .now,
+        calendar: Calendar = .current
+    ) -> String {
+        switch calendar.component(.hour, from: date) {
+        case 5..<12: return "Morning flight"
+        case 12..<17: return "Afternoon flight"
+        case 17..<22: return "Evening flight"
+        default: return "Red-eye flight"
+        }
+    }
+
+    /// True when `entry` holds the longest focus of any completed flight on the
+    /// same directed route. `among` may include `entry` itself, since callers
+    /// typically pass the whole logbook after the entry has been saved.
+    static func isPersonalBestFocus(
+        _ entry: LogbookEntry,
+        among entries: [LogbookEntry]
+    ) -> Bool {
+        guard entry.completed else { return false }
+        return entries
+            .filter {
+                $0 !== entry
+                    && $0.completed
+                    && $0.originCode == entry.originCode
+                    && $0.destinationCode == entry.destinationCode
+            }
+            .allSatisfy { $0.focusSeconds < entry.focusSeconds }
     }
 
     /// Consecutive-day streak of completed flights ending today or yesterday.

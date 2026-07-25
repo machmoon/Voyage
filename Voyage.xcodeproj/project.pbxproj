@@ -137,6 +137,7 @@
 		99DD4B7E6B68DA09851C7499 /* DepartureReadiness.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48FB43F251445FBC7E06E159 /* DepartureReadiness.swift */; };
 		9A956CB9203B010E8C28FB7F /* FlightActivityController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A03A9E0E2A8FB0FC316F94E /* FlightActivityController.swift */; };
 		9CA8B5599618A7590FA87C45 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB3F19E7F55471BBB8D955FD /* OnboardingView.swift */; };
+		9D717AE98ED5B8BAB8267A46 /* LogbookPostTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6772A9E155A264D847919184 /* LogbookPostTests.swift */; };
 		9D946DB8E6AE558EEF61F351 /* FlightReceiptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5022D636444E7F0D836371D1 /* FlightReceiptView.swift */; };
 		9DB55F6AA827DB83B7F4F4AD /* FlightVisualEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A32B0AC3F6B4A577B3EA051 /* FlightVisualEngineTests.swift */; };
 		9E852205ACE106C0C902093A /* StartupGlobeGateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1685B50688FF739A1D7D183D /* StartupGlobeGateTests.swift */; };
@@ -162,6 +163,7 @@
 		BE094048F33D33818A51E68F /* captain_layover_new-york.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 7F7B5E7D980A0076C338DE93 /* captain_layover_new-york.m4a */; };
 		BE9AA8546F6A8F7E93F04228 /* crew_preview.m4a in Resources */ = {isa = PBXBuildFile; fileRef = F44071B8E0327A74FF5D7D50 /* crew_preview.m4a */; };
 		BEEC020E7B00A161632E72BC /* VoyageSmokeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B08FC90B909634E033DBB2B /* VoyageSmokeUITests.swift */; };
+		BFB5FD2F181C241870577433 /* FlightPostView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4622E9976475575ABB598CDC /* FlightPostView.swift */; };
 		C3D0DA87C3A260120110D617 /* crew_landed_raleigh-durham.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 39BF15532E3111871FE32A10 /* crew_landed_raleigh-durham.m4a */; };
 		C6A224EEDC8399DCCF214A22 /* OnboardingUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF9D0F0A8DEEE9D163BE0277 /* OnboardingUITests.swift */; };
 		C7FDAF2BD88333F514059BF5 /* ScreenshotTourUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C6FBB0F4116077FBF34D6A5 /* ScreenshotTourUITests.swift */; };
@@ -308,6 +310,7 @@
 		41B9819A51BED6339E0BE464 /* captain_midpoint_toronto.m4a */ = {isa = PBXFileReference; path = captain_midpoint_toronto.m4a; sourceTree = "<group>"; };
 		44B8A2CEA1D7B030571DC244 /* GreatCircleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GreatCircleTests.swift; sourceTree = "<group>"; };
 		45F3660F8491333EED3A1940 /* captain_finalcall_san-francisco.m4a */ = {isa = PBXFileReference; path = "captain_finalcall_san-francisco.m4a"; sourceTree = "<group>"; };
+		4622E9976475575ABB598CDC /* FlightPostView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightPostView.swift; sourceTree = "<group>"; };
 		46BF71E2A2D3C5D11FEDC7A4 /* captain_beverage.m4a */ = {isa = PBXFileReference; path = captain_beverage.m4a; sourceTree = "<group>"; };
 		4756106FE6875CA442DB7660 /* crew_landed_vancouver.m4a */ = {isa = PBXFileReference; path = crew_landed_vancouver.m4a; sourceTree = "<group>"; };
 		48FB43F251445FBC7E06E159 /* DepartureReadiness.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepartureReadiness.swift; sourceTree = "<group>"; };
@@ -333,6 +336,7 @@
 		668FF95FA41782B6DD89C9AE /* FeedbackSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackSheet.swift; sourceTree = "<group>"; };
 		66C90DE9B3A81CF67A2ED3A5 /* FlightScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightScheduler.swift; sourceTree = "<group>"; };
 		66E594E5CF2E444CC76F7A15 /* captain_descent_san-francisco.m4a */ = {isa = PBXFileReference; path = "captain_descent_san-francisco.m4a"; sourceTree = "<group>"; };
+		6772A9E155A264D847919184 /* LogbookPostTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogbookPostTests.swift; sourceTree = "<group>"; };
 		685811A683D09ECDC6325F88 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		68992329ADA6E0D2215DDF7E /* captain_landed_regina.m4a */ = {isa = PBXFileReference; path = captain_landed_regina.m4a; sourceTree = "<group>"; };
 		68B9B8946EB8A471F104F20C /* captain_descent_new-york.m4a */ = {isa = PBXFileReference; path = "captain_descent_new-york.m4a"; sourceTree = "<group>"; };
@@ -503,6 +507,7 @@
 				44B8A2CEA1D7B030571DC244 /* GreatCircleTests.swift */,
 				A0CD3D362194A3F9FC0D0FEF /* HomeGreetingTests.swift */,
 				D852A33B5FE2C0E2F34BB75C /* LogbookMigrationTests.swift */,
+				6772A9E155A264D847919184 /* LogbookPostTests.swift */,
 				FF3BFC67E078E4199B9419D6 /* RouteCatalogTests.swift */,
 				CE7C38C4A1700E1751034581 /* RoutePlannerTests.swift */,
 				1685B50688FF739A1D7D183D /* StartupGlobeGateTests.swift */,
@@ -525,6 +530,7 @@
 			isa = PBXGroup;
 			children = (
 				40BDCC51D903FA09B7B40B74 /* ArrivalFlowView.swift */,
+				4622E9976475575ABB598CDC /* FlightPostView.swift */,
 				B19D06ABCF8CF69C62358B08 /* PassportStamp.swift */,
 			);
 			path = Landing;
@@ -935,12 +941,14 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					378166E37E4E60CE28AD9D21 = {
+						DevelopmentTeam = 3QQL2XA4VS;
 						ProvisioningStyle = Automatic;
 					};
 					4FF7C8D507A57E3C87D791D3 = {
 						ProvisioningStyle = Automatic;
 					};
 					A304795E7822D1B4E01EDED7 = {
+						DevelopmentTeam = 3QQL2XA4VS;
 						ProvisioningStyle = Automatic;
 					};
 					DD47B6B3610D608AC05419CB = {
@@ -1113,6 +1121,7 @@
 				12E4E89E31607A9C0A4359E1 /* GreatCircleTests.swift in Sources */,
 				8A93E939B7FDA504CDF82AA7 /* HomeGreetingTests.swift in Sources */,
 				7ABC500B9DB9CF1AE2C4D682 /* LogbookMigrationTests.swift in Sources */,
+				9D717AE98ED5B8BAB8267A46 /* LogbookPostTests.swift in Sources */,
 				87603F97599BDD9EBA2488DE /* RouteCatalogTests.swift in Sources */,
 				2AB8D241BA72ABEF44132012 /* RoutePlannerTests.swift in Sources */,
 				9E852205ACE106C0C902093A /* StartupGlobeGateTests.swift in Sources */,
@@ -1160,6 +1169,7 @@
 				87A716322814118D376BCEE9 /* FlightDataAPI.swift in Sources */,
 				64173B9A6AC0E4508651B78D /* FlightMapView.swift in Sources */,
 				348B17602EE84DF95D6702D9 /* FlightNotifications.swift in Sources */,
+				BFB5FD2F181C241870577433 /* FlightPostView.swift in Sources */,
 				9D946DB8E6AE558EEF61F351 /* FlightReceiptView.swift in Sources */,
 				E757D764FD627B7C890F9AA3 /* FlightReplayView.swift in Sources */,
 				A635E1C06C1D7F25293B5DA9 /* FlightScheduler.swift in Sources */,
@@ -1237,6 +1247,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 3QQL2XA4VS;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_TESTABILITY = YES;
 				INFOPLIST_FILE = Voyage/Support/Info.plist;
@@ -1244,7 +1255,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.patliu.voyage;
+				PRODUCT_BUNDLE_IDENTIFIER = com.patrickliu.voyage;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
@@ -1261,7 +1272,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.patliu.voyage.uitests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.patrickliu.voyage.uitests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 1;
 				TEST_TARGET_NAME = Voyage;
@@ -1279,7 +1290,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.patliu.voyage.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.patrickliu.voyage.tests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 1;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Voyage.app/Voyage";
@@ -1290,6 +1301,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 3QQL2XA4VS;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = VoyageWidgets/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1297,7 +1309,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.patliu.voyage.widgets;
+				PRODUCT_BUNDLE_IDENTIFIER = com.patrickliu.voyage.widgets;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
 				TARGETED_DEVICE_FAMILY = 1;
@@ -1367,6 +1379,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 3QQL2XA4VS;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = VoyageWidgets/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1374,7 +1387,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.patliu.voyage.widgets;
+				PRODUCT_BUNDLE_IDENTIFIER = com.patrickliu.voyage.widgets;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
 				TARGETED_DEVICE_FAMILY = 1;
@@ -1388,6 +1401,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 3QQL2XA4VS;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_TESTABILITY = YES;
 				INFOPLIST_FILE = Voyage/Support/Info.plist;
@@ -1395,7 +1409,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.patliu.voyage;
+				PRODUCT_BUNDLE_IDENTIFIER = com.patrickliu.voyage;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
@@ -1412,7 +1426,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.patliu.voyage.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.patrickliu.voyage.tests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 1;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Voyage.app/Voyage";
@@ -1430,7 +1444,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.patliu.voyage.uitests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.patrickliu.voyage.uitests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 1;
 				TEST_TARGET_NAME = Voyage;
