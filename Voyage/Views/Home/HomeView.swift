@@ -208,7 +208,7 @@ struct HomeView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "location.fill")
                         .font(.system(size: 9))
-                    Text("Focus flights · \(origin.code)")
+                    Text("\(origin.city) · \(origin.code)")
                         .font(.caption.weight(.medium))
 
                     if lifetimeMiles > 0 {

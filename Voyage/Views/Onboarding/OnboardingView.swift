@@ -45,34 +45,23 @@ struct OnboardingView: View {
             kicker: "HELLO",
             title: "Thank you for downloading Voyage.",
             body: """
-            I'm Patrick, the developer behind the app. As an avid traveler and student, I had an idea to build a study app around flying. Voyage is open source, and you're welcome to peek under the hood.
+            I'm Patrick, the developer. Voyage models every study session on a real flight: actual block times set your focus timer, and you study through a window with satellite scenery along your route.
 
-            Every session is modeled on a real flight: actual block times set your focus timer, and you study through a 3D window with streamed satellite scenery along your route, or a drawn sky that follows the weather.
-
-            Your nearest airport is home. Voyage will ask for location once to set it, or you can choose manually in Settings. Destinations on the globe are sorted by flight time, so you can pick a route that matches how long you want to study.
-
-            For an airplane-mode feel, add Voyage's Flight Focus filter in iOS Settings. Once it's wired up, the app can ask for Focus access at boarding so your session stays distraction-free.
-
-            After a few journeys, check the logbook to replay your routes, track miles and streaks, and fill your passport. Stay in the app until you land. Leave early and the flight diverts.
+            Your nearest airport becomes home. Voyage asks for location once to set it, or you can pick one in Settings.
             """,
             showsOpenSource: true
         ),
         OnboardingPage(
             kicker: "HOW IT WORKS",
-            title: "Three steps, start to finish.",
+            title: "Three steps, then pick a route.",
             steps: [
                 .init(headline: "Book a real route",
-                      detail: "Choose a destination. Its real flight time becomes your focus timer."),
+                      detail: "Pick a runway. Real block times set the clock."),
                 .init(headline: "Study through the window",
-                      detail: "The 3D window and moving map follow your position. Weather matches the forecast when you're on the illustrated view."),
+                      detail: "Window seat or moving map. Both follow you."),
                 .init(headline: "Land to log it",
-                      detail: "A finished flight posts to your logbook with a route replay, miles, and passport stamps.")
-            ]
-        ),
-        OnboardingPage(
-            kicker: "READY",
-            title: "Pick your first route.",
-            body: "Your home airport is already on the globe. Tap a destination and board when you're ready.",
+                      detail: "Miles, stamps, streaks. Leave early and you divert.")
+            ],
             showsRoute: true
         )
     ]
@@ -298,8 +287,8 @@ struct OnboardingView: View {
     }
 
     /// Cameras for each screen: a *monotonic* descent so the flow reads as one
-    /// continuous approach. Full-Earth (34M) to route (26M) to Home. Page 2
-    /// exactly matches HomeView's opening framing (`center: home.lat minus 8`,
+    /// continuous approach. Full-Earth (34M) to Home. The last page exactly
+    /// matches HomeView's opening framing (`center: home.lat minus 8`,
     /// `distance: 22_000_000`) so the cross-dissolve into Home lands identically.
     private static func camera(for page: Int, home: Airport, destination: Airport?, settled: Bool = false) -> MapCamera {
         switch page {
@@ -309,14 +298,6 @@ struct OnboardingView: View {
                                                          longitude: home.longitude),
                 distance: settled ? 34_000_000 : 42_000_000
             )
-        case 1:
-            // Frame the sample arc while keeping the limb of the Earth in black
-            // space (do not zoom in past Home): centre a touch south of the route
-            // midpoint so the geodesic sweeps the upper third above the card.
-            let dest = destination ?? home
-            let mid = CLLocationCoordinate2D(latitude: (home.latitude + dest.latitude) / 2 - 8,
-                                             longitude: (home.longitude + dest.longitude) / 2)
-            return MapCamera(centerCoordinate: mid, distance: 26_000_000)
         default:
             return MapCamera(
                 centerCoordinate: CLLocationCoordinate2D(latitude: home.latitude - 8,

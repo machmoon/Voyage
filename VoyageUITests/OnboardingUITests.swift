@@ -1,7 +1,7 @@
 import XCTest
 
 /// Verifies the first-run preflight onboarding: it appears on a fresh install,
-/// walks three screens, and hands off to the home globe. `-VoyageResetOnboarding`
+/// walks two screens, and hands off to the home globe. `-VoyageResetOnboarding`
 /// forces the first-run state regardless of prior launches.
 final class OnboardingUITests: XCTestCase {
 
@@ -22,15 +22,9 @@ final class OnboardingUITests: XCTestCase {
 
         app.buttons["Continue"].tap()
 
-        // Screen 2, how it works
+        // Screen 2, how it works, and the route handoff
         XCTAssertTrue(app.staticTexts["Book a real route"].waitForExistence(timeout: 5))
         capture(app, name: "onboarding-2-steps")
-
-        app.buttons["Continue"].tap()
-
-        // Screen 3
-        XCTAssertTrue(app.staticTexts["Pick your first route."].waitForExistence(timeout: 5))
-        capture(app, name: "onboarding-3-ready")
 
         app.buttons["Start flying"].tap()
 
