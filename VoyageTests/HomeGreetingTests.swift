@@ -28,7 +28,7 @@ final class HomeGreetingTests: XCTestCase {
     }
 
     func testCopyHasNoEmDashes() {
-        for line in HomeGreeting.lines + [HomeGreeting.subtitle] {
+        for line in HomeGreeting.lines {
             XCTAssertFalse(line.contains("\u{2014}"), "em-dash in \(line)")
         }
     }

@@ -1,31 +1,26 @@
 import Foundation
 
 /// The Home screen greets you with a different line every time it opens. The
-/// pool blends three registers on purpose: calm welcomes, a little wit, and a
-/// push to start, so the rotation feels human instead of one scripted voice.
-/// The fixed subtitle underneath carries the actual explanation, which frees
-/// these to be short. No em-dashes: the copy reads like plain documentation.
+/// pool leans playful and stays short: the destination cards underneath already
+/// show each route's focus time, so the greeting does not need to explain the
+/// app. No em-dashes: the copy reads like plain documentation.
 enum HomeGreeting {
     static let lines: [String] = [
         "Where to today?",
-        "Pick a place to focus.",
+        "Pick a runway.",
         "Ready when you are.",
-        "Somewhere new today?",
+        "Somewhere far today?",
         "Clear skies ahead.",
         "Let's fly.",
         "Chasing a horizon?",
-        "Time to focus.",
-        "Pick a runway.",
+        "Time to lock in.",
+        "Window seat or aisle?",
         "Good to see you.",
-        "Window seat today?",
+        "Boarding at your leisure.",
         "Make it count.",
         "Wheels up when you are.",
         "The world is open."
     ]
-
-    /// The one line shown beneath the greeting. It stays put while the greeting
-    /// rotates, so a first-time viewer always sees what tapping a place does.
-    static let subtitle = "Pick a destination. Its real flight time becomes your focus session."
 
     private static let lastIndexKey = "homeGreetingLastIndex"
 

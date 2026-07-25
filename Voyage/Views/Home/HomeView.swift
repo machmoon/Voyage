@@ -351,16 +351,10 @@ struct HomeView: View {
             if let itinerary = selectedItinerary {
                 routeSummary(itinerary)
             } else {
-                VStack(spacing: 3) {
-                    Text(greeting)
-                        .font(.headline)
-                    Text(HomeGreeting.subtitle)
-                        .font(.caption)
-                        .foregroundStyle(.white.opacity(0.72))
-                        .multilineTextAlignment(.center)
-                }
-                .foregroundStyle(.white)
-                .shadow(color: .black.opacity(0.6), radius: 3)
+                Text(greeting)
+                    .font(.headline)
+                    .foregroundStyle(.white)
+                    .shadow(color: .black.opacity(0.6), radius: 3)
             }
 
             ScrollView(.horizontal, showsIndicators: false) {
