@@ -32,3 +32,6 @@ playground.xcworkspace
 QA/*.log
 QA/*.txt
 QA/uitest/
+
+# Python bytecode from scripts/
+__pycache__/
