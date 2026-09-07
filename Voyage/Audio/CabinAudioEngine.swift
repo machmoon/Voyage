@@ -111,6 +111,12 @@ final class CabinAudioEngine {
     /// foreground, a phone call, Siri). Voyage is a foreground-only audio app
     /// — no `audio` background mode — so nothing resumes the cabin for us.
     func resumeIfInterrupted() {
+        // The interruption notification can arrive *after* we're back in the
+        // foreground (a suspended app receives it on resume), so `isRunning`
+        // may still say true while the system has already stopped the engine.
+        // Trust the engine, not the cached flag, or the resume no-ops and the
+        // rest of the flight is silent.
+        if isRunning && !engine.isRunning { isRunning = false }
         guard !isRunning else { return }
         guard targetGain > 0 || oneShotHoldUntil > Date() else { return }
         cancelPendingTeardown()

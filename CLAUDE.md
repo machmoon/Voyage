@@ -65,7 +65,7 @@ xcrun simctl launch booted com.patliu.voyage -VoyageShortFlights
 
 **In-flight views (`Voyage/Views/Flight/`):** `InFlightView` hosts two switchable study views — the side-facing `WindowSceneView` (Canvas; per-phase kinematics from a `phaseStart` reset on phase change; wing drawn only for over-wing seats via `session.hasWingView`) and `FlightMapView` (MapKit; plane positioned by `GreatCircle` slerp at `session.legProgress`, Route/Follow cameras, Terrain/Satellite styles). A black "cabin lights dimmed" curtain covers the boarding→in-flight stage swap.
 
-**Audio (`Voyage/Audio/`):** everything is procedurally generated (no bundled audio assets) — `CabinAudioEngine` for ambience/chimes, `Announcer` for spoken PA via speech synthesis, `Haptics`.
+**Audio (`Voyage/Audio/`):** everything is procedurally generated (no bundled audio assets) — `CabinAudioEngine` for ambience/chimes, `Announcer` for spoken PA via speech synthesis, `Haptics`. Audio is **foreground-only**: there is deliberately no `audio` entry in `UIBackgroundModes` (App Review 2.5.4 rejected the unearned declaration — strict mode diverts 30s after backgrounding, so nothing needs to keep playing). Do not re-add it. The session is `.playback` + `.mixWithOthers`, and `CabinAudioEngine.resumeIfInterrupted()` restarts the cabin when the app returns to the foreground.
 
 ## QA screenshots
 
