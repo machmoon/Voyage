@@ -52,7 +52,6 @@
 		E329ACE2E5F8750F26259261 /* FlightLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE74ECDDE02CC4592D5DE0E3 /* FlightLiveActivity.swift */; };
 		ED9339E9798A3987FA78A55C /* WeatherMappingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9C6A8900000325A9B0AEC28 /* WeatherMappingTests.swift */; };
 		F539099ECED8D80CDCA8CE15 /* VoyageWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 0D68B05EFC09E000DA1DDF10 /* VoyageWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		F78BC5CAF6C33CA5F8C2EBBE /* WeatherAttributionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49B9AA9A171C2081A2D8C718 /* WeatherAttributionView.swift */; };
 		FB5766BF560C242EC935A52F /* BoardingFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC2722D2607D1446EB0D8DD9 /* BoardingFlowView.swift */; };
 /* End PBXBuildFile section */
 
@@ -108,7 +107,6 @@
 		40BDCC51D903FA09B7B40B74 /* ArrivalFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArrivalFlowView.swift; sourceTree = "<group>"; };
 		415D0FFCD4FA6DB8C28976A0 /* FlyerTierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlyerTierTests.swift; sourceTree = "<group>"; };
 		44B8A2CEA1D7B030571DC244 /* GreatCircleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GreatCircleTests.swift; sourceTree = "<group>"; };
-		49B9AA9A171C2081A2D8C718 /* WeatherAttributionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherAttributionView.swift; sourceTree = "<group>"; };
 		4CF9A3E41E2483EE5D95F966 /* LayoverLoungeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoverLoungeView.swift; sourceTree = "<group>"; };
 		56D4D40BAD9F85F05F7C581A /* FlightMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightMapView.swift; sourceTree = "<group>"; };
 		5C88294A662E6C2C66610A47 /* LocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
@@ -222,7 +220,6 @@
 				56D4D40BAD9F85F05F7C581A /* FlightMapView.swift */,
 				DD7705DAB62E1CCFB2ED9BFE /* InFlightView.swift */,
 				4CF9A3E41E2483EE5D95F966 /* LayoverLoungeView.swift */,
-				49B9AA9A171C2081A2D8C718 /* WeatherAttributionView.swift */,
 				E4639BD8F909C425C8B7EC5D /* WindowSceneView.swift */,
 			);
 			path = Flight;
@@ -551,7 +548,6 @@
 				2A6D2CD0EC832A9D6BD443E8 /* Theme.swift in Sources */,
 				D59281AE250FEE4F8D4E047A /* VoyageApp.swift in Sources */,
 				CE910C079DA82AEBD377378D /* VoyageClock.swift in Sources */,
-				F78BC5CAF6C33CA5F8C2EBBE /* WeatherAttributionView.swift in Sources */,
 				3901C73F8B9CB34C525A51DB /* WeatherService.swift in Sources */,
 				032D7F92BC8E892B6FCCE829 /* WindowSceneView.swift in Sources */,
 			);

@@ -60,9 +60,6 @@ struct InFlightView: View {
 
                 studyContent
 
-                WeatherAttributionView(source: session.windowWeatherSource)
-                    .padding(.top, 10)
-
                 Spacer(minLength: 18)
 
                 countdown

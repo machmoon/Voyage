@@ -54,9 +54,6 @@ final class FlightSession {
     /// Real current weather at the current leg's endpoints.
     private(set) var originCondition: SkyCondition = .clear
     private(set) var destinationCondition: SkyCondition = .clear
-    /// Which service supplied each end's weather, for on-screen attribution.
-    private(set) var originSource: WeatherSource = .unavailable
-    private(set) var destinationSource: WeatherSource = .unavailable
     private(set) var connectionDeparts: Date?
     private(set) var completedMiles: Double = 0
     private(set) var completedFocusSeconds: TimeInterval = 0
@@ -206,15 +203,6 @@ final class FlightSession {
         }
     }
 
-    /// Service behind the weather the window is showing right now — the
-    /// attribution under the window names it.
-    var windowWeatherSource: WeatherSource {
-        switch phase {
-        case .takeoffRoll, .climb: return originSource
-        case .cruise, .descent, .landing: return destinationSource
-        }
-    }
-
     /// Seats over the wing get the wing in their window view.
     /// Rows 5–8 of the 2–2 cabin sit over the wing box.
     /// (Seat labels are letter-first, e.g. "C10".)
@@ -265,14 +253,12 @@ final class FlightSession {
     private func fetchLegWeather() {
         let leg = currentLeg
         Task { [weak self] in
-            let origin = await WeatherService.reading(for: leg.origin)
-            self?.originCondition = origin.condition
-            self?.originSource = origin.source
+            let origin = await WeatherService.condition(for: leg.origin)
+            self?.originCondition = origin
         }
         Task { [weak self] in
-            let destination = await WeatherService.reading(for: leg.destination)
-            self?.destinationCondition = destination.condition
-            self?.destinationSource = destination.source
+            let destination = await WeatherService.condition(for: leg.destination)
+            self?.destinationCondition = destination
         }
     }
 

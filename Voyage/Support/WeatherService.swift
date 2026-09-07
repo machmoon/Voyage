@@ -1,8 +1,4 @@
 import Foundation
-import CoreLocation
-#if canImport(WeatherKit)
-import WeatherKit
-#endif
 
 /// Simplified sky condition used to theme the window scene.
 enum SkyCondition: String, Codable {
@@ -42,36 +38,23 @@ enum SkyCondition: String, Codable {
     }
 }
 
-/// Which service supplied the weather now on screen. Drives the on-screen
-/// attribution — Apple requires the Apple Weather trademark and legal link
-/// whenever WeatherKit data is surfaced, and Open-Meteo (CC BY 4.0) wants
-/// its own credit. `.unavailable` means no live data reached us (synthetic clear).
+/// Which service supplied the weather now on screen. Open-Meteo (CC BY 4.0)
+/// wants a credit; Settings carries it. `.unavailable` means no live data
+/// reached us (synthetic clear).
 enum WeatherSource: String, Codable {
-    case appleWeather
     case openMeteo
     case unavailable
 
-    /// Trademark / service name shown next to the weather it supplied.
-    var displayName: String? {
-        switch self {
-        case .appleWeather: return "Weather"   // shown after the Apple logo
-        case .openMeteo: return "Open-Meteo"
-        case .unavailable: return nil
-        }
-    }
-
-    /// Legal attribution page for the source.
+    /// Licence page for the source.
     var legalURL: URL? {
         switch self {
-        case .appleWeather: return URL(string: "https://weatherkit.apple.com/legal-attribution.html")
         case .openMeteo: return URL(string: "https://open-meteo.com/en/license")
         case .unavailable: return nil
         }
     }
 }
 
-/// One weather lookup: the condition plus which service actually answered,
-/// so the UI can attribute it correctly.
+/// One weather lookup: the condition plus which service actually answered.
 struct WeatherReading {
     let condition: SkyCondition
     let source: WeatherSource
@@ -79,9 +62,14 @@ struct WeatherReading {
     static let unavailable = WeatherReading(condition: .clear, source: .unavailable)
 }
 
-/// Real current weather for an airport. Tries WeatherKit first (needs the
-/// paid entitlement), then falls back to Open-Meteo — free, no API key —
+/// Real current weather for an airport, from Open-Meteo — free, no API key —
 /// so real-world weather works on any build. Final fallback: clear.
+///
+/// Deliberately does not use WeatherKit: the app has never held the
+/// entitlement, so every call threw and Open-Meteo supplied 100% of shipped
+/// weather, while the unused `import WeatherKit` still linked the framework
+/// and drew an App Review 5.2.5 rejection over the missing Apple Weather
+/// attribution. Do not re-add the import.
 enum WeatherService {
     static func destinationCondition(for airport: Airport) async -> SkyCondition {
         await condition(for: airport)
@@ -96,49 +84,11 @@ enum WeatherService {
         if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
             return .unavailable
         }
-        #if canImport(WeatherKit)
-        if let condition = await weatherKitCondition(for: airport) {
-            return WeatherReading(condition: condition, source: .appleWeather)
-        }
-        #endif
         if let condition = await openMeteoCondition(for: airport) {
             return WeatherReading(condition: condition, source: .openMeteo)
         }
         return .unavailable
     }
-
-    // MARK: WeatherKit
-
-    #if canImport(WeatherKit)
-    private static func weatherKitCondition(for airport: Airport) async -> SkyCondition? {
-        do {
-            let weather = try await WeatherKit.WeatherService.shared.weather(
-                for: airport.location,
-                including: .current
-            )
-            switch weather.condition {
-            case .thunderstorms, .isolatedThunderstorms, .scatteredThunderstorms,
-                 .strongStorms, .hail:
-                return .storm
-            case .rain, .drizzle, .heavyRain, .sunShowers:
-                return .rain
-            case .snow, .heavySnow, .flurries, .sleet, .blizzard,
-                 .blowingSnow, .freezingDrizzle, .freezingRain, .wintryMix:
-                return .snow
-            case .foggy, .haze, .smoky:
-                return .fog
-            case .cloudy, .mostlyCloudy, .blowingDust:
-                return .cloudy
-            case .partlyCloudy, .mostlyClear:
-                return .partlyCloudy
-            default:
-                return .clear
-            }
-        } catch {
-            return nil // No entitlement / no network — try Open-Meteo.
-        }
-    }
-    #endif
 
     // MARK: Open-Meteo
 

@@ -78,23 +78,15 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    Link(destination: URL(string: "https://weatherkit.apple.com/legal-attribution.html")!) {
-                        Label {
-                            HStack(spacing: 4) {
-                                Image(systemName: "apple.logo")
-                                Text("Weather")
-                            }
-                        } icon: {
-                            Image(systemName: "cloud.sun.fill")
+                    if let licence = WeatherSource.openMeteo.legalURL {
+                        Link(destination: licence) {
+                            Label("Weather by Open-Meteo", systemImage: "cloud.sun.fill")
                         }
-                    }
-                    Link(destination: URL(string: "https://open-meteo.com/en/license")!) {
-                        Label("Open-Meteo", systemImage: "cloud.fill")
                     }
                 } header: {
                     Text("Weather data")
                 } footer: {
-                    Text("Window scenery and cabin announcements follow the real weather along your route. Apple Weather supplies it where available; Open-Meteo is the fallback. Tap either source for its legal attribution.")
+                    Text("Window scenery and cabin announcements follow the real weather along your route, supplied by Open-Meteo. Tap for its licence (CC BY 4.0).")
                 }
 
                 Section {
