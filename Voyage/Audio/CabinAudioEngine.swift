@@ -54,6 +54,7 @@ final class CabinAudioEngine {
     private var paFormat: AVAudioFormat?
     private var sampleRate: Double = 44100
     private var isRunning = false
+    private var observingInterruptions = false
 
     // Parameters read by the render thread, written from the main thread.
     // Smoothing inside the render loop makes races inaudible.
@@ -106,12 +107,27 @@ final class CabinAudioEngine {
 
     var ambienceRunning: Bool { isRunning }
 
+    /// Restarts the engine after the system interrupted us (leaving the
+    /// foreground, a phone call, Siri). Voyage is a foreground-only audio app
+    /// — no `audio` background mode — so nothing resumes the cabin for us.
+    func resumeIfInterrupted() {
+        guard !isRunning else { return }
+        guard targetGain > 0 || oneShotHoldUntil > Date() else { return }
+        cancelPendingTeardown()
+        startEngineIfNeeded()
+    }
+
     private func startEngineIfNeeded() {
         guard !isRunning else { return }
         do {
             let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playback, mode: .default)
+            // `.playback` so the cabin survives the ring/silent switch (the
+            // sound is deliberate content the user switched on), `.mixWithOthers`
+            // so it layers over the music they're studying to instead of
+            // stopping it. Foreground only — see `resumeIfInterrupted`.
+            try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
             try session.setActive(true)
+            observeInterruptionsIfNeeded()
 
             if sourceNode == nil {
                 buildGraph()
@@ -125,6 +141,31 @@ final class CabinAudioEngine {
         } catch {
             // Audio is a garnish — never let it take the app down.
             isRunning = false
+        }
+    }
+
+    /// The system stops the engine when the session is interrupted; without a
+    /// background mode that happens every time Voyage leaves the foreground.
+    /// Forget the stale `isRunning` so the next start actually restarts.
+    private func observeInterruptionsIfNeeded() {
+        guard !observingInterruptions else { return }
+        observingInterruptions = true
+        NotificationCenter.default.addObserver(
+            forName: AVAudioSession.interruptionNotification,
+            object: AVAudioSession.sharedInstance(),
+            queue: .main
+        ) { [weak self] note in
+            guard let self,
+                  let raw = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
+                  let type = AVAudioSession.InterruptionType(rawValue: raw) else { return }
+            switch type {
+            case .began:
+                self.isRunning = false
+            case .ended:
+                self.resumeIfInterrupted()
+            @unknown default:
+                break
+            }
         }
     }
 

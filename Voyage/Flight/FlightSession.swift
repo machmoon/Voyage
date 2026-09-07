@@ -316,7 +316,7 @@ final class FlightSession {
         switch stage {
         case .inFlight:
             // Honor grace deadline even if the DispatchWorkItem was delayed —
-            // keeps strict mode correct under clock injection and background audio.
+            // keeps strict mode correct under clock injection and delayed wakeups.
             if let deadline = graceDeadline, now >= deadline {
                 divert()
                 return
@@ -472,8 +472,9 @@ final class FlightSession {
             guard stage == .inFlight else { return }
             let deadline = clock.now.addingTimeInterval(Self.graceDuration)
             graceDeadline = deadline
-            // Real-time backup: if ambience keeps the process alive, this fires
-            // even in background. Tests rely on `tick()` + the injected clock.
+            // Real-time backup for the cases where the process stays alive
+            // (a brief switch away). Once suspended it won't fire — the
+            // deadline check in `.active` and `tick()` catches that instead.
             let work = DispatchWorkItem { [weak self] in
                 Task { @MainActor [weak self] in
                     guard let self, self.stage == .inFlight,
@@ -491,6 +492,11 @@ final class FlightSession {
                 divert()
             } else {
                 graceDeadline = nil
+                // Leaving the foreground interrupts the audio session (Voyage
+                // has no `audio` background mode) — bring the cabin back.
+                if stage == .inFlight {
+                    CabinAudioEngine.shared.resumeIfInterrupted()
+                }
             }
 
         default:

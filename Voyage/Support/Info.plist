@@ -33,10 +33,6 @@
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Voyage uses your location once to set your home airport to the one nearest you.</string>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>audio</string>
-	</array>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>NSSupportsLiveActivities</key>
