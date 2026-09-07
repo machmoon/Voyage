@@ -13,7 +13,7 @@ settings:
     # reuses a build number, so this must increase for every upload.
     # `scripts/ship.sh --bump` increments it here — the single source of truth
     # for BOTH the app and the widget extension.
-    CURRENT_PROJECT_VERSION: "2"
+    CURRENT_PROJECT_VERSION: "3"
     GENERATE_INFOPLIST_FILE: false
 targets:
   Voyage:
