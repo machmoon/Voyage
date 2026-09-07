@@ -21,11 +21,8 @@ struct BoardingPassView: View {
 
     private var leg: FlightLeg { session.itinerary.legs[0] }
 
-    /// Operating carrier from the flight number's airline code ("UA 1546").
-    private var carrierName: String {
-        let code = leg.flightNumber.prefix { !$0.isWhitespace }
-        return Carrier(rawValue: String(code))?.name.uppercased() ?? "VOYAGE AIR"
-    }
+    /// Operating carrier, printed above the flight number ("VOY 1546").
+    private var carrierName: String { Airline.name.uppercased() }
 
     private var gate: String {
         var hash: UInt64 = 5381

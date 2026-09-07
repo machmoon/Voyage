@@ -1,32 +1,25 @@
 import Foundation
 
-/// Real-world carriers operating Voyage routes.
-enum Carrier: String, CaseIterable, Codable {
-    case jetBlue = "B6"
-    case american = "AA"
-    case united = "UA"
-    case delta = "DL"
-    case airCanada = "AC"
-    case westJet = "WS"
+/// Voyage Air — the app's own fictional airline, and the only carrier in the
+/// catalog. Airports, block times, and departure banks are real-world facts;
+/// the airline flying them is invented, so no real carrier's trade name or
+/// designator appears anywhere in the product.
+enum Airline {
+    /// Trade name, as printed on the boarding pass and spoken by the PA.
+    static let name = "Voyage Air"
+    /// Flight-number prefix. Deliberately three letters: IATA airline
+    /// designators are two characters, so this cannot collide with a real one.
+    static let code = "VOY"
 
-    var name: String {
-        switch self {
-        case .jetBlue: return "JetBlue"
-        case .american: return "American"
-        case .united: return "United"
-        case .delta: return "Delta"
-        case .airCanada: return "Air Canada"
-        case .westJet: return "WestJet"
-        }
-    }
+    /// "VOY 424" — the code and number exactly as they print on the pass.
+    static func flightNumberText(_ number: Int) -> String { "\(code) \(number)" }
 }
 
-/// One directed nonstop route: the real-world block time (gate to gate),
-/// the carrier that actually flies it, and its typical daily departures.
+/// One directed nonstop route: the real-world block time (gate to gate)
+/// and its typical daily departures. Every route is flown by `Airline`.
 struct NonstopRoute: Hashable {
     let originCode: String
     let destinationCode: String
-    let carrier: Carrier
     /// Real-world block time in minutes. Directional: eastbound rides the
     /// jet stream and is shorter than the westbound return.
     let minutes: Int
@@ -39,7 +32,7 @@ struct NonstopRoute: Hashable {
     var flightNumberText: String { flightNumberText(departureIndex: 0) }
 
     func flightNumberText(departureIndex: Int) -> String {
-        "\(carrier.rawValue) \(baseFlightNumber + departureIndex * 2)"
+        Airline.flightNumberText(baseFlightNumber + departureIndex * 2)
     }
 }
 
@@ -47,7 +40,6 @@ struct NonstopRoute: Hashable {
 struct DepartureOption: Identifiable, Hashable {
     let departure: Date
     let flightNumber: String
-    let carrier: Carrier
     let itinerary: Itinerary
 
     var id: String { flightNumber + String(departure.timeIntervalSinceReferenceDate) }
@@ -58,8 +50,8 @@ struct DepartureOption: Identifiable, Hashable {
 }
 
 /// Hardcoded real-world route data for the eight Voyage airports:
-/// actual block times, the carriers that fly each pair, whether the popular
-/// booking is nonstop or a connection, and typical departure schedules.
+/// actual block times, whether the popular booking is nonstop or a
+/// connection, and typical departure schedules.
 enum RouteCatalog {
 
     // MARK: Pair specs (undirected; both directions derived)
@@ -67,7 +59,6 @@ enum RouteCatalog {
     private struct PairSpec {
         let a: String
         let b: String
-        let carrier: Carrier
         /// a→b block minutes (westbound legs are longer than the return).
         let aToB: Int
         let bToA: Int
@@ -78,75 +69,75 @@ enum RouteCatalog {
     }
 
     private static let pairs: [PairSpec] = [
-        PairSpec(a: "BOS", b: "JFK", carrier: .jetBlue, aToB: 80, bToA: 80, number: 816,
+        PairSpec(a: "BOS", b: "JFK", aToB: 80, bToA: 80, number: 816,
                  aDeps: ["06:30", "08:30", "10:30", "12:30", "14:30", "16:30", "18:30", "20:30"],
                  bDeps: ["07:00", "09:00", "11:00", "13:00", "15:00", "17:00", "19:00", "21:00"]),
-        PairSpec(a: "BOS", b: "MIA", carrier: .jetBlue, aToB: 215, bToA: 205, number: 253,
+        PairSpec(a: "BOS", b: "MIA", aToB: 215, bToA: 205, number: 253,
                  aDeps: ["07:00", "10:59", "14:25", "19:30"],
                  bDeps: ["08:15", "12:40", "16:55", "20:59"]),
-        PairSpec(a: "BOS", b: "SFO", carrier: .united, aToB: 405, bToA: 340, number: 1545,
+        PairSpec(a: "BOS", b: "SFO", aToB: 405, bToA: 340, number: 1545,
                  aDeps: ["06:45", "10:15", "17:30"],
                  bDeps: ["07:05", "13:20", "22:55"]),
-        PairSpec(a: "BOS", b: "LAX", carrier: .american, aToB: 390, bToA: 335, number: 117,
+        PairSpec(a: "BOS", b: "LAX", aToB: 390, bToA: 335, number: 117,
                  aDeps: ["07:00", "11:20", "18:05"],
                  bDeps: ["08:10", "14:35", "21:59"]),
-        PairSpec(a: "BOS", b: "YYZ", carrier: .airCanada, aToB: 115, bToA: 110, number: 741,
+        PairSpec(a: "BOS", b: "YYZ", aToB: 115, bToA: 110, number: 741,
                  aDeps: ["06:00", "09:40", "13:15", "17:45", "21:10"],
                  bDeps: ["06:35", "10:20", "14:05", "18:30"]),
-        PairSpec(a: "BOS", b: "YVR", carrier: .airCanada, aToB: 385, bToA: 350, number: 305,
+        PairSpec(a: "BOS", b: "YVR", aToB: 385, bToA: 350, number: 305,
                  aDeps: ["08:10", "17:25"],
                  bDeps: ["09:05", "22:45"]),
-        PairSpec(a: "JFK", b: "MIA", carrier: .american, aToB: 195, bToA: 185, number: 1279,
+        PairSpec(a: "JFK", b: "MIA", aToB: 195, bToA: 185, number: 1279,
                  aDeps: ["06:59", "09:30", "12:45", "16:20", "19:59"],
                  bDeps: ["07:25", "11:10", "15:00", "18:40"]),
-        PairSpec(a: "JFK", b: "SFO", carrier: .delta, aToB: 400, bToA: 330, number: 310,
+        PairSpec(a: "JFK", b: "SFO", aToB: 400, bToA: 330, number: 310,
                  aDeps: ["07:00", "09:45", "13:30", "17:15"],
                  bDeps: ["07:15", "10:50", "15:30", "22:59"]),
-        PairSpec(a: "JFK", b: "LAX", carrier: .delta, aToB: 385, bToA: 325, number: 423,
+        PairSpec(a: "JFK", b: "LAX", aToB: 385, bToA: 325, number: 423,
                  aDeps: ["07:00", "08:30", "11:00", "14:15", "17:30", "20:45"],
                  bDeps: ["06:45", "09:15", "12:30", "15:45", "21:30"]),
-        PairSpec(a: "JFK", b: "YYZ", carrier: .airCanada, aToB: 100, bToA: 95, number: 721,
+        PairSpec(a: "JFK", b: "YYZ", aToB: 100, bToA: 95, number: 721,
                  aDeps: ["07:15", "11:30", "15:40", "19:50"],
                  bDeps: ["06:50", "10:35", "14:45", "18:55"]),
-        PairSpec(a: "JFK", b: "YVR", carrier: .airCanada, aToB: 375, bToA: 335, number: 551,
+        PairSpec(a: "JFK", b: "YVR", aToB: 375, bToA: 335, number: 551,
                  aDeps: ["08:30", "18:45"],
                  bDeps: ["09:10", "22:30"]),
-        PairSpec(a: "MIA", b: "SFO", carrier: .american, aToB: 400, bToA: 345, number: 621,
+        PairSpec(a: "MIA", b: "SFO", aToB: 400, bToA: 345, number: 621,
                  aDeps: ["07:30", "12:10", "18:20"],
                  bDeps: ["06:55", "13:05", "22:40"]),
-        PairSpec(a: "MIA", b: "LAX", carrier: .american, aToB: 355, bToA: 305, number: 281,
+        PairSpec(a: "MIA", b: "LAX", aToB: 355, bToA: 305, number: 281,
                  aDeps: ["07:00", "10:45", "15:30", "20:15"],
                  bDeps: ["08:00", "12:20", "16:40", "22:55"]),
-        PairSpec(a: "MIA", b: "YYZ", carrier: .airCanada, aToB: 205, bToA: 200, number: 1635,
+        PairSpec(a: "MIA", b: "YYZ", aToB: 205, bToA: 200, number: 1635,
                  aDeps: ["07:50", "13:25", "18:40"],
                  bDeps: ["08:30", "14:10", "19:20"]),
-        PairSpec(a: "MIA", b: "YVR", carrier: .airCanada, aToB: 405, bToA: 365, number: 553,
+        PairSpec(a: "MIA", b: "YVR", aToB: 405, bToA: 365, number: 553,
                  aDeps: ["09:15", "19:30"],
                  bDeps: ["08:45", "20:10"]),
-        PairSpec(a: "SFO", b: "LAX", carrier: .united, aToB: 85, bToA: 80, number: 424,
+        PairSpec(a: "SFO", b: "LAX", aToB: 85, bToA: 80, number: 424,
                  aDeps: ["06:00", "07:30", "09:00", "10:30", "12:00", "13:30",
                          "15:00", "16:30", "18:00", "19:30", "21:00"],
                  bDeps: ["06:15", "07:45", "09:15", "10:45", "12:15", "13:45",
                          "15:15", "16:45", "18:15", "19:45", "21:15"]),
-        PairSpec(a: "SFO", b: "YYZ", carrier: .airCanada, aToB: 285, bToA: 325, number: 745,
+        PairSpec(a: "SFO", b: "YYZ", aToB: 285, bToA: 325, number: 745,
                  aDeps: ["07:05", "13:40", "22:55"],
                  bDeps: ["08:20", "12:45", "18:10"]),
-        PairSpec(a: "SFO", b: "YVR", carrier: .airCanada, aToB: 140, bToA: 135, number: 570,
+        PairSpec(a: "SFO", b: "YVR", aToB: 140, bToA: 135, number: 570,
                  aDeps: ["07:00", "11:30", "16:00", "20:30"],
                  bDeps: ["06:40", "10:55", "15:25", "19:50"]),
-        PairSpec(a: "LAX", b: "YYZ", carrier: .airCanada, aToB: 280, bToA: 305, number: 793,
+        PairSpec(a: "LAX", b: "YYZ", aToB: 280, bToA: 305, number: 793,
                  aDeps: ["08:00", "13:30", "22:45"],
                  bDeps: ["07:45", "12:15", "17:50"]),
-        PairSpec(a: "LAX", b: "YVR", carrier: .airCanada, aToB: 170, bToA: 175, number: 555,
+        PairSpec(a: "LAX", b: "YVR", aToB: 170, bToA: 175, number: 555,
                  aDeps: ["07:30", "12:15", "17:45", "21:30"],
                  bDeps: ["06:55", "11:20", "16:05", "20:40"]),
-        PairSpec(a: "YYZ", b: "YVR", carrier: .airCanada, aToB: 305, bToA: 265, number: 103,
+        PairSpec(a: "YYZ", b: "YVR", aToB: 305, bToA: 265, number: 103,
                  aDeps: ["08:00", "10:30", "13:00", "17:00", "19:45"],
                  bDeps: ["07:00", "09:30", "12:30", "16:15", "18:50"]),
-        PairSpec(a: "YYZ", b: "YQR", carrier: .airCanada, aToB: 185, bToA: 165, number: 1141,
+        PairSpec(a: "YYZ", b: "YQR", aToB: 185, bToA: 165, number: 1141,
                  aDeps: ["08:25", "13:10", "18:35", "22:40"],
                  bDeps: ["06:00", "10:15", "15:30", "19:05"]),
-        PairSpec(a: "YVR", b: "YQR", carrier: .westJet, aToB: 115, bToA: 125, number: 226,
+        PairSpec(a: "YVR", b: "YQR", aToB: 115, bToA: 125, number: 226,
                  aDeps: ["07:10", "11:45", "16:20", "20:50"],
                  bDeps: ["06:30", "11:00", "15:35", "20:05"]),
     ]
@@ -166,11 +157,11 @@ enum RouteCatalog {
         var table: [String: NonstopRoute] = [:]
         for pair in pairs {
             table["\(pair.a)-\(pair.b)"] = NonstopRoute(
-                originCode: pair.a, destinationCode: pair.b, carrier: pair.carrier,
+                originCode: pair.a, destinationCode: pair.b,
                 minutes: pair.aToB, baseFlightNumber: pair.number, departureTimes: pair.aDeps
             )
             table["\(pair.b)-\(pair.a)"] = NonstopRoute(
-                originCode: pair.b, destinationCode: pair.a, carrier: pair.carrier,
+                originCode: pair.b, destinationCode: pair.a,
                 minutes: pair.bToA, baseFlightNumber: pair.number + 1, departureTimes: pair.bDeps
             )
         }
@@ -220,7 +211,6 @@ enum RouteCatalog {
                 options.append(DepartureOption(
                     departure: departure,
                     flightNumber: number,
-                    carrier: route.carrier,
                     itinerary: RoutePlanner.itinerary(from: origin, to: destination,
                                                       flightNumberOverride: number)
                 ))

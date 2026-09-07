@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Google-Flights-style departure board: the next real scheduled departures
-/// for the route, each with its carrier, flight number, duration, and
+/// for the route, each with its airline, flight number, duration, and
 /// nonstop / connection routing. Booking one arms a boarding notification.
 struct ScheduleSheet: View {
     let origin: Airport
@@ -68,7 +68,7 @@ struct ScheduleSheet: View {
                     Text(timeRangeText(option))
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(.primary)
-                    Text("\(option.carrier.name) · \(option.flightNumber)\(daySuffix(option))")
+                    Text("\(Airline.name) · \(option.flightNumber)\(daySuffix(option))")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

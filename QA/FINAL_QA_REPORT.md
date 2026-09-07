@@ -1,5 +1,8 @@
 # Voyage Final QA Report — 2026-07-19
 
+> **Note (2026-09):** the boarding-pass, seat-map, in-flight, and map PNGs referenced below were deleted — they were shot when the app still printed a real carrier's name and IATA code on the mock boarding pass (App Review 5.2.5). The airline is now the fictional Voyage Air / `VOY`; rerun `ScreenshotTourUITests` to restore them.
+
+
 **Owner:** VP of Software Quality (Track D)  
 **Base commits reviewed:** `be15f0d` (seats) · `9e8ebef` (runway/clouds) · `2c78f27` (rip + crash harden)  
 **Device:** iPhone 17 Simulator (iOS 26.5), booted  

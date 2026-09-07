@@ -71,13 +71,13 @@ final class Announcer: NSObject, AVSpeechSynthesizerDelegate {
         var text: String {
             switch self {
             case let .welcomeAboard(flightNumber, city, durationText):
-                return "Ladies and gentlemen, welcome aboard Voyage Air flight \(flightNumber), with service to \(city). Our flight time today is \(durationText). Please stow your distractions, and enjoy the flight."
+                return "Ladies and gentlemen, welcome aboard \(Airline.name) flight \(flightNumber), with service to \(city). Our flight time today is \(durationText). Please stow your distractions, and enjoy the flight."
             case let .midpoint(city, altitude):
                 return "Folks, this is your captain. We're now about halfway to \(city), cruising at \(altitude.formatted()) feet. Smooth air ahead. Keep at it back there."
             case let .descent(city, weather):
                 return "Cabin crew, prepare for arrival. We've begun our descent into \(city), where the weather is \(weather). Please finish up your final items."
             case let .landed(city, localTimeText):
-                return "Welcome to \(city), where the local time is \(localTimeText). On behalf of Voyage Air, thank you for flying focused."
+                return "Welcome to \(city), where the local time is \(localTimeText). On behalf of \(Airline.name), thank you for flying focused."
             case let .layover(city, minutes):
                 return "Welcome to \(city). This is a connection stop. Your onward flight boards in \(minutes) minutes. Stretch your legs — you've earned it."
             case let .finalBoardingCall(city):

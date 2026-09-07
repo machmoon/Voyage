@@ -91,7 +91,7 @@ struct SettingsView: View {
 
                 Section {
                     LabeledContent("Version", value: "1.0")
-                    LabeledContent("Airline", value: "Voyage Air")
+                    LabeledContent("Airline", value: Airline.name)
                 }
             }
             .navigationTitle("Settings")

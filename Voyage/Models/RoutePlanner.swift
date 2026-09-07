@@ -67,7 +67,8 @@ enum RoutePlanner {
             origin: origin,
             destination: destination,
             duration: TimeInterval(estimatedMinutes(forMiles: origin.distanceMiles(to: destination))) * 60,
-            flightNumber: flightNumberOverride ?? "VA \(100 + abs(origin.code.hashValue ^ destination.code.hashValue) % 800)"
+            flightNumber: flightNumberOverride
+                ?? Airline.flightNumberText(100 + abs(origin.code.hashValue ^ destination.code.hashValue) % 800)
         )
         return Itinerary(legs: [leg], layoverDuration: 0)
     }

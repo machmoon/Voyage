@@ -174,7 +174,7 @@ final class FlightSessionTests: XCTestCase {
             origin: origin,
             destination: destination,
             duration: duration,
-            flightNumber: "VA 214"
+            flightNumber: "VOY 214"
         )
         let itinerary = Itinerary(legs: [leg], layoverDuration: 0)
         return FlightSession(itinerary: itinerary, modelContext: context, tier: .member, clock: clock)
@@ -186,8 +186,8 @@ final class FlightSessionTests: XCTestCase {
         let yqr = Airport.byCode("YQR")
         let itinerary = Itinerary(
             legs: [
-                FlightLeg(origin: bos, destination: yyz, duration: leg1, flightNumber: "VA 101"),
-                FlightLeg(origin: yyz, destination: yqr, duration: leg2, flightNumber: "VA 102"),
+                FlightLeg(origin: bos, destination: yyz, duration: leg1, flightNumber: "VOY 101"),
+                FlightLeg(origin: yyz, destination: yqr, duration: leg2, flightNumber: "VOY 102"),
             ],
             layoverDuration: layover
         )
