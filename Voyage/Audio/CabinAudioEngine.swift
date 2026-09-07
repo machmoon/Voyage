@@ -124,6 +124,14 @@ final class CabinAudioEngine {
     }
 
     private func startEngineIfNeeded() {
+        // Trust the engine, not the cached flag. Without the `audio`
+        // background mode the system stops the engine whenever we leave the
+        // foreground, and a suspended app can miss the interruption
+        // notification entirely — so `isRunning` can be stale-true over a
+        // stopped engine. Every caller below early-returns on that flag and
+        // then `schedule(_:)` drops the buffer, so the boarding printer, the
+        // rip, and the PA would all go silent until the next flight.
+        if isRunning && !engine.isRunning { isRunning = false }
         guard !isRunning else { return }
         do {
             let session = AVAudioSession.sharedInstance()
