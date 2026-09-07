@@ -42,6 +42,43 @@ enum SkyCondition: String, Codable {
     }
 }
 
+/// Which service supplied the weather now on screen. Drives the on-screen
+/// attribution — Apple requires the Apple Weather trademark and legal link
+/// whenever WeatherKit data is surfaced, and Open-Meteo (CC BY 4.0) wants
+/// its own credit. `.unavailable` means no live data reached us (synthetic clear).
+enum WeatherSource: String, Codable {
+    case appleWeather
+    case openMeteo
+    case unavailable
+
+    /// Trademark / service name shown next to the weather it supplied.
+    var displayName: String? {
+        switch self {
+        case .appleWeather: return "Weather"   // shown after the Apple logo
+        case .openMeteo: return "Open-Meteo"
+        case .unavailable: return nil
+        }
+    }
+
+    /// Legal attribution page for the source.
+    var legalURL: URL? {
+        switch self {
+        case .appleWeather: return URL(string: "https://weatherkit.apple.com/legal-attribution.html")
+        case .openMeteo: return URL(string: "https://open-meteo.com/en/license")
+        case .unavailable: return nil
+        }
+    }
+}
+
+/// One weather lookup: the condition plus which service actually answered,
+/// so the UI can attribute it correctly.
+struct WeatherReading {
+    let condition: SkyCondition
+    let source: WeatherSource
+
+    static let unavailable = WeatherReading(condition: .clear, source: .unavailable)
+}
+
 /// Real current weather for an airport. Tries WeatherKit first (needs the
 /// paid entitlement), then falls back to Open-Meteo — free, no API key —
 /// so real-world weather works on any build. Final fallback: clear.
@@ -51,19 +88,23 @@ enum WeatherService {
     }
 
     static func condition(for airport: Airport) async -> SkyCondition {
+        await reading(for: airport).condition
+    }
+
+    static func reading(for airport: Airport) async -> WeatherReading {
         // Unit tests must stay offline and deterministic.
         if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
-            return .clear
+            return .unavailable
         }
         #if canImport(WeatherKit)
         if let condition = await weatherKitCondition(for: airport) {
-            return condition
+            return WeatherReading(condition: condition, source: .appleWeather)
         }
         #endif
         if let condition = await openMeteoCondition(for: airport) {
-            return condition
+            return WeatherReading(condition: condition, source: .openMeteo)
         }
-        return .clear
+        return .unavailable
     }
 
     // MARK: WeatherKit
