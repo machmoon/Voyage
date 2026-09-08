@@ -48,6 +48,9 @@ final class CabinAudioEngine {
 
     private let engine = AVAudioEngine()
     private var sourceNode: AVAudioSourceNode?
+    /// Phase-keyed engine tone layered under the noise bed. See `EngineTone`.
+    private let tone = EngineTone()
+    private var toneNode: AVAudioSourceNode?
     private let effectsPlayer = AVAudioPlayerNode()
     /// Dedicated player for filtered PA speech (its own format/sample rate).
     private var paPlayer: AVAudioPlayerNode?
@@ -88,6 +91,7 @@ final class CabinAudioEngine {
 
     func stopAmbience() {
         targetGain = 0
+        tone.setEnabled(false)
         // The render loop glides gain to zero over ~1.2 s — wait for the
         // fade to finish so a diversion doesn't cut like a power failure.
         scheduleTeardown(after: 1.6)
@@ -98,11 +102,14 @@ final class CabinAudioEngine {
         // ambience is switched off — keep the bed silent in that case.
         targetGain = SettingsStore.shared.ambienceEnabled ? profile.gain : 0
         targetBrightness = profile.brightness
+        tone.setProfile(profile)
+        tone.setEnabled(SettingsStore.shared.ambienceEnabled)
     }
 
     /// Lower the bed while the PA speaks.
     func setDucked(_ ducked: Bool) {
         duckFactor = ducked ? 0.35 : 1.0
+        tone.setDucked(ducked)
     }
 
     var ambienceRunning: Bool { isRunning }
@@ -231,11 +238,31 @@ final class CabinAudioEngine {
             return noErr
         }
 
+        // Engine tone: its own source node so the sine cluster can crossfade
+        // on its own ramp without disturbing the noise bed's glide.
+        tone.setSampleRate(sampleRate)
+        let toneSource = AVAudioSourceNode { [weak self] (_, _, frameCount, audioBufferList) -> OSStatus in
+            guard let self else { return noErr }
+            let ablPointer = UnsafeMutableAudioBufferListPointer(audioBufferList)
+            self.tone.beginBuffer()
+            for frame in 0..<Int(frameCount) {
+                let sample = self.tone.nextSample()
+                for buffer in ablPointer {
+                    guard let data = buffer.mData else { continue }
+                    data.assumingMemoryBound(to: Float.self)[frame] = sample
+                }
+            }
+            return noErr
+        }
+
         engine.attach(node)
+        engine.attach(toneSource)
         engine.attach(effectsPlayer)
         engine.connect(node, to: engine.mainMixerNode, format: format)
+        engine.connect(toneSource, to: engine.mainMixerNode, format: format)
         engine.connect(effectsPlayer, to: engine.mainMixerNode, format: format)
         sourceNode = node
+        toneNode = toneSource
     }
 
     private func cancelPendingTeardown() {

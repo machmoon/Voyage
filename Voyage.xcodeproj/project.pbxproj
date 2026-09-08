@@ -28,6 +28,7 @@
 		4F7E70505E499E1103321554 /* CheckBagView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90C1A3DFBF3DAA7D4ABB231 /* CheckBagView.swift */; };
 		507D87B2B8B562183973CFB3 /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DF13B0FF6F67EF0797DAFA7 /* SettingsStore.swift */; };
 		509AD1FB19B3E07CD307F67E /* BoardingPassView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88D4D98A42F216B799704C84 /* BoardingPassView.swift */; };
+		54D0FF16692E553D0C9493CE /* EngineToneTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D3E563547AFE6A5DA9B46EA /* EngineToneTests.swift */; };
 		5E4059C7A6871E4AE6967802 /* ArrivalFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40BDCC51D903FA09B7B40B74 /* ArrivalFlowView.swift */; };
 		6115BC48B34C1F29DD8F8A28 /* Shaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = DB5F0208829F37BC0518AB7B /* Shaders.metal */; };
 		64173B9A6AC0E4508651B78D /* FlightMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56D4D40BAD9F85F05F7C581A /* FlightMapView.swift */; };
@@ -51,6 +52,7 @@
 		D9F03FA5FBAE43273A7FFE79 /* DivertedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEADBF54A9BE3BC765AB6B39 /* DivertedView.swift */; };
 		DC3D19079E2863BF42B343D2 /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2383FDD5245C999AB4D11CFA /* Haptics.swift */; };
 		E329ACE2E5F8750F26259261 /* FlightLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE74ECDDE02CC4592D5DE0E3 /* FlightLiveActivity.swift */; };
+		E872EFA730FC6704A11DD6D1 /* EngineTone.swift in Sources */ = {isa = PBXBuildFile; fileRef = C57BFB1F113BAAF025C5A163 /* EngineTone.swift */; };
 		ED9339E9798A3987FA78A55C /* WeatherMappingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9C6A8900000325A9B0AEC28 /* WeatherMappingTests.swift */; };
 		F539099ECED8D80CDCA8CE15 /* VoyageWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 0D68B05EFC09E000DA1DDF10 /* VoyageWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		FB5766BF560C242EC935A52F /* BoardingFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC2722D2607D1446EB0D8DD9 /* BoardingFlowView.swift */; };
@@ -111,6 +113,7 @@
 		4CF9A3E41E2483EE5D95F966 /* LayoverLoungeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoverLoungeView.swift; sourceTree = "<group>"; };
 		56D4D40BAD9F85F05F7C581A /* FlightMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightMapView.swift; sourceTree = "<group>"; };
 		5C88294A662E6C2C66610A47 /* LocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
+		5D3E563547AFE6A5DA9B46EA /* EngineToneTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineToneTests.swift; sourceTree = "<group>"; };
 		66C90DE9B3A81CF67A2ED3A5 /* FlightScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightScheduler.swift; sourceTree = "<group>"; };
 		685811A683D09ECDC6325F88 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		6CB0E8E2B49F73535A03C4E3 /* FlightSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightSession.swift; sourceTree = "<group>"; };
@@ -130,6 +133,7 @@
 		B677A2CF7162DBB0F3C7D092 /* RoutePlanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutePlanner.swift; sourceTree = "<group>"; };
 		BC2722D2607D1446EB0D8DD9 /* BoardingFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardingFlowView.swift; sourceTree = "<group>"; };
 		BE74ECDDE02CC4592D5DE0E3 /* FlightLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightLiveActivity.swift; sourceTree = "<group>"; };
+		C57BFB1F113BAAF025C5A163 /* EngineTone.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineTone.swift; sourceTree = "<group>"; };
 		CA93F9C86955AB5BB4D19771 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		CAE328D769F7CC7D57744FF9 /* Airport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Airport.swift; sourceTree = "<group>"; };
 		CBE81C5820E0ED57F7ACBBBB /* SeatSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeatSelectionView.swift; sourceTree = "<group>"; };
@@ -182,6 +186,7 @@
 		1BA96B100B2F9F9417EFF03F /* VoyageTests */ = {
 			isa = PBXGroup;
 			children = (
+				5D3E563547AFE6A5DA9B46EA /* EngineToneTests.swift */,
 				9968ED4F95A2D37CDE0A2494 /* FlightSessionTests.swift */,
 				415D0FFCD4FA6DB8C28976A0 /* FlyerTierTests.swift */,
 				44B8A2CEA1D7B030571DC244 /* GreatCircleTests.swift */,
@@ -244,6 +249,7 @@
 			children = (
 				A93104A963095B69587AD9F3 /* Announcer.swift */,
 				F0C5C9C32760DDC7FD61A5E7 /* CabinAudioEngine.swift */,
+				C57BFB1F113BAAF025C5A163 /* EngineTone.swift */,
 				2383FDD5245C999AB4D11CFA /* Haptics.swift */,
 			);
 			path = Audio;
@@ -497,6 +503,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				54D0FF16692E553D0C9493CE /* EngineToneTests.swift in Sources */,
 				1BB004AE4363B8528A7852C9 /* FlightSessionTests.swift in Sources */,
 				24FA1FC88A608A3DE8CEF338 /* FlyerTierTests.swift in Sources */,
 				12E4E89E31607A9C0A4359E1 /* GreatCircleTests.swift in Sources */,
@@ -528,6 +535,7 @@
 				4988E370A735BF5D60C834F7 /* CabinAudioEngine.swift in Sources */,
 				4F7E70505E499E1103321554 /* CheckBagView.swift in Sources */,
 				D9F03FA5FBAE43273A7FFE79 /* DivertedView.swift in Sources */,
+				E872EFA730FC6704A11DD6D1 /* EngineTone.swift in Sources */,
 				1A88FA173CEFD3DDF011BD82 /* FlightActivity.swift in Sources */,
 				9A956CB9203B010E8C28FB7F /* FlightActivityController.swift in Sources */,
 				64173B9A6AC0E4508651B78D /* FlightMapView.swift in Sources */,
