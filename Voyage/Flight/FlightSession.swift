@@ -143,22 +143,71 @@ final class FlightSession {
         return legRemaining + future
     }
 
+    /// Boundaries between the five phases of a leg, in seconds from wheels-up.
+    ///
+    /// Invariant, for every positive duration:
+    /// `0 < takeoffEnd < climbEnd < descentStart < landingStart < duration`.
+    /// Every window is non-empty, so every phase is actually reached — a leg
+    /// that skips cruise or landing is the bug this type exists to prevent.
+    struct PhaseWindows: Equatable {
+        var takeoffEnd: TimeInterval
+        var climbEnd: TimeInterval
+        var descentStart: TimeInterval
+        var landingStart: TimeInterval
+    }
+
+    /// The phase constants are sized for a real narrow-body: 18 s of takeoff
+    /// roll, climb done at 90 s, the last 180 s spent descending, the last
+    /// 15 s of that on the runway. Those numbers are deliberate and are what a
+    /// real block time gets, unscaled.
+    ///
+    /// They do not fit a leg of a few seconds, though, and a synthetic leg is
+    /// exactly what QA and the unit tests fly. Clamping each boundary on its
+    /// own — the previous approach — stops them inverting but not colliding:
+    /// on a short leg climbEnd, descentStart and landingStart all landed on
+    /// the same instant, which deletes the cruise and descent windows and
+    /// renders climb from wheels-up to touchdown. So instead scale all four
+    /// constant windows down by one common factor until they fit, reserving a
+    /// floor for cruise. For any realistic block time the factor is 1 and
+    /// nothing changes.
+    nonisolated static func phaseWindows(duration d: TimeInterval) -> PhaseWindows {
+        let wantTakeoff = max(0, takeoffRollDuration)
+        let wantClimb = max(0, climbEndsAt - takeoffRollDuration)
+        let wantDescent = max(0, descentDuration - landingDuration)
+        let wantLanding = max(0, landingDuration)
+        let wantTotal = wantTakeoff + wantClimb + wantDescent + wantLanding
+
+        guard d > 0, wantTotal > 0 else {
+            // Degenerate, but still ordered.
+            let q = max(d, 0) / 5
+            return PhaseWindows(takeoffEnd: q, climbEnd: 2 * q, descentStart: 3 * q, landingStart: 4 * q)
+        }
+
+        // Cruise keeps at least the remaining 12% of the leg, or the flight
+        // reads as one continuous manoeuvre with no middle.
+        let available = d * 0.88
+        let scale = wantTotal > available ? available / wantTotal : 1
+
+        let takeoffEnd = wantTakeoff * scale
+        let climbEnd = takeoffEnd + wantClimb * scale
+        let landingStart = d - wantLanding * scale
+        let descentStart = landingStart - wantDescent * scale
+        return PhaseWindows(takeoffEnd: takeoffEnd,
+                            climbEnd: climbEnd,
+                            descentStart: descentStart,
+                            landingStart: landingStart)
+    }
+
     var phase: LegPhase {
         let e = legElapsed
         let d = legDuration
         guard d > 0 else { return .cruise }
+        let w = Self.phaseWindows(duration: d)
 
-        // Clamp phase windows so short synthetic legs (unit tests / demos)
-        // still progress without inverted cruise/descent intervals.
-        let takeoffEnd = min(Self.takeoffRollDuration, d * 0.15)
-        let climbEnd = min(Self.climbEndsAt, max(takeoffEnd + 0.01, d * 0.35))
-        let landingStart = max(climbEnd, d - Self.landingDuration)
-        let descentStart = max(climbEnd, min(landingStart, d - min(Self.descentDuration, d * 0.45)))
-
-        if e < takeoffEnd { return .takeoffRoll }
-        if e < climbEnd { return .climb }
-        if e < descentStart { return .cruise }
-        if e < landingStart { return .descent }
+        if e < w.takeoffEnd { return .takeoffRoll }
+        if e < w.climbEnd { return .climb }
+        if e < w.descentStart { return .cruise }
+        if e < w.landingStart { return .descent }
         return .landing
     }
 
