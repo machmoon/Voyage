@@ -55,6 +55,15 @@ struct BoardingFlowView: View {
                 .zIndex(10)
             }
         }
+        .onAppear {
+            // Build the audio graph here, on entry to the ritual, rather than
+            // lazily inside the beat that first needs sound. Constructing it
+            // is a synchronous RPC to the audio server that aborts the process
+            // on timeout, so where it happens is a product decision: a whole
+            // view transition away from any tap or drag, and before the rip
+            // starts the flight. See `CabinAudioEngine.prewarm()`.
+            CabinAudioEngine.shared.prewarm()
+        }
     }
 
     private var topBar: some View {
