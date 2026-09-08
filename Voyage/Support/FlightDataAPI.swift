@@ -20,6 +20,10 @@ struct FlightReplaySnapshot {
 struct FlightDataAPI: FlightDataProviding {
     static let shared = FlightDataAPI()
 
+    /// Memo for the two persisted archives every replay frame reads. See
+    /// `ReplayArchiveCache` for why this is not optional.
+    private let archives = ReplayArchiveCache()
+
     func itinerary(for entry: LogbookEntry) -> Itinerary {
         RoutePlanner.itinerary(
             from: entry.origin,
@@ -100,7 +104,7 @@ struct FlightDataAPI: FlightDataProviding {
             if archived.count >= 2 { return archived }
         }
 
-        let legacy = entry.routeSamples.sorted { $0.progress < $1.progress }.compactMap { sample -> CLLocationCoordinate2D? in
+        let legacy = routeSamples(for: entry).sorted { $0.progress < $1.progress }.compactMap { sample -> CLLocationCoordinate2D? in
             let coordinate = CLLocationCoordinate2D(latitude: sample.latitude, longitude: sample.longitude)
             return sample.latitude.isFinite && sample.longitude.isFinite &&
                 CLLocationCoordinate2DIsValid(coordinate) ? coordinate : nil
@@ -167,7 +171,18 @@ struct FlightDataAPI: FlightDataProviding {
     /// Treat the persisted trajectory as one atomic archive. A corrupt or
     /// partially decoded connection must never have its surviving legs filtered
     /// and reindexed, because that can replay leg 2 as if it departed at leg 1.
+    ///
+    /// Memoized: the work below is what made replay expensive, and a rejected
+    /// archive is just as worth caching as an accepted one, since a corrupt row
+    /// would otherwise be re-decoded and re-rejected on every frame.
     private func validatedArchivedTrajectory(
+        for entry: LogbookEntry
+    ) -> [[FlightTrajectorySample]]? {
+        archives.trajectory(for: entry) { computeValidatedArchivedTrajectory(for: entry) }
+    }
+
+    /// The uncached body. Only `validatedArchivedTrajectory` may call this.
+    private func computeValidatedArchivedTrajectory(
         for entry: LogbookEntry
     ) -> [[FlightTrajectorySample]]? {
         guard entry.trajectoryRevision == FlightVisualEngine.trajectoryRevision,
@@ -247,7 +262,7 @@ struct FlightDataAPI: FlightDataProviding {
         for entry: LogbookEntry,
         progress: Double
     ) -> FlightReplaySnapshot? {
-        let samples = entry.routeSamples.filter {
+        let samples = routeSamples(for: entry).filter {
             $0.progress.isFinite && $0.latitude.isFinite && $0.longitude.isFinite &&
                 CLLocationCoordinate2DIsValid(
                     CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)
@@ -298,4 +313,120 @@ struct FlightDataAPI: FlightDataProviding {
         let value = start + delta * fraction
         return (value.truncatingRemainder(dividingBy: 360) + 360).truncatingRemainder(dividingBy: 360)
     }
+
+    /// The pre-trajectory route trace, memoized for the same reason as the
+    /// archive: it is the fallback `replaySnapshot` takes for older logbook
+    /// rows, so on those flights it is the per-frame decode.
+    private func routeSamples(for entry: LogbookEntry) -> [ReplayRouteSample] {
+        archives.routeSamples(for: entry)
+    }
 }
+
+/// Memo for the two persisted archives `replaySnapshot` reads on every frame.
+///
+/// `LogbookEntry.trajectoryLegSamples` and `LogbookEntry.routeSamples` are
+/// computed properties that run `JSONDecoder` on *every* access, and
+/// `validatedArchivedTrajectory` then walks every decoded sample. Replay reads
+/// a snapshot from a SwiftUI view body that a `CADisplayLink` invalidates 60 to
+/// 120 times a second, so before this existed a two-leg flight re-decoded and
+/// re-validated roughly 120 KB of JSON on every frame, on the main thread.
+///
+/// Invalidation is by value, not by trust: each slot remembers the exact `Data`
+/// it decoded and is only reused when the entry still holds that same blob. A
+/// row whose archive is rewritten therefore re-decodes rather than replaying a
+/// stale trajectory, and an `ObjectIdentifier` that happens to be reused by a
+/// freshly allocated entry cannot serve the previous entry's route.
+///
+/// Bounded: a week replay walks at most seven entries, and the whole map is
+/// dropped rather than aged, because a replay screen's working set turns over
+/// completely rather than gradually.
+private final class ReplayArchiveCache: @unchecked Sendable {
+    /// A decoded value together with the blob it came from.
+    private struct Slot<Value> {
+        let source: Data?
+        let value: Value
+    }
+
+    /// Guards both maps. Held only around the map reads and writes, never
+    /// across a decode, so a cold miss cannot serialize other callers.
+    private let lock = NSLock()
+    private var trajectories: [ObjectIdentifier: Slot<[[FlightTrajectorySample]]?>] = [:]
+    private var routes: [ObjectIdentifier: Slot<[ReplayRouteSample]>] = [:]
+
+    private static let capacity = 8
+
+    #if DEBUG
+    /// Counts real decodes so tests can pin cache behaviour instead of timing
+    /// it. Guarded by `lock` like the maps it describes.
+    private var _decodeCount = 0
+    var decodeCount: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return _decodeCount
+    }
+
+    func resetDecodeCount() {
+        lock.lock()
+        _decodeCount = 0
+        lock.unlock()
+    }
+    #endif
+
+    func trajectory(
+        for entry: LogbookEntry,
+        decode: () -> [[FlightTrajectorySample]]?
+    ) -> [[FlightTrajectorySample]]? {
+        let key = ObjectIdentifier(entry)
+        let source = entry.trajectorySamplesData
+
+        lock.lock()
+        if let cached = trajectories[key], cached.source == source {
+            lock.unlock()
+            return cached.value
+        }
+        lock.unlock()
+
+        let value = decode()
+
+        lock.lock()
+        #if DEBUG
+        _decodeCount += 1
+        #endif
+        if trajectories.count >= Self.capacity { trajectories.removeAll(keepingCapacity: true) }
+        trajectories[key] = Slot(source: source, value: value)
+        lock.unlock()
+        return value
+    }
+
+    func routeSamples(for entry: LogbookEntry) -> [ReplayRouteSample] {
+        let key = ObjectIdentifier(entry)
+        let source = entry.routeSamplesData
+
+        lock.lock()
+        if let cached = routes[key], cached.source == source {
+            lock.unlock()
+            return cached.value
+        }
+        lock.unlock()
+
+        let value = entry.routeSamples
+
+        lock.lock()
+        #if DEBUG
+        _decodeCount += 1
+        #endif
+        if routes.count >= Self.capacity { routes.removeAll(keepingCapacity: true) }
+        routes[key] = Slot(source: source, value: value)
+        lock.unlock()
+        return value
+    }
+}
+
+#if DEBUG
+extension FlightDataAPI {
+    /// Test-only window onto the memo, so cache behaviour can be asserted
+    /// directly rather than inferred from a wall clock on a shared machine.
+    var archiveDecodeCount: Int { archives.decodeCount }
+    func resetArchiveDecodeCount() { archives.resetDecodeCount() }
+}
+#endif
