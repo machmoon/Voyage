@@ -10,6 +10,7 @@
 		0056CD7616753D1EF62C48F1 /* LogbookView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CB577FFDB00B9AA668840E0 /* LogbookView.swift */; };
 		032D7F92BC8E892B6FCCE829 /* WindowSceneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4639BD8F909C425C8B7EC5D /* WindowSceneView.swift */; };
 		07081E57D6E66D161AC72A74 /* RouteCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84CD44E3543F506A3749B2CE /* RouteCatalog.swift */; };
+		0C60227684184A3C82478EB5 /* DemoReelUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99CA0EDD0DD64CFDE04B6781 /* DemoReelUITests.swift */; };
 		12E4E89E31607A9C0A4359E1 /* GreatCircleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44B8A2CEA1D7B030571DC244 /* GreatCircleTests.swift */; };
 		161265440A6378F89192956D /* Airport.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAE328D769F7CC7D57744FF9 /* Airport.swift */; };
 		1A88FA173CEFD3DDF011BD82 /* FlightActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70EE26938771E82CCE4CF44F /* FlightActivity.swift */; };
@@ -121,6 +122,7 @@
 		952C4F0274367DADF70B685E /* GreatCircle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GreatCircle.swift; sourceTree = "<group>"; };
 		98D80A40384AA0FD2BE7D690 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		9968ED4F95A2D37CDE0A2494 /* FlightSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightSessionTests.swift; sourceTree = "<group>"; };
+		99CA0EDD0DD64CFDE04B6781 /* DemoReelUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoReelUITests.swift; sourceTree = "<group>"; };
 		9C6FBB0F4116077FBF34D6A5 /* ScreenshotTourUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotTourUITests.swift; sourceTree = "<group>"; };
 		A0FF1BED67E63D4365884E3C /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		A6D839091C0E94900792F598 /* LogbookEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogbookEntry.swift; sourceTree = "<group>"; };
@@ -150,6 +152,7 @@
 		12FB964947FA47E42D74D117 /* VoyageUITests */ = {
 			isa = PBXGroup;
 			children = (
+				99CA0EDD0DD64CFDE04B6781 /* DemoReelUITests.swift */,
 				9C6FBB0F4116077FBF34D6A5 /* ScreenshotTourUITests.swift */,
 				2B08FC90B909634E033DBB2B /* VoyageSmokeUITests.swift */,
 			);
@@ -507,6 +510,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0C60227684184A3C82478EB5 /* DemoReelUITests.swift in Sources */,
 				C7FDAF2BD88333F514059BF5 /* ScreenshotTourUITests.swift in Sources */,
 				BEEC020E7B00A161632E72BC /* VoyageSmokeUITests.swift in Sources */,
 			);

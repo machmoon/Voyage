@@ -73,14 +73,22 @@ final class FlightSession {
     /// Launch argument `-VoyageShortFlights` compresses takeoff/climb for QA screenshots
     /// without waiting ~90s of real-time (see README).
     nonisolated static var shortFlightsEnabled: Bool {
-        ProcessInfo.processInfo.arguments.contains("-VoyageShortFlights")
+        ProcessInfo.processInfo.arguments.contains("-VoyageShortFlights") || demoFlightEnabled
+    }
+
+    /// Launch argument `-VoyageDemoFlight` compresses the *whole* flight, not
+    /// just the climb, so a recording can reach the arrival flow in about a
+    /// minute. QA and marketing captures only. The clamp lives on the session
+    /// (see `legDuration`), so `RouteCatalog` block times stay honest.
+    nonisolated static var demoFlightEnabled: Bool {
+        ProcessInfo.processInfo.arguments.contains("-VoyageDemoFlight")
     }
 
     nonisolated static var takeoffRollDuration: TimeInterval { shortFlightsEnabled ? 3 : 18 }
     /// Elapsed seconds when climb ends and cruise begins (includes the takeoff roll).
     nonisolated static var climbEndsAt: TimeInterval { shortFlightsEnabled ? 8 : 90 }
-    nonisolated static let descentDuration: TimeInterval = 180
-    nonisolated static let landingDuration: TimeInterval = 15
+    nonisolated static var descentDuration: TimeInterval { demoFlightEnabled ? 20 : 180 }
+    nonisolated static var landingDuration: TimeInterval { demoFlightEnabled ? 8 : 15 }
     nonisolated static let graceDuration: TimeInterval = 30
     nonisolated static let finalCallWindow: TimeInterval = 3 * 60
 
@@ -110,9 +118,21 @@ final class FlightSession {
         return max(0, now.timeIntervalSince(start))
     }
 
-    var legRemaining: TimeInterval { max(0, currentLeg.duration - legElapsed) }
+    /// Block time for the leg being flown. `-VoyageDemoFlight` squeezes it to
+    /// a minute so a screen recording can reach the arrival flow; the catalog
+    /// keeps the real number, so the home screen still sorts by true length.
+    var legDuration: TimeInterval {
+        Self.demoFlightEnabled ? 60 : currentLeg.duration
+    }
+
+    /// Lounge break between legs, squeezed alongside the legs under the demo flag.
+    var layoverDuration: TimeInterval {
+        Self.demoFlightEnabled ? 20 : itinerary.layoverDuration
+    }
+
+    var legRemaining: TimeInterval { max(0, legDuration - legElapsed) }
     var legProgress: Double {
-        let d = currentLeg.duration
+        let d = legDuration
         guard d > 0 else { return 0 }
         return min(1, legElapsed / d)
     }
@@ -125,7 +145,7 @@ final class FlightSession {
 
     var phase: LegPhase {
         let e = legElapsed
-        let d = currentLeg.duration
+        let d = legDuration
         guard d > 0 else { return .cruise }
 
         // Clamp phase windows so short synthetic legs (unit tests / demos)
@@ -169,11 +189,11 @@ final class FlightSession {
             let wobble = sin(legElapsed / 47) * 240
             return Int((cruiseAlt + wobble) / 100) * 100
         case .descent:
-            let intoDescent = max(0, legElapsed - (currentLeg.duration - Self.descentDuration))
+            let intoDescent = max(0, legElapsed - (legDuration - Self.descentDuration))
             let t = min(1, intoDescent / descentSpan)
             return max(1_500, Int((1 - t) * cruiseAlt / 100) * 100)
         case .landing:
-            let intoLanding = max(0, legElapsed - (currentLeg.duration - Self.landingDuration))
+            let intoLanding = max(0, legElapsed - (legDuration - Self.landingDuration))
             let t = min(1, intoLanding / max(0.001, Self.landingDuration))
             return max(0, Int((1 - t) * 1_500 / 50) * 50)
         }
@@ -288,7 +308,7 @@ final class FlightSession {
                 .welcomeAboard(
                     flightNumber: self.currentLeg.flightNumber,
                     city: self.currentLeg.destination.city,
-                    durationText: self.spokenDuration(self.currentLeg.duration)
+                    durationText: self.spokenDuration(self.legDuration)
                 ),
                 premiumChime: self.hasPremiumChime
             )
@@ -322,7 +342,7 @@ final class FlightSession {
                 return
             }
             fireDueEvents()
-            if legElapsed >= currentLeg.duration {
+            if legElapsed >= legDuration {
                 completeLeg()
             }
         case .layover:
@@ -357,7 +377,7 @@ final class FlightSession {
 
     private func fireDueEvents() {
         let e = legElapsed
-        let d = currentLeg.duration
+        let d = legDuration
 
         let takeoffCue = Self.shortFlightsEnabled ? 0.8 : 4.0
         let gearUpDelay = Self.shortFlightsEnabled ? 1.5 : 14.0
@@ -424,7 +444,7 @@ final class FlightSession {
 
     private func completeLeg() {
         completedMiles += currentLeg.distanceMiles
-        completedFocusSeconds += currentLeg.duration
+        completedFocusSeconds += legDuration
 
         if legIndex == itinerary.legs.count - 1 {
             stage = .arrived
@@ -443,9 +463,9 @@ final class FlightSession {
             }
         } else {
             stage = .layover
-            connectionDeparts = now.addingTimeInterval(itinerary.layoverDuration)
+            connectionDeparts = now.addingTimeInterval(layoverDuration)
             FlightActivityController.shared.update(session: self)
-            let minutes = Int(itinerary.layoverDuration / 60)
+            let minutes = Int(layoverDuration / 60)
             Announcer.shared.announce(
                 .layover(city: currentLeg.destination.city, minutes: minutes),
                 premiumChime: hasPremiumChime
@@ -532,7 +552,7 @@ final class FlightSession {
 
         // Diverted mid-leg still credits the partial leg; a missed connection
         // credits exactly the legs that landed (layover time isn't focus).
-        let partialLeg = stage == .diverted ? min(legElapsed, currentLeg.duration) : 0
+        let partialLeg = stage == .diverted ? min(legElapsed, legDuration) : 0
         let focusSeconds = completed
             ? itinerary.totalFocusDuration
             : completedFocusSeconds + partialLeg

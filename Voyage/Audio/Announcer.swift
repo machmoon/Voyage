@@ -42,7 +42,9 @@ final class Announcer: NSObject, AVSpeechSynthesizerDelegate {
             switch voice.quality {
             case .premium: s += 40
             case .enhanced: s += 20
-            default: break
+            // `.default` is the compact voice that ships with the system. It
+            // reads like a 2010 GPS; a downloaded voice always beats it.
+            default: s -= 30
             }
             if voice.language == "en-US" { s += 10 }
             if voice.gender == .female { s += 5 }
@@ -84,6 +86,46 @@ final class Announcer: NSObject, AVSpeechSynthesizerDelegate {
                 return "Final boarding call for your connecting flight to \(city). All passengers, please proceed to the gate immediately."
             }
         }
+
+        /// The same script marked up for delivery. Real cabin announcements
+        /// breathe: a beat after the address, a longer one before the part
+        /// you are meant to act on. `<break>` buys that pacing, which plain
+        /// text cannot express at any rate setting.
+        var ssml: String {
+            func esc(_ s: String) -> String {
+                s.replacingOccurrences(of: "&", with: "&amp;")
+                    .replacingOccurrences(of: "<", with: "&lt;")
+                    .replacingOccurrences(of: ">", with: "&gt;")
+            }
+            let body: String
+            switch self {
+            case let .welcomeAboard(flightNumber, city, durationText):
+                body = """
+                Ladies and gentlemen, <break time="350ms"/> welcome aboard \(esc(Airline.name))                 flight <say-as interpret-as="characters">\(esc(flightNumber))</say-as>,                 <break time="250ms"/> with service to \(esc(city)). <break time="500ms"/>                 Our flight time today is \(esc(durationText)). <break time="450ms"/>                 <prosody rate="95%">Please stow your distractions, <break time="250ms"/>                 and enjoy the flight.</prosody>
+                """
+            case let .midpoint(city, altitude):
+                body = """
+                Folks, this is your captain. <break time="400ms"/> We're now about halfway to \(esc(city)),                 <break time="250ms"/> cruising at \(altitude.formatted()) feet. <break time="450ms"/>                 Smooth air ahead. <break time="300ms"/> <emphasis level="moderate">Keep at it back there.</emphasis>
+                """
+            case let .descent(city, weather):
+                body = """
+                <emphasis level="moderate">Cabin crew, prepare for arrival.</emphasis> <break time="500ms"/>                 We've begun our descent into \(esc(city)), <break time="250ms"/> where the weather is \(esc(weather)).                 <break time="450ms"/> Please finish up your final items.
+                """
+            case let .landed(city, localTimeText):
+                body = """
+                Welcome to \(esc(city)), <break time="300ms"/> where the local time is \(esc(localTimeText)).                 <break time="500ms"/> On behalf of \(esc(Airline.name)), <break time="250ms"/>                 thank you for flying focused.
+                """
+            case let .layover(city, minutes):
+                body = """
+                Welcome to \(esc(city)). <break time="400ms"/> This is a connection stop. <break time="350ms"/>                 Your onward flight boards in \(minutes) minutes. <break time="450ms"/>                 Stretch your legs. <break time="250ms"/> You've earned it.
+                """
+            case let .finalBoardingCall(city):
+                body = """
+                <emphasis level="strong">Final boarding call</emphasis> for your connecting flight to \(esc(city)).                 <break time="450ms"/> All passengers, <break time="250ms"/>                 please proceed to the gate immediately.
+                """
+            }
+            return "<speak>\(body)</speak>"
+        }
     }
 
     func announce(_ script: Script, premiumChime: Bool = false) {
@@ -91,7 +133,10 @@ final class Announcer: NSObject, AVSpeechSynthesizerDelegate {
         CabinAudioEngine.shared.playChime(premium: premiumChime)
         CabinAudioEngine.shared.setDucked(true)
 
-        let utterance = AVSpeechUtterance(string: script.text)
+        // SSML carries the pauses; older parsers or a malformed body fall
+        // back to the plain script rather than going silent.
+        let utterance = AVSpeechUtterance(ssmlRepresentation: script.ssml)
+            ?? AVSpeechUtterance(string: script.text)
         utterance.rate = 0.5
         utterance.pitchMultiplier = 0.98
         if let voice = paVoice {

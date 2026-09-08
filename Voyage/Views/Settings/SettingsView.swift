@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import AVFoundation
 
 struct SettingsView: View {
@@ -13,6 +14,16 @@ struct SettingsView: View {
                 if lhs.quality != rhs.quality { return lhs.quality.rawValue > rhs.quality.rawValue }
                 return lhs.name < rhs.name
             }
+    }
+
+    /// True when at least one downloaded voice is installed. iOS ships only
+    /// the compact voices; the good ones arrive when the user downloads them,
+    /// and no API lets an app fetch them on the user's behalf.
+    private var hasDownloadedVoice: Bool {
+        paVoices.contains { voice in
+            voice.quality != .default
+                || voice.identifier.lowercased().contains("siri")
+        }
     }
 
     private func voiceLabel(_ voice: AVSpeechSynthesisVoice) -> String {
@@ -52,10 +63,29 @@ struct SettingsView: View {
                     } label: {
                         Label("PA voice", systemImage: "person.wave.2.fill")
                     }
+
+                    if !hasDownloadedVoice {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Label("Only the compact voice is installed",
+                                  systemImage: "exclamationmark.triangle.fill")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.orange)
+                            Text("The PA falls back to the voice iOS ships with, which sounds synthetic. Download one in Settings, Accessibility, Spoken Content, Voices, English. Samantha (Enhanced) is a good pick for cabin crew. Voyage uses it the next time you fly.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Button("Open iOS Settings") {
+                                if let url = URL(string: UIApplication.openSettingsURLString) {
+                                    UIApplication.shared.open(url)
+                                }
+                            }
+                            .font(.caption.weight(.semibold))
+                        }
+                        .padding(.vertical, 2)
+                    }
                 } header: {
                     Text("Sound")
                 } footer: {
-                    Text("Engine rumble is generated live — no loops, no downloads. For the best PA, download a Siri or Enhanced voice in iOS Settings → Accessibility → Spoken Content → Voices; Voyage will pick it up automatically.")
+                    Text("Engine rumble is generated live, with no loops and no downloads. Announcements are marked up for delivery, so the PA pauses where a real one would. For the best result, download a Siri or Enhanced voice in iOS Settings, Accessibility, Spoken Content, Voices. Voyage picks it up automatically.")
                 }
 
                 Section {
