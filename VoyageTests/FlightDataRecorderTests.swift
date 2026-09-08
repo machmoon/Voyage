@@ -386,6 +386,33 @@ final class FlightDataRecorderTests: XCTestCase {
         XCTAssertEqual(finding.evidence.count, 3)
         XCTAssertEqual(finding.support, 6)
         XCTAssertTrue(finding.detail.contains("3 ended because the app went to the background"), finding.detail)
+        XCTAssertTrue(finding.detail.contains("1 ran out the layover clock"), finding.detail)
+    }
+
+    /// A cause that never happened is not a fact about the traveler, so it
+    /// does not get a clause.
+    func testInterruptionOmitsCausesThatNeverHappened() throws {
+        let flights = repeated(6) { _ in flight(outcome: .arrived) }
+            + repeated(9) { _ in flight(outcome: .interrupted) }
+            + repeated(4) { _ in flight(outcome: .leftEarly) }
+        let report = FlightDataRecorder.report(corpus: FlightCorpus(flights: flights, calendar: newYork))
+
+        let finding = try XCTUnwrap(report.findings.first { $0.kind == .interruption })
+        XCTAssertFalse(finding.detail.contains("0 ran out"), finding.detail)
+        XCTAssertFalse(finding.detail.contains(", 0 "), finding.detail)
+        XCTAssertEqual(finding.evidence.count, 2)
+        XCTAssertTrue(finding.headline.hasPrefix("Most of your diversions"), finding.headline)
+    }
+
+    /// With no dominant cause the headline stops claiming one.
+    func testInterruptionHeadlineDoesNotClaimADominantCauseWhenThereIsNone() throws {
+        let flights = repeated(6) { _ in flight(outcome: .arrived) }
+            + repeated(5) { _ in flight(outcome: .interrupted) }
+            + repeated(5) { _ in flight(outcome: .leftEarly) }
+        let report = FlightDataRecorder.report(corpus: FlightCorpus(flights: flights, calendar: newYork))
+
+        let finding = try XCTUnwrap(report.findings.first { $0.kind == .interruption })
+        XCTAssertEqual(finding.headline, "Your diversions split fairly evenly between causes.")
     }
 
     /// Diversions written by a build that recorded no cause cannot be

@@ -20,6 +20,7 @@ struct LogbookView: View {
 
                 Section {
                     NavigationLink { FlightDataRecorderView() } label: { recorderRow }
+                        .accessibilityIdentifier("open-recorder")
                 }
 
                 Section("Flights") {

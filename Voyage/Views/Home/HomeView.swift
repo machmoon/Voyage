@@ -178,6 +178,8 @@ struct HomeView: View {
             HStack(spacing: 10) {
                 statusChip
                 iconButton("book.closed.fill") { showingLogbook = true }
+                    .accessibilityLabel("Logbook")
+                    .accessibilityIdentifier("open-logbook")
                 iconButton("gearshape.fill") { showingSettings = true }
             }
         }

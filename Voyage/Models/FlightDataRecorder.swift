@@ -528,11 +528,27 @@ struct InterruptionDetector: FindingDetector {
         }
         guard evidence.count >= 2 else { return nil }
 
+        // Only causes that actually happened get a clause. Listing a zero
+        // reads as a statement about something that never occurred.
+        var clauses: [String] = []
+        if interrupted > 0 { clauses.append("\(interrupted) ended because the app went to the background") }
+        if leftEarly > 0 { clauses.append("\(leftEarly) were ended from the cabin") }
+        if missed > 0 { clauses.append("\(missed) ran out the layover clock") }
+        let breakdown = clauses.count > 1
+            ? clauses.dropLast().joined(separator: ", ") + ", and " + clauses[clauses.count - 1]
+            : clauses.joined()
+
+        // The headline only claims a dominant cause when there is one.
+        let largest = max(interrupted, max(leftEarly, missed))
+        let headline = Double(largest) / Double(total) >= 0.6
+            ? "Most of your diversions happen the same way."
+            : "Your diversions split fairly evenly between causes."
+
         return Finding(
             kind: kind,
             mode: .informative,
-            headline: "Most of your diversions happen the same way.",
-            detail: "Of \(total) flights that did not land, \(interrupted) ended because the app went to the background, \(leftEarly) were ended from the cabin, and \(missed) ran out the layover clock.",
+            headline: headline,
+            detail: "Of \(total) flights that did not land, \(breakdown).",
             evidence: evidence,
             support: total,
             separation: 0

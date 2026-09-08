@@ -7,7 +7,7 @@ import SwiftData
 struct FlightDataRecorderView: View {
     @Query(sort: \LogbookEntry.date, order: .reverse) private var entries: [LogbookEntry]
 
-    /// Injected in previews and tests; nil in the app, where the query supplies it.
+    /// Injected in previews and snapshots; nil in the app, where the query supplies it.
     private let overrideReport: FlightDataReport?
 
     init(report: FlightDataReport? = nil) {
@@ -18,39 +18,57 @@ struct FlightDataRecorderView: View {
         overrideReport ?? FlightDataRecorder.report(entries: entries)
     }
 
+    /// The night-sky ground the readout sits on. Shared with the offscreen
+    /// renderer so a capture is the same picture the app draws.
+    static var backdrop: some View {
+        LinearGradient(colors: [Theme.nightSkyTop, Theme.boardingBackdrop],
+                       startPoint: .top, endPoint: .bottom)
+            .ignoresSafeArea()
+    }
+
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                header
-
-                if report.isReporting {
-                    if report.findings.isEmpty {
-                        nothingSeparatesCard
-                    } else {
-                        ForEach(report.findings) { finding in
-                            FindingCard(finding: finding)
-                        }
-                    }
-                } else {
-                    recordingCard
-                }
-
-                methodNote
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
-            .padding(.bottom, 40)
+            RecorderReadout(report: report)
         }
-        .background(
-            LinearGradient(colors: [Theme.nightSkyTop, Theme.boardingBackdrop],
-                           startPoint: .top, endPoint: .bottom)
-                .ignoresSafeArea()
-        )
+        .background(Self.backdrop)
         .navigationTitle("Recorder")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
         .preferredColorScheme(.dark)
+    }
+}
+
+/// The readout itself, with no scroll host around it.
+///
+/// Split out so it can be rendered offscreen by `ImageRenderer`, which does
+/// not lay out `ScrollView` content. Keeping the split here rather than in
+/// the test means a capture is the real view, not a re-creation of it.
+struct RecorderReadout: View {
+    let report: FlightDataReport
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            header
+
+            if report.isReporting {
+                if report.findings.isEmpty {
+                    nothingSeparatesCard
+                } else {
+                    ForEach(report.findings) { finding in
+                        FindingCard(finding: finding)
+                    }
+                }
+            } else {
+                recordingCard
+            }
+
+            methodNote
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 8)
+        .padding(.bottom, 40)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: Header
@@ -58,12 +76,13 @@ struct FlightDataRecorderView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("FLIGHT DATA RECORDER")
-                .font(.system(size: 20, weight: .black))
+                .font(.system(.title3, design: .default, weight: .black))
                 .kerning(2.6)
                 .foregroundStyle(.white)
             Text(headerSubtitle)
                 .font(.footnote)
                 .foregroundStyle(.white.opacity(0.6))
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.bottom, 2)
@@ -71,6 +90,7 @@ struct FlightDataRecorderView: View {
 
     private var headerSubtitle: String {
         let flights = report.flightsAnalyzed
+        guard flights > 0 else { return "Your logbook is empty. Nothing leaves this device." }
         let noun = flights == 1 ? "flight" : "flights"
         return "Reading \(flights) recorded \(noun) from your logbook. Nothing leaves this device."
     }
@@ -85,13 +105,25 @@ struct FlightDataRecorderView: View {
                 Text("The recorder needs \(FlightDataRecorder.minimumFlights) flights before it will report.")
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(.white)
-                Text("You have \(report.flightsAnalyzed). \(report.flightsUntilReporting) to go. Until then any pattern it could draw would be as likely to come from luck as from you.")
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(recordingBody)
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.68))
+                    .fixedSize(horizontal: false, vertical: true)
 
                 ProgressRail(fraction: Double(report.flightsAnalyzed) / Double(FlightDataRecorder.minimumFlights))
             }
         }
+    }
+
+    /// An empty logbook reads as a count of zero in a sentence built for a
+    /// count, so it gets its own wording rather than "You have 0."
+    private var recordingBody: String {
+        let reason = "Until then any pattern it could draw would be as likely to come from luck as from you."
+        guard report.flightsAnalyzed > 0 else {
+            return "No flights recorded yet. \(reason)"
+        }
+        return "You have \(report.flightsAnalyzed), so \(report.flightsUntilReporting) to go. \(reason)"
     }
 
     private var nothingSeparatesCard: some View {
@@ -102,9 +134,11 @@ struct FlightDataRecorderView: View {
                 Text("Nothing in these \(report.flightsAnalyzed) flights separates yet.")
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(.white)
+                    .fixedSize(horizontal: false, vertical: true)
                 Text("Your hours, lengths, days and bags all land inside each other's margin of error. That is a result, not a gap. Keep flying and the recorder will report the moment a difference is real.")
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.68))
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -126,7 +160,7 @@ struct FlightDataRecorderView: View {
 
 // MARK: - Finding card
 
-private struct FindingCard: View {
+struct FindingCard: View {
     let finding: Finding
 
     var body: some View {
@@ -137,7 +171,7 @@ private struct FindingCard: View {
                         .foregroundStyle(Theme.accent)
                     if finding.mode == .informative {
                         Text("INFORMATIONAL")
-                            .font(.system(size: 8, weight: .heavy))
+                            .font(.system(.caption2, design: .default, weight: .heavy))
                             .kerning(1)
                             .foregroundStyle(.white.opacity(0.5))
                             .padding(.horizontal, 6)
@@ -169,7 +203,7 @@ private struct FindingCard: View {
                     Spacer()
                     Text("\(finding.support) flights")
                 }
-                .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                .font(.system(.caption2, design: .monospaced, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.38))
             }
         }
@@ -187,48 +221,82 @@ private struct FindingCard: View {
 private struct EvidenceRow: View {
     let evidence: FindingEvidence
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    /// The label and count columns grow with the text they hold, so the row
+    /// stays aligned at every Dynamic Type size instead of clipping.
+    @ScaledMetric(relativeTo: .caption2) private var labelWidth: CGFloat = 104
+    @ScaledMetric(relativeTo: .caption) private var countWidth: CGFloat = 46
+    @ScaledMetric(relativeTo: .caption) private var barHeight: CGFloat = 12
+
     private var tint: Color { evidence.isSubject ? Theme.accent : .white.opacity(0.45) }
 
     var body: some View {
-        HStack(spacing: 10) {
-            Text(evidence.label.uppercased())
-                .font(.system(size: 10, weight: .bold, design: .monospaced))
-                .kerning(0.4)
-                .foregroundStyle(evidence.isSubject ? .white : .white.opacity(0.6))
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-                .frame(width: 104, alignment: .leading)
-
-            GeometryReader { geo in
-                let width = geo.size.width
-                let lower = evidence.interval.lower
-                let upper = evidence.interval.upper
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(.white.opacity(0.10))
-                        .frame(height: 6)
-                    Capsule()
-                        .fill(tint.opacity(0.30))
-                        .frame(width: max(2, width * (upper - lower)), height: 6)
-                        .offset(x: width * lower)
-                    Capsule()
-                        .fill(tint)
-                        .frame(width: 2.5, height: 12)
-                        .offset(x: min(width - 2.5, width * evidence.interval.rate))
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                // At accessibility sizes two fixed columns leave the bar no
+                // room, so the bar takes its own full-width line underneath.
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(alignment: .firstTextBaseline) {
+                        label
+                        Spacer(minLength: 8)
+                        count
+                    }
+                    bar
                 }
-                .frame(height: 12)
-                .frame(maxHeight: .infinity)
+            } else {
+                HStack(spacing: 10) {
+                    label.frame(width: labelWidth, alignment: .leading)
+                    bar
+                    count.frame(width: countWidth, alignment: .trailing)
+                }
             }
-            .frame(height: 12)
-
-            Text(evidence.countText)
-                .font(.system(size: 11, weight: .bold, design: .monospaced))
-                .foregroundStyle(evidence.isSubject ? .white : .white.opacity(0.6))
-                .frame(width: 46, alignment: .trailing)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(evidence.label)
         .accessibilityValue("\(evidence.countText), \(evidence.percentText)")
+    }
+
+    private var label: some View {
+        Text(evidence.label.uppercased())
+            .font(.system(.caption2, design: .monospaced, weight: .bold))
+            .kerning(0.4)
+            .foregroundStyle(evidence.isSubject ? .white : .white.opacity(0.6))
+            .lineLimit(dynamicTypeSize.isAccessibilitySize ? 3 : 1)
+            .minimumScaleFactor(0.7)
+    }
+
+    private var count: some View {
+        Text(evidence.countText)
+            .font(.system(.caption, design: .monospaced, weight: .bold))
+            .foregroundStyle(evidence.isSubject ? .white : .white.opacity(0.6))
+            .lineLimit(1)
+    }
+
+    /// The honest part. The band is the 95% confidence interval; the tick is
+    /// the point estimate. A rate from four flights is a wide smear, the same
+    /// rate from forty is a mark, and the difference is visible without
+    /// reading a single number.
+    private var bar: some View {
+        GeometryReader { geo in
+            let width = geo.size.width
+            let lower = evidence.interval.lower
+            let upper = evidence.interval.upper
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(.white.opacity(0.10))
+                    .frame(height: barHeight / 2)
+                Capsule()
+                    .fill(tint.opacity(0.30))
+                    .frame(width: max(2, width * (upper - lower)), height: barHeight / 2)
+                    .offset(x: width * lower)
+                Capsule()
+                    .fill(tint)
+                    .frame(width: 2.5, height: barHeight)
+                    .offset(x: min(width - 2.5, width * evidence.interval.rate))
+            }
+            .frame(maxHeight: .infinity)
+        }
+        .frame(height: barHeight)
     }
 }
 
@@ -237,13 +305,21 @@ private struct EvidenceRow: View {
 /// The glass panel every recorder card sits on. Same `.ultraThinMaterial`
 /// treatment the boarding and lounge surfaces use, so the screen reads as
 /// part of the app rather than a settings pane.
+///
+/// The material sits on a faint white fill rather than straight on the
+/// gradient. Over a near-black backdrop `.ultraThinMaterial` has almost
+/// nothing to blur and the panel edge disappears; the fill gives the card a
+/// body of its own and keeps it visible when the gradient is at its darkest.
 private struct InstrumentCard<Content: View>: View {
     @ViewBuilder var content: Content
+
+    private var shape: RoundedRectangle { RoundedRectangle(cornerRadius: 18, style: .continuous) }
 
     var body: some View {
         content
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(18)
+            .background(shape.fill(Color.white.opacity(0.055)))
             .background(.ultraThinMaterial.opacity(0.6), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
