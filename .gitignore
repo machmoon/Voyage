@@ -35,3 +35,7 @@ QA/uitest/
 
 # Python bytecode from scripts/
 __pycache__/
+
+# App Store Connect API private keys - never commit
+private_keys/
+*.p8
