@@ -111,7 +111,7 @@ final class FlightEnvironmentWeatherTests: XCTestCase {
             origin: Airport.byCode("SFO"),
             destination: Airport.byCode("JFK"),
             duration: 5 * 3600,
-            flightNumber: "VG 424"
+            flightNumber: "VOY 424"
         )
         let frozenAt = Date(timeIntervalSince1970: 1_700_000_000)
         let provider: WeatherService.CoordinateSnapshotProvider = { coordinate, identifier in
@@ -154,7 +154,7 @@ final class FlightEnvironmentWeatherTests: XCTestCase {
             origin: Airport.byCode("SFO"),
             destination: Airport.byCode("LAX"),
             duration: 90 * 60,
-            flightNumber: "VG 1175"
+            flightNumber: "VOY 1175"
         )
         let frozenAt = Date(timeIntervalSince1970: 1_700_000_000)
         let provider: WeatherService.CoordinateSnapshotProvider = { _, identifier in

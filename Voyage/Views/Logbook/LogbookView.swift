@@ -93,7 +93,7 @@ struct LogbookView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(tier.rawValue.uppercased())
-                        .font(.system(size: 20, weight: .black))
+                        .voyageFont(20, weight: .black)
                         .kerning(2)
                     Text(tier.perkDescription)
                         .font(.caption)
@@ -101,7 +101,7 @@ struct LogbookView: View {
                 }
                 Spacer()
                 Image(systemName: "airplane.circle.fill")
-                    .font(.system(size: 34))
+                    .voyageFont(34)
                     .opacity(0.9)
             }
 
@@ -123,7 +123,7 @@ struct LogbookView: View {
                     }
                     .frame(height: 5)
                     Text("\(Int(max(0, next.threshold - totalMiles)).formatted()) mi to \(next.rawValue)")
-                        .font(.system(size: 10, weight: .semibold))
+                        .voyageFont(10, weight: .semibold)
                         .opacity(0.75)
                         .frame(maxWidth: .infinity, alignment: .trailing)
                 }
@@ -135,7 +135,7 @@ struct LogbookView: View {
             } label: {
                 HStack(spacing: 10) {
                     Image(systemName: "play.fill")
-                        .font(.system(size: 11, weight: .black))
+                        .voyageFont(11, weight: .black)
                     VStack(alignment: .leading, spacing: 1) {
                         Text("Replay this week")
                             .font(.subheadline.weight(.bold))
@@ -152,7 +152,9 @@ struct LogbookView: View {
                 }
                 .foregroundStyle(.white)
                 .padding(.horizontal, 14)
-                .frame(height: 54)
+                // minHeight, not height: the label inside is two lines of
+                // scaling text and a fixed 54 clipped it from AX2 up.
+                .frame(minHeight: 54)
                 .background(Theme.accent.opacity(weekEntries.isEmpty ? 0.12 : 0.22),
                             in: RoundedRectangle(cornerRadius: 15, style: .continuous))
                 .overlay(
@@ -188,9 +190,9 @@ struct LogbookView: View {
     private func statusStat(_ value: String, _ label: String) -> some View {
         VStack(spacing: 2) {
             Text(value)
-                .font(.system(size: 18, weight: .bold, design: .monospaced))
+                .voyageFont(18, weight: .bold, design: .monospaced)
             Text(label.uppercased())
-                .font(.system(size: 8, weight: .bold))
+                .voyageFont(8, weight: .bold)
                 .kerning(0.8)
                 .opacity(0.65)
         }
@@ -204,13 +206,18 @@ struct LogbookView: View {
             // Mini stamp.
             VStack(spacing: 1) {
                 Text(entry.destinationCode)
-                    .font(.system(size: 13, weight: .black, design: .monospaced))
+                    .voyageFont(13, weight: .black, design: .monospaced)
                 Text(entry.completed ? "ADMITTED" : "DIVERTED")
-                    .font(.system(size: 5.5, weight: .heavy))
+                    .voyageFont(5.5, weight: .heavy)
                     .kerning(0.5)
             }
             .foregroundStyle(entry.completed ? entry.destination.accentColor : .secondary)
+            // The mini stamp is a scale drawing, so it is capped rather than
+            // grown: a stamp that doubles in size pushes the route and the
+            // miles off the row. Same call WordPress-iOS makes on its fixed
+            // cards (Modules/Sources/JetpackStats/Cards/TopListCard.swift).
             .frame(width: 58, height: 44)
+            .dynamicTypeSize(...DynamicTypeSize.xxLarge)
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
                     .strokeBorder(entry.completed ? entry.destination.accentColor : Color(.systemGray4),
@@ -248,7 +255,7 @@ struct LogbookView: View {
                     replaySelection = ReplaySelection(entries: [entry], title: "Flight \(entry.flightNumber)")
                 } label: {
                     Image(systemName: "play.fill")
-                        .font(.system(size: 12, weight: .bold))
+                        .voyageFont(12, weight: .bold)
                         .foregroundStyle(.white)
                         .frame(width: 30, height: 30)
                         .background(Theme.accent, in: Circle())
@@ -272,7 +279,7 @@ struct LogbookView: View {
 
             VStack(alignment: .trailing, spacing: 3) {
                 Text("+\(Int(entry.miles).formatted()) mi")
-                    .font(.system(size: 13, weight: .bold, design: .monospaced))
+                    .voyageFont(13, weight: .bold, design: .monospaced)
                     .foregroundStyle(entry.completed ? .primary : .secondary)
                 Text(entry.focusSeconds.shortDurationText)
                     .font(.caption2)

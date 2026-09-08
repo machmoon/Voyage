@@ -32,7 +32,7 @@ struct DivertedView: View {
                 Spacer()
 
                 Image(systemName: kind == .diverted ? "airplane.arrival" : "clock.badge.xmark")
-                    .font(.system(size: 44))
+                    .voyageFont(44)
                     .foregroundStyle(.white.opacity(0.35))
                     .padding(.bottom, 24)
 
@@ -83,7 +83,7 @@ struct DivertedView: View {
                 .kerning(1.4)
                 .foregroundStyle(.white.opacity(0.4))
             Text(value)
-                .font(.system(size: 14, weight: .bold, design: .monospaced))
+                .voyageFont(14, weight: .bold, design: .monospaced)
                 .foregroundStyle(.white.opacity(0.8))
         }
     }

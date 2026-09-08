@@ -102,7 +102,7 @@ final class DigitalTwinTests: XCTestCase {
         let airport = Airport.byCode("SFO")
         let weather = WeatherSnapshot.fallback(for: airport, condition: .fog)
         let samples = [ReplayRouteSample(latitude: airport.latitude, longitude: airport.longitude, progress: 0)]
-        let entry = LogbookEntry(originCode: "SFO", destinationCode: "LAX", flightNumber: "VG 424",
+        let entry = LogbookEntry(originCode: "SFO", destinationCode: "LAX", flightNumber: "VOY 424",
                                  seat: "A8", miles: 337, focusSeconds: 5_100, completed: true,
                                  aircraft: .airbusA320neo, weatherSnapshot: weather,
                                  departureProfile: .sfoBay, worldRevision: AirportWorldCatalog.revision,

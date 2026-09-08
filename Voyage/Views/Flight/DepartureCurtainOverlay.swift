@@ -46,6 +46,9 @@ struct DepartureCurtainOverlay: View {
                     Circle()
                         .strokeBorder(Theme.accent.opacity(0.3), lineWidth: 1)
                         .frame(width: 66, height: 66)
+                    // Deliberately NOT scaled: this glyph sits inside a fixed
+                    // 66pt ring inside a fixed 82pt disc, so growing it with the
+                    // text size pushes it through both.
                     Image(systemName: "airplane.departure")
                         .font(.system(size: 26, weight: .semibold))
                         .foregroundStyle(.white)
@@ -54,7 +57,7 @@ struct DepartureCurtainOverlay: View {
 
                 VStack(spacing: 8) {
                     Text("CLEARED FOR DEPARTURE")
-                        .font(.system(size: 11, weight: .heavy, design: .monospaced))
+                        .voyageFont(11, weight: .heavy, design: .monospaced)
                         .kerning(1.7)
                         .foregroundStyle(Theme.accent.opacity(0.95))
 
@@ -63,7 +66,7 @@ struct DepartureCurtainOverlay: View {
                         routeTrack
                         Text(destinationCode)
                     }
-                    .font(.system(size: 28, weight: .heavy, design: .monospaced))
+                    .voyageFont(28, weight: .heavy, design: .monospaced)
                     .foregroundStyle(.white)
 
                     Text("\(durationText) focus flight")
@@ -108,6 +111,9 @@ struct DepartureCurtainOverlay: View {
                 Circle()
                     .fill(.white.opacity(0.9))
                     .frame(width: 5, height: 5)
+                // Deliberately NOT scaled: this glyph rides a 2pt progress
+                // track and its x offset is computed from the track geometry.
+                // Scaling it desynchronises the plane from the line it flies.
                 Image(systemName: "airplane")
                     .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(.white)

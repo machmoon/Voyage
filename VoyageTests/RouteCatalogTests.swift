@@ -128,6 +128,33 @@ final class RouteCatalogTests: XCTestCase {
         XCTAssertGreaterThan(numbers.count, 1, "Consecutive departures should differ")
     }
 
+    /// An IATA airline designator is exactly two characters, so a two-letter
+    /// code on a mock boarding pass reads as a claim to a real airline's
+    /// identity. Every code in the previous set collided with a live carrier
+    /// (HN, MD, VG, CD, NS, SM), which is an App Review 5.2.5 exposure. Three
+    /// letters cannot be an IATA designator, so this asserts the width rather
+    /// than trusting a comment.
+    func testCarrierCodesAreThreeLettersSoTheyCannotBeIATADesignators() {
+        for carrier in Carrier.allCases {
+            XCTAssertEqual(carrier.rawValue.count, 3,
+                           "\(carrier.name) has a \(carrier.rawValue.count)-character code")
+            XCTAssertTrue(carrier.rawValue.allSatisfy { $0.isUppercase && $0.isLetter },
+                          "\(carrier.name) code should be uppercase letters only")
+        }
+    }
+
+    /// Every printed flight number carries its carrier's code, so the pass and
+    /// the departure board can never disagree about who is operating.
+    func testFlightNumbersCarryTheOperatingCarriersCode() {
+        for airport in Airport.all {
+            for other in Airport.all where other != airport {
+                guard let route = RouteCatalog.nonstop(from: airport, to: other) else { continue }
+                XCTAssertTrue(route.flightNumberText.hasPrefix(route.carrier.rawValue + " "),
+                              "\(route.flightNumberText) does not carry \(route.carrier.rawValue)")
+            }
+        }
+    }
+
     func testCompetitiveRouteBoardIncludesMultipleCarriers() {
         let options = RouteCatalog.upcomingDepartures(
             from: Airport.byCode("SFO"),

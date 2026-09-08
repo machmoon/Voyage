@@ -25,7 +25,7 @@ enum FlightNotifications {
 
     static func postFinalCallNotification(for session: FlightSession) {
         let content = UNMutableNotificationContent()
-        content.title = "Final boarding call — \(session.currentLeg.destination.code)"
+        content.title = "Final boarding call for \(session.currentLeg.destination.code)"
         content.body = "Your connection departs in 3 minutes. Open Voyage to board."
         content.sound = .default
 
@@ -41,7 +41,7 @@ enum FlightNotifications {
         let dest = session.itinerary.destination
         let content = UNMutableNotificationContent()
         content.title = "Landed in \(dest.city)"
-        content.body = "+\(Int(session.completedMiles).formatted()) miles · \(session.itinerary.totalFocusDuration.shortDurationText) focus — open Voyage to stamp your passport and share your flight."
+        content.body = "+\(Int(session.completedMiles).formatted()) miles · \(session.itinerary.totalFocusDuration.shortDurationText) focus. Open Voyage to stamp your passport."
         content.sound = UNNotificationSound(named: UNNotificationSoundName("default"))
 
         let request = UNNotificationRequest(

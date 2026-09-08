@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import AVFoundation
 import SwiftData
 
@@ -12,6 +13,21 @@ struct SettingsView: View {
     /// Installed English voices, best first.
     private var paVoices: [AVSpeechSynthesisVoice] {
         Announcer.rankedEnglishVoices()
+    }
+
+    /// True when the traveler picked one of this device's synthesized voices
+    /// instead of a recorded Voyage Air voice. The recorded voices ship with
+    /// the app, so nothing below applies to them.
+    private var isUsingDeviceVoice: Bool {
+        guard let identifier = settings.paVoiceIdentifier else { return false }
+        return PAVoice(rawValue: identifier) == nil
+    }
+
+    /// True when at least one downloaded voice is installed. iOS ships only the
+    /// compact voices; the good ones arrive when the traveler downloads them,
+    /// and no API lets an app fetch one on their behalf.
+    private var hasDownloadedVoice: Bool {
+        paVoices.contains { Announcer.isHighFidelityVoice($0) || Announcer.isSiriVoice($0) }
     }
 
     private func voiceLabel(_ voice: AVSpeechSynthesisVoice) -> String {
@@ -78,6 +94,25 @@ struct SettingsView: View {
                         } label: {
                             Label("Preview voice", systemImage: "play.circle.fill")
                         }
+
+                        if isUsingDeviceVoice && !hasDownloadedVoice {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Label("Only the compact voice is installed",
+                                      systemImage: "exclamationmark.triangle.fill")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(.orange)
+                                Text("This device only has the synthesized voices iOS ships with, which sound robotic over the cabin PA. Download a better one in Settings, Accessibility, Spoken Content, Voices, English. Samantha (Enhanced) reads well as cabin crew. A Voyage Air voice above is recorded into the app and needs no download.")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Button("Open iOS Settings") {
+                                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                                        UIApplication.shared.open(url)
+                                    }
+                                }
+                                .font(.caption.weight(.semibold))
+                            }
+                            .padding(.vertical, 2)
+                        }
                     }
                 } header: {
                     Text("Sound")
@@ -96,12 +131,12 @@ struct SettingsView: View {
                             Text("\(airport.code) · \(airport.city)").tag(airport.code)
                         }
                     } label: {
-                        Label("Home airport", systemImage: "house.fill")
+                        Label("Departure airport", systemImage: "airplane.departure")
                     }
                 } header: {
                     Text("Origin")
                 } footer: {
-                    Text("Your home airport determines the routes and focus durations on the globe.")
+                    Text("You always take off from the airport nearest you. It sets the routes and focus durations on the globe. Override it here if you would rather fly from somewhere else.")
                 }
 
                 Section {
@@ -199,9 +234,18 @@ struct SettingsView: View {
                 } header: {
                     Text("Test mode")
                 } footer: {
-                    Text("Fills the logbook with a few weeks of focus flights — an active streak, Gold status, and a well-stamped passport — so you can see the app as a returning traveler would. Replaces any existing history.")
+                    Text("Fills the logbook with a few weeks of focus flights: an active streak, Gold status, and a well-stamped passport, so you can see the app as a returning traveler would. Replaces any existing history.")
                 }
                 #endif
+
+                Section {
+                    Link("Open-Meteo", destination: URL(string: "https://open-meteo.com")!)
+                    Link("CC BY 4.0 license", destination: URL(string: "https://creativecommons.org/licenses/by/4.0/")!)
+                } header: {
+                    Text("Weather data")
+                } footer: {
+                    Text("Conditions in the window scene and the arrival announcement come from Open-Meteo, licensed under CC BY 4.0. When no reading is available Voyage falls back to clear skies computed on device.")
+                }
 
                 Section {
                     LabeledContent("Version", value: "1.0")

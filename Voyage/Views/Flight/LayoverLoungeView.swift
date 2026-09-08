@@ -64,7 +64,7 @@ struct LayoverLoungeView: View {
                 Text(session.finalCallRemaining.clockText)
                     .font(.system(size: 64, weight: .bold, design: .monospaced))
                     .foregroundStyle(.red)
-                Text("Gate closing — board now to keep your connection")
+                Text("Gate closing. Board now to keep your connection.")
                     .font(.footnote.weight(.medium))
                     .foregroundStyle(.red.opacity(0.85))
             } else {

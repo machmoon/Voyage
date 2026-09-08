@@ -71,7 +71,10 @@ final class VoyageSmokeUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["Schedule your focus"].waitForExistence(timeout: 5))
         let departureRows = app.buttons.matching(
-            NSPredicate(format: "label MATCHES %@", #"[A-Z0-9]{2} [0-9]+, departs .*"#))
+            // Carrier codes are three letters, never two. A two-character code
+            // is an IATA designator and would be a claim to a real airline's
+            // identity (App Review 5.2.5), so assert the width here.
+            NSPredicate(format: "label MATCHES %@", #"[A-Z]{3} [0-9]+, departs .*"#))
         XCTAssertGreaterThanOrEqual(departureRows.count, 5)
 
         let screenshot = XCUIScreen.main.screenshot()

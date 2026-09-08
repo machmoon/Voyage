@@ -1,8 +1,5 @@
 import Foundation
 import CoreLocation
-#if canImport(WeatherKit)
-import WeatherKit
-#endif
 
 /// Simplified sky condition used to theme the window scene.
 enum SkyCondition: String, Codable {
@@ -42,9 +39,14 @@ enum SkyCondition: String, Codable {
     }
 }
 
-/// Real current weather for an airport or route coordinate. WeatherKit is
-/// always attempted first, then Open-Meteo, and finally a clear deterministic
-/// fallback. Unit tests short-circuit before any provider is touched.
+/// Real current weather for an airport or route coordinate. Open-Meteo is the
+/// only provider, with a clear deterministic fallback behind it. Unit tests
+/// short-circuit before any provider is touched.
+///
+/// Do not add WeatherKit back. The app holds no WeatherKit entitlement, so the
+/// old `import` only linked the framework and threw at runtime while Open-Meteo
+/// supplied every shipped reading, and that stray link drew an App Review 5.2.5
+/// rejection for missing Apple Weather attribution.
 enum WeatherService {
     nonisolated static let maximumRouteWeatherSamples = 5
 
@@ -70,7 +72,7 @@ enum WeatherService {
 
     static func snapshot(for airport: Airport) async -> WeatherSnapshot {
         // Keep this guard at the public boundary: unit tests must never touch
-        // WeatherKit, Open-Meteo, or the optional Voyage worker.
+        // Open-Meteo or the optional Voyage worker.
         if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
             return .fallback(for: airport)
         }
@@ -92,15 +94,6 @@ enum WeatherService {
         guard CLLocationCoordinate2DIsValid(coordinate) else {
             return fallbackSnapshot(identifier: resolvedIdentifier)
         }
-
-        #if canImport(WeatherKit)
-        if let weatherKit = await weatherKitSnapshot(
-            at: coordinate,
-            identifier: resolvedIdentifier
-        ) {
-            return weatherKit
-        }
-        #endif
 
         if let openMeteo = await openMeteoSnapshot(
             at: coordinate,
@@ -176,56 +169,6 @@ enum WeatherService {
 
         return frozen ?? .fallback(for: leg, frozenAt: frozenAt)
     }
-
-    // MARK: WeatherKit
-
-    #if canImport(WeatherKit)
-    private static func weatherKitSnapshot(
-        at coordinate: CLLocationCoordinate2D,
-        identifier: String
-    ) async -> WeatherSnapshot? {
-        do {
-            let current = try await WeatherKit.WeatherService.shared.weather(
-                for: CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude),
-                including: .current
-            )
-            return WeatherSnapshot(
-                airportCode: identifier,
-                observedAt: current.date,
-                condition: condition(for: current.condition),
-                windDirectionDegrees: normalizedDegrees(current.wind.direction.converted(to: .degrees).value),
-                windSpeedKnots: roundedInt(current.wind.speed.converted(to: .knots).value),
-                visibilityMiles: finiteValue(current.visibility.converted(to: .miles).value),
-                cloudBaseFeet: nil,
-                temperatureCelsius: finiteValue(current.temperature.converted(to: .celsius).value),
-                source: "WeatherKit"
-            )
-        } catch {
-            return nil // No entitlement / no network — try Open-Meteo.
-        }
-    }
-
-    private static func condition(for weatherCondition: WeatherCondition) -> SkyCondition {
-        switch weatherCondition {
-        case .thunderstorms, .isolatedThunderstorms, .scatteredThunderstorms,
-             .strongStorms, .hail:
-            return .storm
-        case .rain, .drizzle, .heavyRain, .sunShowers:
-            return .rain
-        case .snow, .heavySnow, .flurries, .sleet, .blizzard,
-             .blowingSnow, .freezingDrizzle, .freezingRain, .wintryMix:
-            return .snow
-        case .foggy, .haze, .smoky:
-            return .fog
-        case .cloudy, .mostlyCloudy, .blowingDust:
-            return .cloudy
-        case .partlyCloudy, .mostlyClear:
-            return .partlyCloudy
-        default:
-            return .clear
-        }
-    }
-    #endif
 
     // MARK: Open-Meteo
 

@@ -79,7 +79,7 @@ final class FlightScheduler: NSObject, UNUserNotificationCenterDelegate {
             guard granted else { return }
             let content = UNMutableNotificationContent()
             let number = flightNumber ?? RoutePlanner.flightNumber(from: origin, to: destination)
-            content.title = "Now boarding — \(number) to \(destination.city)"
+            content.title = "Now boarding. \(number) to \(destination.city)"
             content.body = "Your flight departs in 10 minutes. Boarding closes 15 minutes after departure."
             content.sound = .default
 

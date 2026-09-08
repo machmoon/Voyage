@@ -177,6 +177,9 @@ struct FlightMapView: View {
                     )
                 )
                 .frame(width: 34, height: 34)
+            // Deliberately NOT scaled: a map annotation is drawn in map
+            // space, not text space. Growing the aircraft with the reader's
+            // text size makes it cover the route it is flying.
             Image(systemName: "airplane")
                 .font(.system(size: 20, weight: .bold))
                 .foregroundStyle(.white)
@@ -236,7 +239,7 @@ struct FlightMapView: View {
                     withAnimation(.snappy(duration: 0.2)) { selection.wrappedValue = option }
                 } label: {
                     Text(option[keyPath: id])
-                        .font(.system(size: 11, weight: .bold))
+                        .voyageFont(11, weight: .bold)
                         .foregroundStyle(isOn ? .black : .white.opacity(0.85))
                         .padding(.horizontal, 10)
                         .padding(.vertical, 6)

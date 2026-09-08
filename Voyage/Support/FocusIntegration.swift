@@ -78,7 +78,7 @@ final class FocusIntegration {
     /// One-line status for the boarding pass banner.
     var boardingStatusText: String {
         if systemFocusEnabled {
-            return "Focus is on — you're cleared for takeoff"
+            return "Focus is on. Cleared for takeoff."
         }
         if filterConfigured {
             return "Turn on Focus before boarding for zero interruptions"

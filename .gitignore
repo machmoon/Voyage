@@ -48,3 +48,12 @@ QA/voice-candidates/
 
 # Private submission prep — kept locally, never pushed
 BUILD_WEEK_DEMO.md
+
+# App Store Connect signing keys. Never commit these. The pipeline reads the
+# key from ~/.appstoreconnect/private_keys/, not from the repo, so a copy here
+# is pure exposure.
+private_keys/
+*.p8
+
+# Agent worktrees are local scratch, never part of the repo
+.claude/worktrees/

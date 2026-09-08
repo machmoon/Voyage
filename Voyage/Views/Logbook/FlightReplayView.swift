@@ -15,6 +15,7 @@ struct FlightReplayView: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @StateObject private var playbackClock = ReplayDisplayLinkClock()
     @State private var progress = 0.0
     @State private var isPlaying = true
@@ -215,7 +216,7 @@ struct FlightReplayView: View {
             Spacer()
 
             Button {
-                withAnimation(.smooth(duration: 0.28)) { showsStats.toggle() }
+                withAnimation(motion(.smooth(duration: 0.28))) { showsStats.toggle() }
                 Haptics.tap()
             } label: {
                 Image(systemName: showsStats ? "chart.bar.fill" : "chart.bar")
@@ -429,7 +430,7 @@ struct FlightReplayView: View {
                 }
             }
             .onChange(of: activeIndex) { _, index in
-                withAnimation(.smooth(duration: 0.3)) { proxy.scrollTo(index, anchor: .center) }
+                withAnimation(motion(.smooth(duration: 0.3))) { proxy.scrollTo(index, anchor: .center) }
             }
         }
     }
@@ -619,15 +620,22 @@ struct FlightReplayView: View {
         Haptics.tap()
     }
 
+    /// Reduce Motion still gets every state change, just without the travel.
+    /// The replay's camera work is the whole point of the screen, so it stays
+    /// functional and only the movement between framings is dropped.
+    private func motion(_ animation: Animation) -> Animation? {
+        reduceMotion ? nil : animation
+    }
+
     private func showMilestone(_ text: String) {
         let id = UUID()
         milestoneID = id
-        withAnimation(.snappy(duration: 0.28)) {
+        withAnimation(motion(.snappy(duration: 0.28))) {
             milestoneText = text
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
             guard milestoneID == id else { return }
-            withAnimation(.easeOut(duration: 0.22)) {
+            withAnimation(motion(.easeOut(duration: 0.22))) {
                 milestoneText = nil
             }
         }
@@ -654,7 +662,7 @@ struct FlightReplayView: View {
     /// camera framed the whole route once and the plane crawled across it.
     private func followAircraft() {
         guard isPlaying, let snapshot = activeSnapshot else { return }
-        withAnimation(.smooth(duration: 0.35)) {
+        withAnimation(motion(.smooth(duration: 0.35))) {
             cameraPosition = .camera(MapCamera(
                 centerCoordinate: snapshot.coordinate,
                 distance: 320_000,
@@ -678,7 +686,7 @@ struct FlightReplayView: View {
         let horizontalPadding = max(routeRect.size.width * 0.24, 24_000)
         let verticalPadding = max(routeRect.size.height * 0.30, 24_000)
         routeRect = routeRect.insetBy(dx: -horizontalPadding, dy: -verticalPadding)
-        withAnimation(.smooth(duration: 0.45)) {
+        withAnimation(motion(.smooth(duration: 0.45))) {
             cameraPosition = .rect(routeRect)
         }
     }

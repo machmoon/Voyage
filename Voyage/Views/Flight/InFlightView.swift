@@ -17,6 +17,10 @@ struct InFlightView: View {
     @State private var settings = SettingsStore.shared
     @State private var windowSceneArmed = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.scenePhase) private var scenePhase
+    /// Network and thermal signal, so the window control can tell the traveler
+    /// which world they are actually looking at rather than which one is set.
+    @ObservedObject private var sceneryAvailability = WorldSceneryAvailability.shared
 
     // MARK: Study-map warm-up
     //
@@ -88,6 +92,11 @@ struct InFlightView: View {
 
                 studyContent
 
+                if studyView == .window && realWorldIsFallingBack {
+                    realWorldFallbackNote
+                        .padding(.top, 12)
+                }
+
                 Spacer(minLength: 18)
 
                 countdown
@@ -112,6 +121,7 @@ struct InFlightView: View {
                 Spacer(minLength: 24)
             }
             .animation(.snappy(duration: 0.4), value: session.beverageCartUntil)
+            .animation(.smooth(duration: 0.3), value: realWorldIsFallingBack)
 
             // Keep controls above the window shade gesture layer — the shade
             // GeometryReader can extend past the clipped pane and steal taps.
@@ -162,6 +172,41 @@ struct InFlightView: View {
         settings.ambienceEnabled || settings.soundEffectsEnabled
     }
 
+    // MARK: Which world is actually on screen
+
+    /// The provider the window will really use right now, decided by the same
+    /// policy the renderer applies. Settings say what you asked for; this says
+    /// what you get.
+    private var activeSceneryProvider: WorldSceneryProviderKind {
+        WorldSceneryProviderPolicy.provider(
+            realWorldTwinEnabled: settings.streamsRealWorldScenery,
+            appIsActive: scenePhase == .active,
+            isOnline: sceneryAvailability.isOnline
+                && WorldSceneryConfiguration.streamedSceneryAllowedByProcess,
+            thermalState: sceneryAvailability.thermalState
+        )
+    }
+
+    /// Real world is selected but cannot stream, so the pane is showing the
+    /// procedural stand-in. Worth saying out loud: silently drawing a fake
+    /// world under a "Real world" setting reads as the feature being broken.
+    private var realWorldIsFallingBack: Bool {
+        settings.windowWorldMode == .real && activeSceneryProvider != .mapKit
+    }
+
+    private var realWorldFallbackReason: String {
+        if !sceneryAvailability.isOnline
+            || !WorldSceneryConfiguration.streamedSceneryAllowedByProcess {
+            return "Offline. Showing the drawn world until the connection returns."
+        }
+        switch sceneryAvailability.thermalState {
+        case .serious, .critical:
+            return "Your device is running hot. Satellite paused to let it cool."
+        default:
+            return "Satellite is unavailable right now. Showing the drawn world."
+        }
+    }
+
     private var topBar: some View {
         HStack(spacing: 2) {
             if session.itinerary.isConnection {
@@ -177,6 +222,14 @@ struct InFlightView: View {
 
             ForEach(StudyView.allCases, id: \.self) { view in
                 studyViewButton(view)
+            }
+
+            // Which world the window looks out at. It lives here rather than
+            // only in Settings because it changes what you are looking at right
+            // now, and nobody leaves a flight to go find a picker.
+            if studyView == .window {
+                toolbarDivider
+                worldModeButton
             }
 
             toolbarDivider
@@ -225,6 +278,48 @@ struct InFlightView: View {
         }
         .shadow(color: .black.opacity(0.22), radius: 12, y: 5)
         .frame(maxWidth: .infinity)
+    }
+
+    /// Swaps the window between streamed satellite and the drawn sky. The icon
+    /// reports the world actually on screen, so a real-world selection that is
+    /// falling back reads as dimmed rather than as if nothing happened.
+    private var worldModeButton: some View {
+        let mode = settings.windowWorldMode
+        let isReal = mode == .real
+        let symbol: String = {
+            if isReal { return realWorldIsFallingBack ? "globe.badge.chevron.backward" : "globe.americas.fill" }
+            return "cloud.sun.fill"
+        }()
+
+        return Button {
+            Haptics.tap()
+            withAnimation(.smooth(duration: 0.35)) {
+                settings.windowWorldMode = isReal ? .illustrated : .real
+            }
+        } label: {
+            Image(systemName: symbol)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(isReal && !realWorldIsFallingBack
+                                 ? .white.opacity(0.9)
+                                 : .white.opacity(0.55))
+                .frame(width: 36, height: 36)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("window-world-mode")
+        .accessibilityLabel(isReal ? "Window shows the real world" : "Window shows the drawn world")
+        .accessibilityValue(realWorldIsFallingBack ? realWorldFallbackReason : mode.title)
+        .accessibilityHint(isReal ? "Switch to the drawn world" : "Switch to satellite imagery")
+    }
+
+    /// One calm line under the pane when a real-world selection cannot stream.
+    private var realWorldFallbackNote: some View {
+        Text(realWorldFallbackReason)
+            .font(.system(size: 11, weight: .medium, design: .rounded))
+            .foregroundStyle(.white.opacity(0.55))
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, 40)
+            .transition(.opacity)
     }
 
     private func studyViewButton(_ view: StudyView) -> some View {

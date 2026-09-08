@@ -29,9 +29,13 @@ struct FlightVisualClockAnchor: Equatable {
 }
 
 /// One continuous, route-aware world from the runway threshold through
-/// rollout. Google 3D, MapKit, and the deterministic fallback all consume the
-/// exact same passenger camera pose and therefore never switch geography at a
-/// phase boundary.
+/// rollout. MapKit satellite flyover and the deterministic procedural fallback
+/// consume the exact same passenger camera pose and therefore never switch
+/// geography at a phase boundary.
+///
+/// MapKit is the only streamed provider. It draws Apple's own attribution, which
+/// `RealWorldTwinView` keeps legible by insetting the map's `layoutMargins` clear
+/// of the rounded window corners and masking cabin overlays out of that band.
 struct WindowSceneView: View {
     let context: FlightVisualContext
     let clockAnchor: FlightVisualClockAnchor
@@ -78,6 +82,7 @@ struct WindowSceneView: View {
                     isLeftSide: state.camera.side == .left,
                     legElapsed: state.elapsed,
                     phaseElapsed: phaseElapsed(for: state),
+                    phaseProgress: state.phaseProgress,
                     weatherSnapshot: weather
                 )
             }

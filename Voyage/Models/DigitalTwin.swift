@@ -5,6 +5,7 @@ enum AircraftProfile: String, CaseIterable, Codable, Identifiable {
     case voyageClassic
     case boeing737800
     case airbusA320neo
+    case boomOverture
 
     var id: String { rawValue }
 
@@ -13,6 +14,7 @@ enum AircraftProfile: String, CaseIterable, Codable, Identifiable {
         case .voyageClassic: return "Voyage Classic"
         case .boeing737800: return "Boeing 737-800"
         case .airbusA320neo: return "Airbus A320neo"
+        case .boomOverture: return "Boom Overture"
         }
     }
 
@@ -21,6 +23,7 @@ enum AircraftProfile: String, CaseIterable, Codable, Identifiable {
         case .voyageClassic: return "airplane"
         case .boeing737800: return "airplane.departure"
         case .airbusA320neo: return "airplane.circle"
+        case .boomOverture: return "paperplane.fill"
         }
     }
 
@@ -30,6 +33,9 @@ enum AircraftProfile: String, CaseIterable, Codable, Identifiable {
         case .voyageClassic: return 132
         case .boeing737800: return 148
         case .airbusA320neo: return 143
+        // A slender delta carries far less lift at low speed, so it holds the
+        // runway well past a narrowbody's rotation and lifts off nose-high.
+        case .boomOverture: return 198
         }
     }
 
@@ -38,6 +44,9 @@ enum AircraftProfile: String, CaseIterable, Codable, Identifiable {
         case .voyageClassic: return 2.2
         case .boeing737800: return 2.7
         case .airbusA320neo: return 2.55
+        // Supersonic cabins carry small windows: less structure to cut, less
+        // to fail at altitude.
+        case .boomOverture: return 1.6
         }
     }
 
@@ -101,6 +110,27 @@ enum AircraftProfile: String, CaseIterable, Codable, Identifiable {
                 wingSweep: 0.22,
                 engineSize: 0.14
             )
+        case .boomOverture:
+            return CabinPlan(
+                // Overture seats 64-80 in an all-business 1-1 cabin: one seat
+                // either side of the aisle, every row a window and an aisle.
+                // Sixty-four seats over thirty-two rows is the published
+                // layout, which is why this cabin is so much longer and
+                // narrower than the narrowbodies.
+                cabins: [
+                    .init(name: "Founders", rows: Array(1...4), left: CabinPlan.singleLeft,
+                          right: CabinPlan.singleRight, isPremium: true),
+                    .init(name: "Main Cabin", rows: Array(5...32), left: CabinPlan.singleLeft,
+                          right: CabinPlan.singleRight, isPremium: false)
+                ],
+                exitRows: [16, 17],
+                // A supersonic nose is a spike, not a dome, and the delta runs
+                // most of the fuselage length with almost no separate wing root.
+                noseFullness: 0.05,
+                wingSpan: 0.95,
+                wingSweep: 0.85,
+                engineSize: 0.12
+            )
         }
     }
 }
@@ -114,6 +144,10 @@ struct CabinPlan {
     static let pairRight = ["D", "F"]
     static let tripleLeft = ["A", "B", "C"]
     static let tripleRight = ["D", "E", "F"]
+    /// One seat either side of the aisle, as on a supersonic cabin. A stays
+    /// port and D starboard so `WindowSide(seat:)` still reads the side right.
+    static let singleLeft = ["A"]
+    static let singleRight = ["D"]
 
     struct Cabin: Identifiable {
         let name: String
@@ -268,7 +302,20 @@ struct AirportWorldSimulation {
         let rotation = smoothstep(0.72, 0.98, roll)
         let pitch = phase == .takeoffRoll ? rotation * 10 : (phase == .climb ? 8 * (1 - climb * 0.45) : 0)
         let side = WindowSide(seat: seat)
-        let bank = phase == .climb ? (side == .left ? 3.5 : -3.5) * sin(climb * .pi) : 0
+        // Climb-out tilt, matched to `IllustratedWindowSceneView.bankAngle` so the
+        // two window worlds agree. The sign is deliberately NOT flipped by window
+        // side: the aircraft rolls one way, and negating it for the right-hand
+        // seat made the horizon swing the opposite direction from the illustrated
+        // layer, which read as the view rotating one way and then hard back.
+        let bank: Double
+        switch phase {
+        case .takeoffRoll:
+            bank = Self.climbTilt * smoothstep(0.66, 1, roll)
+        case .climb:
+            bank = Self.climbTilt * (1 - smoothstep(0.15, 0.85, climb))
+        case .cruise, .descent, .landing:
+            bank = 0
+        }
         let visibilityMiles = weather?.visibilityMiles ?? 10
         let camera = cameraPose(side: side, roll: roll, climb: climb, pitch: pitch, bank: bank)
         return AirportWorldFrame(
@@ -317,6 +364,11 @@ struct AirportWorldSimulation {
             fieldOfViewDegrees: 66
         )
     }
+
+    /// Peak climb-out tilt, in degrees. Kept identical to
+    /// `IllustratedWindowSceneView.climbTilt` so switching window modes
+    /// mid-climb does not jump the horizon.
+    static let climbTilt: Double = 4.0
 
     private func smoothstep(_ edge0: Double, _ edge1: Double, _ value: Double) -> Double {
         let t = min(1, max(0, (value - edge0) / (edge1 - edge0)))

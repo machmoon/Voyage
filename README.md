@@ -8,7 +8,7 @@ Built with **Codex powered by GPT-5.6** for the **Apps for Your Life** track of 
 
 [![Platform](https://img.shields.io/badge/platform-iOS%2017%2B-111827)](#run-it)
 [![Swift](https://img.shields.io/badge/Swift-5-F05138)](#technical-implementation)
-[![Dependencies](https://img.shields.io/badge/third--party%20dependencies-1%20(optional)-16A34A)](#technical-implementation)
+[![Dependencies](https://img.shields.io/badge/third--party%20dependencies-0-16A34A)](#technical-implementation)
 [![License](https://img.shields.io/badge/license-MIT-2563EB)](LICENSE)
 
 <p align="center">
@@ -35,13 +35,13 @@ Voyage borrows that psychological machinery. It is not an airplane placed next t
 5. **Focus through the flight.** Takeoff, climb, cruise, descent, and landing drive the window, map, weather, altitude, cabin lighting, announcements, haptics, and procedural audio.
 6. **Do not abandon the aircraft.** Backgrounding starts a 30-second grace period. Missing the deadline diverts the flight.
 7. **Land and remember it.** Completed flights earn miles, extend streaks, produce passport stamps, preserve completed intentions, and can be replayed from the logbook.
-8. **Optional system hooks.** Location permission sets your nearest home airport on the globe. Flight Focus ties into iOS Focus mode: add the filter once, then grant Focus access when you board for an airplane-mode-style session.
+8. **Optional system hooks.** Location permission sets your nearest airport as the origin on the globe. Flight Focus ties into iOS Focus mode: add the filter once, then grant Focus access when you board for an airplane-mode-style session.
 
 The active flight also appears in a Live Activity and the Dynamic Island, so the remaining time can be checked without reopening the app and accidentally causing an aviation incident.
 
 ## Why it belongs in Apps for Your Life
 
-Voyage solves an ordinary personal problem—staying with work after deciding to begin—through an unusually complete behavioral metaphor.
+Voyage solves an ordinary personal problem, staying with work after deciding to begin, by giving the session a departure, a destination, and a cost for leaving.
 
 | Challenge question | Voyage's answer |
 | --- | --- |
@@ -103,7 +103,7 @@ This human/model division mattered. GPT-5.6 supplied unusually broad technical r
 
 ## Technical implementation
 
-Voyage is a native iOS 17 application built almost entirely on first-party Apple frameworks. It has **one third-party dependency, and it is optional**: the [Google Maps 3D SDK](https://github.com/googlemaps/ios-maps-3d-sdk) (pinned to `0.2.1`) supplies photorealistic streamed scenery for the passenger window. Without an API key the app degrades automatically to MapKit, and then to the procedural Metal renderer. Every other layer — persistence, audio, navigation, widgets, intents — is Apple-native.
+Voyage is a native iOS 17 application built entirely on first-party Apple frameworks. It has **zero third-party dependencies**: no Swift packages, no CocoaPods, no vendored frameworks. Every layer, including persistence, audio, navigation, scenery, widgets, and intents, is Apple-native. Streamed scenery comes from MapKit, and the passenger window falls back to a procedural Metal renderer when streaming is off or unavailable.
 
 | Layer | Technology | Responsibility |
 | --- | --- | --- |
@@ -112,11 +112,11 @@ Voyage is a native iOS 17 application built almost entirely on first-party Apple
 | Persistence | SwiftData | Flights, miles, streaks, intentions, weather snapshots, and replay metadata |
 | Navigation | MapKit + great-circle SLERP | Route drawing, aircraft position, follow camera, terrain, and satellite modes |
 | Window world | SwiftUI Canvas + Metal | Runway, clouds, haze, weather, passenger camera, aircraft performance, and wing view |
-| Streamed scenery | Google Maps 3D → MapKit → procedural | Optional photorealistic terrain, selected at runtime by key availability and thermal state |
+| Streamed scenery | MapKit → procedural | Satellite and terrain imagery for the window, selected at runtime by settings, network, and thermal state |
 | Audio | AVFoundation + AVSpeechSynthesizer | Procedural ambience, chimes, PA filtering, stamps, and phase transitions |
 | System integration | ActivityKit, WidgetKit, App Intents, notifications | Dynamic Island, lock screen, Siri/Shortcuts, departure reminders, and focus integration |
-| Live data | Cloudflare Worker + aviation weather | Normalized METAR weather and optional licensed schedule adapter |
-| Verification | XCTest + XCUITest | 107 unit tests and 8 UI tours, including automated visual and demo capture |
+| Live data | Open-Meteo, credited under CC BY 4.0 | Current conditions for airports and route sample points, frozen into the flight replay |
+| Verification | XCTest + XCUITest | 163 unit tests and 8 UI tours, including automated visual and demo capture |
 
 ### Deterministic flight engine
 
@@ -147,8 +147,8 @@ This follows the curvature of the Earth rather than the geographically innovativ
 ### Real data without demo fragility
 
 - The route catalog contains every supported directed airport pair, including directional block times and popular connections.
-- Weather uses live aviation observations and stores a frozen departure snapshot for deterministic replay.
-- The Worker normalizes external responses and performs at most one upstream request per cache miss.
+- Weather uses live observations from Open-Meteo and stores a frozen departure snapshot for deterministic replay.
+- The `worker/` directory holds a Cloudflare METAR adapter kept for future use. The shipped app does not call it and reads weather from Open-Meteo directly.
 - Unit tests remain offline.
 - If all live services are unavailable, Voyage continues with its bundled catalog and clear weather rather than crashing at the gate.
 
@@ -162,7 +162,7 @@ This follows the curvature of the Earth rather than the geographically innovativ
 - XcodeGen only if regenerating the project after file-layout changes
 - Metal toolchain for `Shaders.metal`
 
-**No accounts, API keys, or sample-data downloads are required.** Xcode resolves the one Swift Package dependency (Google Maps 3D SDK) automatically on first open; if you are offline, see [Running without the package](#running-without-the-package) below.
+**No accounts, API keys, package resolution, or sample-data downloads are required.** There are no third-party dependencies, so a clean checkout builds offline.
 
 ### Fastest judge path
 
@@ -197,31 +197,14 @@ None to download. Everything needed to fly is compiled into the app:
 
 The logbook starts empty by design — the first flight you complete is the first stamp in the passport.
 
-### Optional: photorealistic scenery
+### Window scenery
 
 The passenger window picks its renderer at runtime in this order:
 
-1. **Google Maps 3D** — photorealistic streamed terrain. Requires an API key.
-2. **MapKit** — Apple's satellite and terrain layer. No key needed.
-3. **Procedural Metal** — the fully offline authored sky, clouds, and runway.
+1. **MapKit.** Apple's satellite and terrain imagery, streamed. No key, no account, no configuration. Apple's attribution stays visible in the window.
+2. **Procedural Metal.** The fully offline authored sky, clouds, and runway.
 
-Tiers 2 and 3 are always available, so **the app is complete and demo-ready with no configuration**. To enable tier 1:
-
-```bash
-cp Config.example.xcconfig Config.local.xcconfig
-```
-
-Add your key to `Config.local.xcconfig`:
-
-```
-GOOGLE_MAPS_API_KEY = your_key_here
-```
-
-`Config.local.xcconfig` is git-ignored and is `#include?`-ed by the checked-in base config, so a clean checkout without it still builds. Restrict the key to the `com.patrickliu.voyage` bundle identifier and to the Maps 3D SDK in the Google Cloud Console — keys embedded in an iOS app are not secrets, so the application and API restrictions are the real security boundary.
-
-### Running without the package
-
-Xcode resolves the Google Maps 3D package on first open, which requires network access once. After that first resolve the package is cached and the project builds offline. The SDK is a compile-time dependency of [`RealWorldTwinView.swift`](Voyage/Views/Flight/RealWorldTwinView.swift), so it must be present to build — but it is inert at runtime without a key, and the window falls back to MapKit and procedural scenery.
+Both tiers are always available, so **the app is complete and demo-ready with no configuration**. Streaming can be turned off in Settings, and the window drops to the procedural renderer. It also drops automatically when the network is unavailable or the device is thermally constrained.
 
 ### Build from the command line
 
@@ -273,7 +256,7 @@ Voyage/
 VoyageWidgets/           Live Activity and Dynamic Island extension
 VoyageTests/             Unit tests
 VoyageUITests/           Smoke, screenshot, demo, and visual-checkpoint tours
-worker/                  Cloudflare aviation-data adapter
+worker/                  Cloudflare METAR adapter, not called by the shipped app
 QA/                      Committed visual state and design audit
 ```
 
@@ -288,12 +271,12 @@ xcodegen generate
 
 ## Privacy and resilience
 
-- Voyage requires no account.
-- The logbook is stored locally with SwiftData.
-- Location is used to select the nearest home airport.
-- The app contains no advertising or analytics SDKs.
-- The iOS client contains no provider secrets. The optional Google Maps key is a bundle-restricted client identifier, not a credential, and is supplied through a git-ignored local config.
-- The schedule provider is optional; failure falls back to the bundled catalog.
+- Voyage requires no account and collects no personal data.
+- The logbook is stored locally with SwiftData and never leaves the device.
+- Location is used once, on device, to select the nearest airport. The position itself is never sent anywhere.
+- The app contains no advertising, no analytics, and no third-party SDKs.
+- The iOS client contains no provider secrets, because it calls no keyed service.
+- Weather comes from Open-Meteo, credited in Settings under CC BY 4.0; scenery comes from Apple Maps. Both fall back to bundled data on failure.
 - Unit tests never contact weather services.
 
 ## Build Week submission

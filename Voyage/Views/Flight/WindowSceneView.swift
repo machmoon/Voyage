@@ -20,6 +20,9 @@ struct IllustratedWindowSceneView: View {
     var isLeftSide: Bool = false
     var legElapsed: TimeInterval = 0
     var phaseElapsed: TimeInterval = 0
+    /// 0 to 1 through the current phase, from the flight schedule. Attitude is
+    /// keyed to this so it lands on zero exactly at each phase boundary.
+    var phaseProgress: Double = 0
     var aircraft: AircraftProfile = .voyageClassic
     var weatherSnapshot: WeatherSnapshot?
 
@@ -162,15 +165,39 @@ struct IllustratedWindowSceneView: View {
             }
     }
 
-    /// Climb-out attitude: the nose pitches up, so the view tips so the seat
-    /// side of the window rises — you feel the aircraft elevate rather than sit
-    /// level. Eases back to level as we approach cruise altitude. The slight
-    /// scale-up hides the window corners while rotated.
+    /// Peak climb-out tilt. A real rotation is a handful of degrees held for a
+    /// long time, not a lurch, so this is deliberately small.
+    private static let climbTilt: Double = 4.0
+
+    /// Climb-out attitude: the nose comes up over the back of the ground roll,
+    /// holds through the first part of the climb, then settles level before
+    /// cruise. The slight scale-up hides the window corners while rotated.
+    ///
+    /// Driven off `phaseProgress` rather than altitude so the angle is exactly
+    /// zero at both the roll and cruise boundaries. The old version keyed the
+    /// level-off to `altitudeFraction / 0.85`, which never reached zero on legs
+    /// that cruise below 30,600 ft, so the view snapped upright the instant the
+    /// phase flipped to cruise. It also reached full tilt in 1.4s, which read as
+    /// a lurch rather than a climb.
     private var bankAngle: Double {
-        guard !reduceMotion, phase == .climb else { return 0 }
-        let rise = min(1, phaseElapsed / 1.4)
-        let levelOff = 1 - min(1, max(0, altitudeFraction) / 0.85)
-        return 8.0 * rise * levelOff
+        guard !reduceMotion else { return 0 }
+        switch phase {
+        case .takeoffRoll:
+            // Rotation happens at the end of the roll, not the start of it.
+            return Self.climbTilt * Self.smoothstep(0.66, 1, phaseProgress)
+        case .climb:
+            // Hold the attitude briefly, then ease level with altitude to spare.
+            return Self.climbTilt * (1 - Self.smoothstep(0.15, 0.85, phaseProgress))
+        case .cruise, .descent, .landing:
+            return 0
+        }
+    }
+
+    /// Hermite ease between two edges; 0 below `edge0`, 1 above `edge1`.
+    private static func smoothstep(_ edge0: Double, _ edge1: Double, _ value: Double) -> Double {
+        guard edge1 > edge0 else { return value >= edge1 ? 1 : 0 }
+        let t = min(1, max(0, (value - edge0) / (edge1 - edge0)))
+        return t * t * (3 - 2 * t)
     }
 
     // MARK: Frame pacing

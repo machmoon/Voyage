@@ -59,7 +59,7 @@ final class FlightActivityController {
         switch session.stage {
         case .layover:
             let caption = session.isFinalCall
-                ? "Final call — board now"
+                ? "Final call. Board now."
                 : "Lounge · connection boards soon"
             let symbol = session.isFinalCall ? "exclamationmark.circle.fill" : "cup.and.saucer.fill"
             let arrival: Date

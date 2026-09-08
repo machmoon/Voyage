@@ -1,0 +1,116 @@
+# Voyage CI.
+#
+# Structure follows two open-source iOS apps that, like Voyage, generate their
+# Xcode project from a `project.yml` with XcodeGen rather than committing a
+# hand-maintained one:
+#
+#   premnirmal/StockTicker  .github/workflows/ios.yml
+#   DimensionDev/Flare      .github/workflows/ios.yml
+#
+# Both do the same four things in the same order: pin the runner image, select
+# Xcode with maxim-lobanov/setup-xcode, download the iOS platform on demand,
+# then `brew install xcodegen` and `xcodegen generate` before any xcodebuild.
+# The `xcrun simctl list devices available` diagnostic step is from
+# pointfreeco/swift-composable-architecture .github/workflows/ci.yml, where it
+# exists so a destination failure on a runner is debuggable from the log.
+#
+# Deliberately NOT copied:
+#   - `-skipMacroValidation` / `-skipPackagePluginValidation`. Flare and
+#     isowords pass these because they have SPM dependencies and macros. Voyage
+#     has neither, so they would be cargo cult.
+#   - DerivedData caching. swift-composable-architecture caches `~/.derivedData`,
+#     but only works because it also sets `IgnoreFileSystemDeviceInodeChanges`
+#     and runs `chetan/git-restore-mtime-action`. Voyage's build is small; add
+#     the cache and both companion steps together or not at all.
+
+name: CI
+
+on:
+  push:
+    branches: ['**']
+    paths-ignore:
+      - '**.md'
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Build and unit test
+    # Pinned, never `macos-latest`. The runner image is what actually fixes the
+    # SDK, and an image bump moving the simulator out from under the destination
+    # below should be a deliberate commit, not a surprise on a Tuesday.
+    # StockTicker pins for the same stated reason.
+    runs-on: macos-26
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          # Flare uses `latest-stable`; StockTicker pins an exact version.
+          # Voyage has no third-party binary artifacts tying it to one Xcode, so
+          # the runner pin above carries the reproducibility and this can float.
+          # Change to an exact version (for example '26.0') the first time a
+          # point release breaks the build.
+          xcode-version: latest-stable
+
+      - name: Install iOS platform
+        # The macos-26 image ships the iOS SDK but not the simulator runtime, so
+        # a named destination fails with "iOS 26.0 is not installed" until this
+        # runs. StockTicker documents the same failure.
+        run: sudo xcodebuild -downloadPlatform iOS
+
+      - name: Install Metal toolchain
+        # Voyage/Support/Shaders.metal holds the window's atmospheric haze
+        # colorEffect. Without the toolchain the Metal compile step fails on a
+        # clean runner. See CLAUDE.md.
+        run: sudo xcodebuild -downloadComponent MetalToolchain
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        # Voyage.xcodeproj is generated from project.yml. Regenerating here is
+        # what proves the spec is the source of truth, and it is how the new
+        # Voyage/PrivacyInfo.xcprivacy reaches the app bundle.
+        run: xcodegen generate
+
+      - name: List available simulators
+        # Diagnostic only. When the destination below stops resolving, this is
+        # the step that says why.
+        run: xcrun simctl list devices available
+
+      - name: Build
+        run: |
+          xcodebuild build \
+            -project Voyage.xcodeproj \
+            -scheme Voyage \
+            -destination 'platform=iOS Simulator,name=iPhone 17' \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Unit tests
+        # VoyageTests only. The UI tours drive real animations and a 60s demo
+        # flight, and they are timing-sensitive under a loaded runner, so they
+        # stay a local gate until they have been run green on a quiet machine.
+        # Neither StockTicker, Flare, isowords nor swift-composable-architecture
+        # runs UI tests in CI either.
+        run: |
+          xcodebuild test \
+            -project Voyage.xcodeproj \
+            -scheme Voyage \
+            -destination 'platform=iOS Simulator,name=iPhone 17' \
+            -only-testing:VoyageTests \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: ~/Library/Developer/Xcode/DerivedData/**/Logs/Test/*.xcresult
+          if-no-files-found: ignore

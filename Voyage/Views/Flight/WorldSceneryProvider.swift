@@ -83,7 +83,9 @@ enum WorldSceneryLoadState: Equatable {
 }
 
 /// Space kept free of cabin/weather overlays and inset from rounded window
-/// corners so the SDK-owned Google/Apple attribution remains fully legible.
+/// corners so MapKit's own attribution remains fully legible. MapKit is the
+/// only satellite provider shipped, and App Review 5.2.5 turns on that credit
+/// staying visible, so nothing may be drawn over this band.
 enum WorldSceneryAttributionLayout {
     static let protectedHeight: CGFloat = 52
     static let horizontalInset: CGFloat = 28
@@ -194,8 +196,8 @@ final class WorldSceneryAvailability: ObservableObject {
 }
 
 /// Provider-neutral orientation/range plus the MapKit look-at target derived
-/// from the passenger eye pose. Google consumes the eye coordinate directly;
-/// MapKit consumes this equivalent orbit because its camera API is target-based.
+/// from the passenger eye pose. Expressed as an eye coordinate plus an
+/// equivalent orbit, because MapKit's camera API is target-based.
 struct WorldSceneryProjection {
     let targetCoordinate: CLLocationCoordinate2D
     let targetAltitudeMeters: Double

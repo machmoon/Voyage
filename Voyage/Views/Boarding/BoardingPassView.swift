@@ -17,7 +17,7 @@ struct BoardingPassView: View {
 
     private var leg: FlightLeg { session.itinerary.legs[0] }
 
-    /// Operating carrier from the flight number's airline code ("UA 1546").
+    /// Operating carrier from the flight number's airline code ("VOY 1546").
     private var carrierName: String {
         let code = leg.flightNumber.prefix { !$0.isWhitespace }
         return Carrier(rawValue: String(code))?.name.uppercased() ?? "VOYAGE AIR"
@@ -114,7 +114,7 @@ struct BoardingPassView: View {
             Image(systemName: "airplane")
                 .font(.system(size: 11, weight: .bold))
                 .foregroundStyle(Theme.accent)
-            Text("Airplane Mode on — nothing interrupts this flight")
+            Text("Airplane Mode on. Nothing interrupts this flight.")
                 .font(.caption.weight(.medium))
                 .foregroundStyle(.white.opacity(0.75))
         }
@@ -353,7 +353,7 @@ struct BoardingPassView: View {
         }
         .frame(height: perforationStripHeight)
         .background(Color(.systemBackground))
-        .accessibilityLabel("Tear line — slide across to tear")
+        .accessibilityLabel("Tear line. Slide across to tear.")
     }
 
     private var notch: some View {

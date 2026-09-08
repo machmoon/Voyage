@@ -1,6 +1,6 @@
 # Voyage Terms of Use
 
-Effective July 21, 2026
+Effective September 8, 2026
 
 Voyage is a focus timer presented as a simulated airline journey. Its routes,
 runways, weather, scenery, procedures, times, aircraft motion, and landmarks are
@@ -11,11 +11,12 @@ You may use Voyage for personal focus sessions in accordance with applicable
 law. Do not attempt to misuse the app or its connected mapping and weather
 services, bypass access controls or quotas, or extract and redistribute imagery.
 
-Real-world scenery and geographic data can be supplied by Google Maps Platform
-or Apple Maps. When Google content is shown, your use is also subject to the
-[Google Maps Platform Terms of Service](https://cloud.google.com/maps-platform/terms).
-Third-party coverage, availability, and accuracy vary and may change without
-notice. Voyage can fall back to a simplified offline world.
+Real-world scenery and geographic data are supplied by Apple Maps through
+MapKit. Weather readings are supplied by Open-Meteo under the
+[CC BY 4.0 license](https://creativecommons.org/licenses/by/4.0/). Coverage,
+availability, and accuracy of both vary and may change without notice. Voyage
+can fall back to a simplified offline world and to clear conditions computed on
+device.
 
 The app is provided as available, without a promise that every route, landmark,
 weather observation, or session will be uninterrupted or error-free. To the

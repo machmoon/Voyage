@@ -105,7 +105,7 @@ final class FlightDataAPIArchiveTests: XCTestCase {
             originCode: "SFO",
             destinationCode: "YQR",
             connectionCode: "YYZ",
-            flightNumber: "NS 740",
+            flightNumber: "NLN 740",
             seat: "A8",
             miles: 1_500,
             focusSeconds: 8_000,

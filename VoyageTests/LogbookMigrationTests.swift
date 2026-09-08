@@ -70,7 +70,7 @@ final class LogbookMigrationTests: XCTestCase {
                     originCode: "SFO",
                     destinationCode: "YQR",
                     connectionCode: "YYZ",
-                    flightNumber: "NS 740",
+                    flightNumber: "NLN 740",
                     seat: "A8",
                     miles: 1_500,
                     focusSeconds: 8_000,
@@ -96,7 +96,7 @@ final class LogbookMigrationTests: XCTestCase {
             XCTAssertEqual(entry.originCode, "SFO")
             XCTAssertEqual(entry.destinationCode, "YQR")
             XCTAssertEqual(entry.connectionCode, "YYZ")
-            XCTAssertEqual(entry.flightNumber, "NS 740")
+            XCTAssertEqual(entry.flightNumber, "NLN 740")
             XCTAssertEqual(entry.seat, "A8")
             XCTAssertEqual(entry.intentions, ["Read chapter 4"])
             XCTAssertEqual(entry.intentionsCompleted, [true])

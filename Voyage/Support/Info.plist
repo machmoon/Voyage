@@ -39,10 +39,6 @@
 	<string>Voyage checks whether a Focus mode is active at depart so it can remind you to silence distractions before your flight.</string>
 	<key>NSUserNotificationsUsageDescription</key>
 	<string>Voyage sends boarding calls for scheduled flights, focus reminders at depart, and a landing notification when your focus flight completes.</string>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>audio</string>
-	</array>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>NSSupportsLiveActivities</key>

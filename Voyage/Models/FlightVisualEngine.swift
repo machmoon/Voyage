@@ -54,6 +54,9 @@ struct FlightPhaseSchedule: Equatable, Codable {
         case .voyageClassic: roll = 32
         case .boeing737800: roll = 36
         case .airbusA320neo: roll = 34
+        // A supersonic delta rotates far faster than a narrowbody, so it holds
+        // the runway noticeably longer before the nose comes up.
+        case .boomOverture: roll = 48
         }
 
         let climb = min(20 * 60, max(8 * 60, duration * 0.18))
@@ -392,6 +395,9 @@ enum FlightVisualEngine {
         case .voyageClassic: requiredLength = 1_800
         case .boeing737800: requiredLength = 2_300
         case .airbusA320neo: requiredLength = 2_100
+        // Boom quotes an Overture field length in line with existing
+        // widebodies, roughly 10,000 ft.
+        case .boomOverture: requiredLength = 3_000
         }
 
         func score(_ runway: RunwayProfile) -> Double {
@@ -1926,6 +1932,9 @@ private extension AircraftProfile {
         case .voyageClassic: return 64
         case .boeing737800: return 70
         case .airbusA320neo: return 68
+        // Delta wings carry a higher approach speed. Boom quotes about 155 kt,
+        // which on the same scale the subsonic entries use lands near 75.
+        case .boomOverture: return 75
         }
     }
 }

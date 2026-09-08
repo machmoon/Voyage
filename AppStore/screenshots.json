@@ -1,0 +1,109 @@
+{
+  "_comment": "Caption and layout config for scripts/make_app_store_screenshots.py. Structure follows fastlane/fastlane frameit's Framefile.json (frameit/lib/frameit/editor.rb, and the Framefile schema at docs.fastlane.tools/actions/frameit): a `default` block of shared settings, and a `data` array whose entries bind to a source file by a `filter` substring of its name. Edit captions here, never in the script.",
+  "output_size": [
+    1320,
+    2868
+  ],
+  "default": {
+    "background": "#0B1020",
+    "padding": 96,
+    "corner_radius": 64,
+    "keyword": {
+      "color": "#4E8CFF",
+      "font_size": 34,
+      "tracking": 6,
+      "uppercase": true
+    },
+    "title": {
+      "color": "#FFFFFF",
+      "font_size": 92,
+      "line_spacing": 12
+    },
+    "subtitle": {
+      "color": "#9AA5BD",
+      "font_size": 44,
+      "line_spacing": 8
+    }
+  },
+  "data": [
+    {
+      "slot": 1,
+      "filter": "qa-01-home",
+      "keyword": {
+        "text": "Book a route"
+      },
+      "title": {
+        "text": "The route sets\nthe timer."
+      },
+      "subtitle": {
+        "text": "SFO to LAX is 1h 25m because that is\nwhat the flight takes."
+      }
+    },
+    {
+      "slot": 2,
+      "filter": "qa-04-boarding-pass",
+      "keyword": {
+        "text": "Commit"
+      },
+      "title": {
+        "text": "Tear the pass\nto start."
+      },
+      "subtitle": {
+        "text": "Not a button. A decision."
+      },
+      "blocked": "source screen states 'Airplane Mode on.' as fact; the app cannot set or detect it (BoardingPassView.swift:117, see comment at :110). Re-capture after the string is fixed. See AppStore/screenshots.md."
+    },
+    {
+      "slot": 3,
+      "filter": "qa-08-inflight-cruise",
+      "keyword": {
+        "text": "Study"
+      },
+      "title": {
+        "text": "This is the screen\nyou study next to."
+      },
+      "subtitle": {
+        "text": "Window seat or moving map.\nBoth follow the flight."
+      }
+    },
+    {
+      "slot": 4,
+      "filter": "qa-12-divert-alert",
+      "keyword": {
+        "text": "Strict mode"
+      },
+      "title": {
+        "text": "Leave for thirty seconds\nand you divert."
+      },
+      "subtitle": {
+        "text": "The flight puts down at the nearest field."
+      }
+    },
+    {
+      "slot": 5,
+      "filter": "qa-31-passport-spread",
+      "keyword": {
+        "text": "Passport control"
+      },
+      "title": {
+        "text": "Every landing\nis stamped."
+      },
+      "subtitle": {
+        "text": "Route, date and miles, pressed into\nyour passport."
+      }
+    },
+    {
+      "slot": 6,
+      "filter": "qa-14-live-activity",
+      "keyword": {
+        "text": "Lock screen"
+      },
+      "title": {
+        "text": "Check the time without\ndiverting the flight."
+      },
+      "subtitle": {
+        "text": "Live Activity and Dynamic Island."
+      }
+    }
+  ]
+}

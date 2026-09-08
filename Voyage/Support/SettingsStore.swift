@@ -172,6 +172,16 @@ final class SettingsStore {
         }
 
         if arguments.contains("-VoyageRealWorldTwinEnabled") {
+            // Set the mode, not just the mirror. Every consumer of this gates on
+            // `streamsRealWorldScenery`, which is `windowWorldMode == .real`
+            // (see above) and never reads `realWorldTwinEnabled`, so setting the
+            // flag alone left the hook dead: the flag flipped, the mode stayed
+            // `.illustrated`, and a test that asked for the real-world twin got
+            // the drawn scene. `windowWorldMode` is the single source of truth
+            // and its `didSet` mirrors back to the flag; both are assigned here
+            // because property observers do not fire during `init`, which is the
+            // same reason the load-time reconcile above assigns them in pairs.
+            windowWorldMode = .real
             realWorldTwinEnabled = true
         }
         if let flag = arguments.firstIndex(of: "-VoyageHomeAirport"), arguments.indices.contains(flag + 1) {

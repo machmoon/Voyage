@@ -40,7 +40,7 @@ struct ScheduleSheet: View {
                 }
                 .font(.subheadline.weight(.semibold))
 
-                Label("Typical departures — not live airport status", systemImage: "clock")
+                Label("Typical departures, not live airport status", systemImage: "clock")
                     .font(.caption.weight(.medium))
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 10)

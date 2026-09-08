@@ -48,9 +48,24 @@ enum Haptics {
         }
     }
 
-    /// Passport stamp thunk.
+    /// The passport stamp: contact, press, lift.
+    ///
+    /// This is the last physical beat of a session and the one the whole flight
+    /// is spent earning, so it should be the richest thing the app does, not
+    /// the thinnest. It used to be a single `heavy` impact, which made it the
+    /// only one-beat event in a vocabulary where `rip`, `gearThunk` and
+    /// `touchdown` are all two-beat: every lesser moment out-felt the payoff.
+    ///
+    /// Three beats over 160ms, shaped like a rubber die actually pressed by
+    /// hand. The `medium` is the die meeting paper, the `heavy` is the weight
+    /// going through it, and the light `rigid` is the hand coming off. The
+    /// gaps are deliberately shorter than `rip`'s 90ms and `touchdown`'s 350ms:
+    /// a stamp is one committed motion, not two separate arrivals, so the
+    /// beats need to fuse into a single thunk rather than read as a sequence.
     static func stamp() {
-        heavy.impactOccurred(intensity: 1.0)
+        medium.impactOccurred(intensity: 0.55)
+        after(0.05) { heavy.impactOccurred(intensity: 1.0) }
+        after(0.16) { rigid.impactOccurred(intensity: 0.35) }
     }
 
     static func success() { notify.notificationOccurred(.success) }

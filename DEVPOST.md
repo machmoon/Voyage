@@ -18,7 +18,7 @@ The flight continues through the Dynamic Island and Live Activity while you stud
 
 **How we built it**
 
-We took full advantage of Codex and GPT-5.6 to quickly develop "study aviation," a new paradigm for focus apps which replaces the timer with an embodied place to study. GPT-5.6 was the reasoning and coding model we used through Codex while building the project. Codex could inspect the entire repository, write Swift, run the app, operate the simulator, look at screenshots, run tests, and then fix the problems it found.
+We took full advantage of Codex and GPT-5.6 to quickly build a focus timer whose commitment mechanic is a flight, replacing the countdown with a place to study that has a departure and an arrival. GPT-5.6 was the reasoning and coding model we used through Codex while building the project. Codex could inspect the entire repository, write Swift, run the app, operate the simulator, look at screenshots, run tests, and then fix the problems it found.
 
 We designed Voyage around research from behavioral psychology instead of the usual productivity science where a progress bar is added to an application and described as dopamine. Research on goal setting has found that specific goals and feedback are more useful than simply instructing someone to "do their best." Before departure, Voyage asks you to define the tasks you want to complete, and then keeps these tasks visible during the flight ([Locke and Latham, 2002](https://pubmed.ncbi.nlm.nih.gov/12237980/)).
 

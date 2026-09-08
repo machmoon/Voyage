@@ -39,13 +39,13 @@ struct CheckBagView: View {
         VStack(spacing: 0) {
             VStack(spacing: 6) {
                 Image(systemName: "suitcase.rolling.fill")
-                    .font(.system(size: 34))
+                    .voyageFont(34)
                     .foregroundStyle(Theme.accent)
                     .padding(.bottom, 4)
-                Text("Set your flight goals")
+                Text("Check a bag")
                     .font(.title2.bold())
                     .foregroundStyle(Theme.seatMapInk)
-                Text("Pack up to three tasks for this focus session. Claim the ones you finish when you land.")
+                Text("Pack up to three things you want done on this flight. Claim the ones you finish when you land.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -79,8 +79,10 @@ struct CheckBagView: View {
                     CabinAudioEngine.shared.playScanBeep()
                     onContinue()
                 } label: {
+                    // "Skip for now" is load-bearing: ScreenshotTourUITests taps
+                    // it by label. Do not rename it without updating the test.
                     Text(packedCount > 0
-                         ? "Continue with \(packedCount) \(packedCount == 1 ? "goal" : "goals")"
+                         ? "Check \(packedCount) \(packedCount == 1 ? "bag" : "bags")"
                          : "Skip for now")
                 }
                 .buttonStyle(VoyageAccentButtonStyle())
@@ -98,7 +100,7 @@ struct CheckBagView: View {
     private var focusNote: some View {
         HStack(spacing: 8) {
             Image(systemName: focus.boardingStatusSymbol)
-                .font(.system(size: 11, weight: .bold))
+                .voyageFont(11, weight: .bold)
                 .foregroundStyle(Theme.accent)
             Text(focus.boardingStatusText)
                 .font(.caption.weight(.medium))
@@ -143,7 +145,7 @@ struct CheckBagView: View {
             Image(systemName: "tag.fill")
                 .font(.caption)
                 .foregroundStyle(items[index].isEmpty ? Theme.seatMapInk.opacity(0.3) : Theme.accent)
-            TextField("Goal \(index + 1) — e.g. Review chapter 4", text: $items[index])
+            TextField("Bag \(index + 1), e.g. Review chapter 4", text: $items[index])
                 .focused($focusedIndex, equals: index)
                 .submitLabel(index < 2 ? .next : .done)
                 .onSubmit {

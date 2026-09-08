@@ -458,7 +458,19 @@ final class FlightVisualEngineTests: XCTestCase {
                 trajectory.state(at: $0, seat: "A8").aircraft.groundSpeedMetersPerSecond
             }
 
-            XCTAssertLessThanOrEqual(speeds.max() ?? .infinity, 72, aircraft.name)
+            // No point in the rollout may exceed the speed the aircraft touched
+            // down at. This replaces a hardcoded fleet-wide 72 m/s, which
+            // silently became wrong the moment a faster type was added and
+            // which let a spike on a slow aircraft pass so long as it stayed
+            // under the fleet maximum.
+            XCTAssertLessThanOrEqual(
+                speeds.max() ?? .infinity,
+                (speeds.first ?? 0) + 0.05,
+                aircraft.name
+            )
+            // Generous absolute sanity bound, wide enough for a supersonic
+            // delta's approach speed. Catches a runaway value, not a design.
+            XCTAssertLessThanOrEqual(speeds.max() ?? .infinity, 90, aircraft.name)
             XCTAssertEqual(speeds.last ?? -1, 0, accuracy: 0.001, aircraft.name)
             for index in 1..<speeds.count {
                 XCTAssertLessThanOrEqual(speeds[index], speeds[index - 1] + 0.05, aircraft.name)

@@ -82,32 +82,52 @@ struct PassportView: View {
         }
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .shadow(color: .black.opacity(0.18), radius: 14, y: 6)
+        // The bio page is a scale drawing of a real document: field columns,
+        // a printed frame, and a machine-readable zone whose two lines are
+        // fixed at 44 characters and cannot reflow. Growing the type shatters
+        // the layout, so it is capped instead, which is what
+        // wordpress-mobile/WordPress-iOS does on its own fixed cards
+        // (Modules/Sources/JetpackStats/Cards/TopListCard.swift) and
+        // signalapp/Signal-iOS on fixed screens
+        // (Signal/Registration/UserInterface/RegistrationPermissionsView.swift).
+        //
+        // A cap is honest, not a fix. The passport still bottoms out at
+        // 6pt to 8pt type, and several labels here shrink further via
+        // minimumScaleFactor(0.6). The accessible answer is a text
+        // alternative for the collection, noted in the critique.
+        //
+        // xLarge rather than large so the page still gains one step for
+        // someone who has nudged text up, instead of being frozen outright.
+        // NOT visually verified at accessibility sizes: needs a look on
+        // device before shipping.
+        .dynamicTypeSize(...DynamicTypeSize.xLarge)
     }
 
     private var cover: some View {
         HStack(spacing: 12) {
             Image(systemName: "globe.americas.fill")
-                .font(.system(size: 18, weight: .semibold))
+                .voyageFont(18, weight: .semibold)
             VStack(alignment: .leading, spacing: 2) {
                 Text("PASSPORT")
-                    .font(.system(size: 15, weight: .bold, design: .serif))
+                    .voyageFont(15, weight: .bold, design: .serif)
                     .kerning(3)
                 Text("VOYAGE AIR")
-                    .font(.system(size: 9, weight: .semibold))
+                    .voyageFont(9, weight: .semibold)
                     .kerning(2.4)
                     .opacity(0.65)
             }
             Spacer()
             Text(tier.rawValue.uppercased())
-                .font(.system(size: 10, weight: .heavy))
+                .voyageFont(10, weight: .heavy)
                 .kerning(1.4)
                 .padding(.horizontal, 10)
                 .frame(height: 24)
                 .overlay(Capsule().strokeBorder(.white.opacity(0.35), lineWidth: 1))
         }
-        // Gold foil on navy board, the way the cover of a real passport is
-        // blocked rather than printed.
-        .foregroundStyle(Color(hex: "E4C98A"))
+        // Foil on navy board, the way the cover of a real passport is blocked
+        // rather than printed. Voyage blue rather than gold: the foil is the
+        // one piece of color on the cover, so it should be the brand's.
+        .foregroundStyle(Theme.passportFoil)
         .padding(.horizontal, 18)
         .padding(.vertical, 14)
         .frame(maxWidth: .infinity)
@@ -152,7 +172,7 @@ struct PassportView: View {
             RoundedRectangle(cornerRadius: 4, style: .continuous)
                 .strokeBorder(Theme.passportCover.opacity(0.22), lineWidth: 1)
             Image(systemName: "globe.americas.fill")
-                .font(.system(size: 30, weight: .light))
+                .voyageFont(30, weight: .light)
                 .foregroundStyle(Theme.passportCover.opacity(0.35))
         }
         .frame(width: 62, height: 80)
@@ -161,11 +181,11 @@ struct PassportView: View {
     private func field(_ label: String, _ value: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(label.uppercased())
-                .font(.system(size: 7, weight: .semibold))
+                .voyageFont(7, weight: .semibold)
                 .kerning(0.9)
                 .foregroundStyle(Theme.passportCover.opacity(0.45))
             Text(value)
-                .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                .voyageFont(12, weight: .semibold, design: .monospaced)
                 .foregroundStyle(Theme.passportCover)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
@@ -186,7 +206,7 @@ struct PassportView: View {
                 .padding(.bottom, 5)
             ForEach([name, document], id: \.self) { line in
                 Text(line)
-                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                    .voyageFont(11, weight: .medium, design: .monospaced)
                     .kerning(0.5)
                     .foregroundStyle(Theme.passportCover.opacity(0.72))
                     .lineLimit(1)
@@ -201,14 +221,17 @@ struct PassportView: View {
     private var stampPage: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .firstTextBaseline) {
+                // The page furniture is ordinary UI and scales. Only the
+                // stamps themselves are a scale drawing.
                 Text("Arrival stamps")
-                    .font(.system(size: 15, weight: .bold, design: .serif))
+                    .voyageFont(15, weight: .bold, design: .serif)
                     .foregroundStyle(Theme.passportCover)
                 Spacer()
                 Text("MOST RECENT FIRST")
-                    .font(.system(size: 8, weight: .semibold))
+                    .voyageFont(8, weight: .semibold)
                     .kerning(1)
                     .foregroundStyle(Theme.passportCover.opacity(0.4))
+                    .layoutPriority(-1)
             }
 
             LazyVGrid(
@@ -219,6 +242,8 @@ struct PassportView: View {
                     StampCell(record: record)
                 }
             }
+            // Each cell is a fixed 112pt die with 6pt to 8pt type inside it.
+            .dynamicTypeSize(...DynamicTypeSize.xLarge)
         }
         .padding(16)
         .background(
@@ -238,7 +263,16 @@ struct PassportView: View {
         let record: DestinationRecord
 
         private var style: StampStyle { StampStyle.forCode(record.airport.code) }
-        private var ink: Color { Color(hex: record.airport.accentHex) }
+
+        /// One ink for the whole collection. This used to read
+        /// `record.airport.accentHex` directly, which put the raw per-airport
+        /// palette (nine hues, from hot pink to gold) on one page and made the
+        /// grid read as stickers. `Airport.accentColor` exists precisely to
+        /// stop that and says so in `Theme.swift`; this cell was going around
+        /// it. Cities are told apart here by die shape, caption and code,
+        /// which is how a real passport does it. Per-city color is kept for
+        /// the arrival moment alone.
+        private var ink: Color { Theme.passportInk }
 
         var body: some View {
             ZStack {
@@ -258,11 +292,11 @@ struct PassportView: View {
         private var unstamped: some View {
             VStack(spacing: 6) {
                 Image(systemName: "airplane.departure")
-                    .font(.system(size: 16, weight: .light))
+                    .voyageFont(16, weight: .light)
                 Text(record.airport.code)
-                    .font(.system(size: 13, weight: .bold, design: .monospaced))
+                    .voyageFont(13, weight: .bold, design: .monospaced)
                 Text("NOT YET VISITED")
-                    .font(.system(size: 7, weight: .semibold))
+                    .voyageFont(7, weight: .semibold)
                     .kerning(0.6)
             }
             .foregroundStyle(Theme.passportCover.opacity(0.25))
@@ -340,13 +374,13 @@ private struct StampMark: View {
             border
             VStack(spacing: 2) {
                 Image(systemName: "airplane")
-                    .font(.system(size: 9, weight: .bold))
+                    .voyageFont(9, weight: .bold)
                     .rotationEffect(.degrees(-45))
                 Text(record.airport.code)
-                    .font(.system(size: 20, weight: .black, design: .monospaced))
+                    .voyageFont(20, weight: .black, design: .monospaced)
                     .kerning(1)
                 Text(record.airport.city.uppercased())
-                    .font(.system(size: 7, weight: .heavy))
+                    .voyageFont(7, weight: .heavy)
                     .kerning(0.5)
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
@@ -356,9 +390,9 @@ private struct StampMark: View {
                     .frame(width: 34, height: 0.8)
                     .padding(.vertical, 1)
                 Text(record.lastVisit.map(Self.shortDate) ?? "")
-                    .font(.system(size: 8, weight: .bold, design: .monospaced))
+                    .voyageFont(8, weight: .bold, design: .monospaced)
                 Text(record.visits > 1 ? "\(style.caption) ×\(record.visits)" : style.caption)
-                    .font(.system(size: 6, weight: .heavy))
+                    .voyageFont(6, weight: .heavy)
                     .kerning(0.8)
             }
             .foregroundStyle(ink.opacity(0.88))

@@ -103,69 +103,73 @@ struct HomeView: View {
     // MARK: Globe
 
     private var globe: some View {
-        Map(position: $cameraPosition, interactionModes: [.pan, .zoom, .rotate]) {
+        // Resolved once per render rather than per pin: `selectedItinerary`
+        // runs the route planner, and asking it inside the annotation loop
+        // planned the same route once for every airport on screen.
+        let roles = routeRoles
+        let segments = routeSegments
+        return Map(position: $cameraPosition, interactionModes: [.pan, .zoom, .rotate]) {
+            // Route first, pins second. Map content draws in declaration order,
+            // so the old ordering laid the line over the top of every dot it
+            // passed and made the arc read as a pipe crossing the airports.
+            GlobeRoute.arc(segments)
+
             ForEach(Airport.all) { airport in
                 Annotation(airport.code, coordinate: airport.coordinate) {
-                    airportPin(airport)
+                    airportPin(airport, role: roles[airport.code] ?? .available)
                 }
                 .annotationTitles(.hidden)
-            }
-            if let itinerary = selectedItinerary {
-                ForEach(itinerary.legs) { leg in
-                    MapPolyline(coordinates: [leg.origin.coordinate, leg.destination.coordinate],
-                                contourStyle: .geodesic)
-                        .stroke(
-                            Theme.accent,
-                            style: StrokeStyle(lineWidth: 3, lineCap: .round)
-                        )
-                }
             }
         }
         .mapStyle(.imagery(elevation: .realistic))
     }
 
-    private func airportPin(_ airport: Airport) -> some View {
-        let isOrigin = airport == origin
-        let isSelected = airport == selectedDestination
-        return Button {
-            guard !isOrigin else { return }
+    // MARK: Route line
+
+    private var routeRoles: [String: GlobeRoute.PinRole] {
+        let itinerary = selectedItinerary
+        var roles: [String: GlobeRoute.PinRole] = [:]
+        for airport in Airport.all {
+            if airport == origin {
+                roles[airport.code] = .origin
+            } else if let itinerary {
+                if airport == itinerary.destination {
+                    roles[airport.code] = .destination
+                } else if itinerary.connection == airport {
+                    roles[airport.code] = .connection
+                } else {
+                    roles[airport.code] = .offRoute
+                }
+            } else {
+                roles[airport.code] = .available
+            }
+        }
+        return roles
+    }
+
+    private var routeSegments: [GlobeRoute.Segment] {
+        guard let itinerary = selectedItinerary else { return [] }
+        return GlobeRoute.segments(
+            legs: itinerary.legs.map { ($0.origin.coordinate, $0.destination.coordinate) }
+        )
+    }
+
+    // MARK: Pins
+
+    private func airportPin(_ airport: Airport, role: GlobeRoute.PinRole) -> some View {
+        Button {
+            guard role != .origin else { return }
             Haptics.tap()
             withAnimation(.snappy) { selectedDestination = airport }
         } label: {
-            VStack(spacing: 3) {
-                if labelSitsAbove(airport) { code(airport) }
-                ZStack {
-                    Circle()
-                        .fill(isOrigin ? Color.white : (isSelected ? Theme.accent : .black.opacity(0.55)))
-                        .frame(width: isOrigin || isSelected ? 26 : 20, height: isOrigin || isSelected ? 26 : 20)
-                        .overlay(Circle().strokeBorder(.white.opacity(0.9), lineWidth: 1.5))
-                    Image(systemName: isOrigin ? "house.fill" : "airplane.arrival")
-                        .font(.system(size: isOrigin ? 11 : 9, weight: .bold))
-                        .foregroundStyle(isOrigin ? .black : .white)
-                }
-                if !labelSitsAbove(airport) { code(airport) }
-            }
+            GlobeAirportPin(airport: airport, role: role)
+            // Airports off the booked route stay tappable but stop shouting.
+            // In a SFO to YVR to YQR booking this is what finally separates
+            // SEA, which sits almost on the line without being part of it.
+            .opacity(role == .offRoute ? 0.4 : 1)
         }
         .buttonStyle(.plain)
-    }
-
-    private func code(_ airport: Airport) -> some View {
-        Text(airport.code)
-            .font(.caption2.weight(.bold))
-            .foregroundStyle(.white)
-            .shadow(color: .black.opacity(0.8), radius: 2)
-    }
-
-    /// The globe has no label declutter of its own, so pins that sit within a
-    /// few degrees of each other stack their codes (SEA landed on top of YVR).
-    /// The more northern of a close pair carries its code above the dot.
-    private func labelSitsAbove(_ airport: Airport) -> Bool {
-        Airport.all.contains { other in
-            other != airport
-                && abs(other.latitude - airport.latitude) < 6
-                && abs(other.longitude - airport.longitude) < 6
-                && other.latitude < airport.latitude
-        }
+        .animation(.smooth(duration: 0.35), value: role == .offRoute)
     }
 
     private func recenter(animated: Bool) {

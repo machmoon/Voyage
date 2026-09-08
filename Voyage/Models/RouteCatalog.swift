@@ -3,22 +3,38 @@ import Foundation
 /// The fictional carriers operating Voyage routes. Block times, airports, and
 /// departure banks are drawn from the real world; the airlines flying them are
 /// invented, so no real carrier's marks appear anywhere in the product.
+///
+/// **Codes are three letters on purpose. Do not shorten them to two.**
+/// An IATA airline designator is exactly two characters, so any two-letter code
+/// printed on a boarding pass reads as a claim to a real airline's identity. The
+/// previous set collided with live carriers on every single entry: HN
+/// (HeavyLift Cargo), MD (Madagascar Airlines), VG (VLM Airlines), CD (Corendon
+/// Dutch Airlines), NS (Hebei Airlines) and SM (Air Cairo). Three letters cannot
+/// be an IATA designator, so a collision is structurally impossible. The codes
+/// below also avoid well-known ICAO airline designators and major airport codes,
+/// which are the other three-letter namespaces a reader might recognize.
+///
+/// Trade names were checked against operating airlines for the same reason:
+/// "Meridian", "Northstar" and "Summit" were each close to a carrier flying
+/// today (Meridian Air Company, North Star Air, Summit Air), and "Cascadia"
+/// matched a Vancouver operator that ceased in 2023, on a route this app flies.
+/// See App Review 5.2.5.
 enum Carrier: String, CaseIterable, Codable {
-    case harborline = "HN"
-    case meridian = "MD"
-    case voyageAir = "VG"
-    case cascadia = "CD"
-    case northstar = "NS"
-    case summit = "SM"
+    case harborline = "HBL"
+    case ridgeway = "RDW"
+    case voyageAir = "VOY"
+    case baywater = "BYW"
+    case northline = "NLN"
+    case lantern = "LTR"
 
     var name: String {
         switch self {
         case .harborline: return "Harborline"
-        case .meridian: return "Meridian"
+        case .ridgeway: return "Ridgeway"
         case .voyageAir: return "Voyage Air"
-        case .cascadia: return "Cascadia"
-        case .northstar: return "Northstar"
-        case .summit: return "Summit"
+        case .baywater: return "Baywater"
+        case .northline: return "Northline"
+        case .lantern: return "Lantern"
         }
     }
 }
@@ -97,48 +113,48 @@ enum RouteCatalog {
         PairSpec(a: "BOS", b: "JFK", carrier: .harborline, aToB: 80, bToA: 80, number: 816,
                  aDeps: ["06:30", "08:30", "10:30", "12:30", "14:30", "16:30", "18:30", "20:30"],
                  bDeps: ["07:00", "09:00", "11:00", "13:00", "15:00", "17:00", "19:00", "21:00"],
-                 competitors: [.meridian, .voyageAir]),
+                 competitors: [.ridgeway, .voyageAir]),
         PairSpec(a: "BOS", b: "MIA", carrier: .harborline, aToB: 215, bToA: 205, number: 253,
                  aDeps: ["07:00", "10:59", "14:25", "19:30"],
                  bDeps: ["08:15", "12:40", "16:55", "20:59"]),
         PairSpec(a: "BOS", b: "SFO", carrier: .voyageAir, aToB: 405, bToA: 340, number: 1545,
                  aDeps: ["06:45", "10:15", "17:30"],
                  bDeps: ["07:05", "13:20", "22:55"]),
-        PairSpec(a: "BOS", b: "LAX", carrier: .meridian, aToB: 390, bToA: 335, number: 117,
+        PairSpec(a: "BOS", b: "LAX", carrier: .ridgeway, aToB: 390, bToA: 335, number: 117,
                  aDeps: ["07:00", "11:20", "18:05"],
                  bDeps: ["08:10", "14:35", "21:59"]),
-        PairSpec(a: "BOS", b: "YYZ", carrier: .northstar, aToB: 115, bToA: 110, number: 741,
+        PairSpec(a: "BOS", b: "YYZ", carrier: .northline, aToB: 115, bToA: 110, number: 741,
                  aDeps: ["06:00", "09:40", "13:15", "17:45", "21:10"],
                  bDeps: ["06:35", "10:20", "14:05", "18:30"]),
-        PairSpec(a: "BOS", b: "YVR", carrier: .northstar, aToB: 385, bToA: 350, number: 305,
+        PairSpec(a: "BOS", b: "YVR", carrier: .northline, aToB: 385, bToA: 350, number: 305,
                  aDeps: ["08:10", "17:25"],
                  bDeps: ["09:05", "22:45"]),
-        PairSpec(a: "JFK", b: "MIA", carrier: .meridian, aToB: 195, bToA: 185, number: 1279,
+        PairSpec(a: "JFK", b: "MIA", carrier: .ridgeway, aToB: 195, bToA: 185, number: 1279,
                  aDeps: ["06:59", "09:30", "12:45", "16:20", "19:59"],
                  bDeps: ["07:25", "11:10", "15:00", "18:40"]),
-        PairSpec(a: "JFK", b: "SFO", carrier: .cascadia, aToB: 400, bToA: 330, number: 310,
+        PairSpec(a: "JFK", b: "SFO", carrier: .baywater, aToB: 400, bToA: 330, number: 310,
                  aDeps: ["07:00", "09:45", "13:30", "17:15"],
                  bDeps: ["07:15", "10:50", "15:30", "22:59"]),
-        PairSpec(a: "JFK", b: "LAX", carrier: .cascadia, aToB: 385, bToA: 325, number: 423,
+        PairSpec(a: "JFK", b: "LAX", carrier: .baywater, aToB: 385, bToA: 325, number: 423,
                  aDeps: ["07:00", "08:30", "11:00", "14:15", "17:30", "20:45"],
                  bDeps: ["06:45", "09:15", "12:30", "15:45", "21:30"],
-                 competitors: [.voyageAir, .meridian]),
-        PairSpec(a: "JFK", b: "YYZ", carrier: .northstar, aToB: 100, bToA: 95, number: 721,
+                 competitors: [.voyageAir, .ridgeway]),
+        PairSpec(a: "JFK", b: "YYZ", carrier: .northline, aToB: 100, bToA: 95, number: 721,
                  aDeps: ["07:15", "11:30", "15:40", "19:50"],
                  bDeps: ["06:50", "10:35", "14:45", "18:55"]),
-        PairSpec(a: "JFK", b: "YVR", carrier: .northstar, aToB: 375, bToA: 335, number: 551,
+        PairSpec(a: "JFK", b: "YVR", carrier: .northline, aToB: 375, bToA: 335, number: 551,
                  aDeps: ["08:30", "18:45"],
                  bDeps: ["09:10", "22:30"]),
-        PairSpec(a: "MIA", b: "SFO", carrier: .meridian, aToB: 400, bToA: 345, number: 621,
+        PairSpec(a: "MIA", b: "SFO", carrier: .ridgeway, aToB: 400, bToA: 345, number: 621,
                  aDeps: ["07:30", "12:10", "18:20"],
                  bDeps: ["06:55", "13:05", "22:40"]),
-        PairSpec(a: "MIA", b: "LAX", carrier: .meridian, aToB: 355, bToA: 305, number: 281,
+        PairSpec(a: "MIA", b: "LAX", carrier: .ridgeway, aToB: 355, bToA: 305, number: 281,
                  aDeps: ["07:00", "10:45", "15:30", "20:15"],
                  bDeps: ["08:00", "12:20", "16:40", "22:55"]),
-        PairSpec(a: "MIA", b: "YYZ", carrier: .northstar, aToB: 205, bToA: 200, number: 1635,
+        PairSpec(a: "MIA", b: "YYZ", carrier: .northline, aToB: 205, bToA: 200, number: 1635,
                  aDeps: ["07:50", "13:25", "18:40"],
                  bDeps: ["08:30", "14:10", "19:20"]),
-        PairSpec(a: "MIA", b: "YVR", carrier: .northstar, aToB: 405, bToA: 365, number: 553,
+        PairSpec(a: "MIA", b: "YVR", carrier: .northline, aToB: 405, bToA: 365, number: 553,
                  aDeps: ["09:15", "19:30"],
                  bDeps: ["08:45", "20:10"]),
         PairSpec(a: "SFO", b: "LAX", carrier: .voyageAir, aToB: 85, bToA: 80, number: 424,
@@ -146,49 +162,49 @@ enum RouteCatalog {
                          "15:00", "16:30", "18:00", "19:30", "21:00"],
                  bDeps: ["06:15", "07:45", "09:15", "10:45", "12:15", "13:45",
                          "15:15", "16:45", "18:15", "19:45", "21:15"],
-                 competitors: [.cascadia, .meridian]),
-        PairSpec(a: "SFO", b: "YYZ", carrier: .northstar, aToB: 285, bToA: 325, number: 745,
+                 competitors: [.baywater, .ridgeway]),
+        PairSpec(a: "SFO", b: "YYZ", carrier: .northline, aToB: 285, bToA: 325, number: 745,
                  aDeps: ["07:05", "13:40", "22:55"],
                  bDeps: ["08:20", "12:45", "18:10"]),
-        PairSpec(a: "SFO", b: "YVR", carrier: .northstar, aToB: 140, bToA: 135, number: 570,
+        PairSpec(a: "SFO", b: "YVR", carrier: .northline, aToB: 140, bToA: 135, number: 570,
                  aDeps: ["07:00", "11:30", "16:00", "20:30"],
                  bDeps: ["06:40", "10:55", "15:25", "19:50"]),
-        PairSpec(a: "LAX", b: "YYZ", carrier: .northstar, aToB: 280, bToA: 305, number: 793,
+        PairSpec(a: "LAX", b: "YYZ", carrier: .northline, aToB: 280, bToA: 305, number: 793,
                  aDeps: ["08:00", "13:30", "22:45"],
                  bDeps: ["07:45", "12:15", "17:50"]),
-        PairSpec(a: "LAX", b: "YVR", carrier: .northstar, aToB: 170, bToA: 175, number: 555,
+        PairSpec(a: "LAX", b: "YVR", carrier: .northline, aToB: 170, bToA: 175, number: 555,
                  aDeps: ["07:30", "12:15", "17:45", "21:30"],
                  bDeps: ["06:55", "11:20", "16:05", "20:40"]),
-        PairSpec(a: "YYZ", b: "YVR", carrier: .northstar, aToB: 305, bToA: 265, number: 103,
+        PairSpec(a: "YYZ", b: "YVR", carrier: .northline, aToB: 305, bToA: 265, number: 103,
                  aDeps: ["08:00", "10:30", "13:00", "17:00", "19:45"],
                  bDeps: ["07:00", "09:30", "12:30", "16:15", "18:50"]),
-        PairSpec(a: "YYZ", b: "YQR", carrier: .northstar, aToB: 185, bToA: 165, number: 1141,
+        PairSpec(a: "YYZ", b: "YQR", carrier: .northline, aToB: 185, bToA: 165, number: 1141,
                  aDeps: ["08:25", "13:10", "18:35", "22:40"],
                  bDeps: ["06:00", "10:15", "15:30", "19:05"]),
-        PairSpec(a: "YVR", b: "YQR", carrier: .summit, aToB: 115, bToA: 125, number: 226,
+        PairSpec(a: "YVR", b: "YQR", carrier: .lantern, aToB: 115, bToA: 125, number: 226,
                  aDeps: ["07:10", "11:45", "16:20", "20:50"],
                  bDeps: ["06:30", "11:00", "15:35", "20:05"]),
 
         // Seattle
-        PairSpec(a: "BOS", b: "SEA", carrier: .cascadia, aToB: 380, bToA: 320, number: 631,
+        PairSpec(a: "BOS", b: "SEA", carrier: .baywater, aToB: 380, bToA: 320, number: 631,
                  aDeps: ["07:30", "11:45", "18:15"],
                  bDeps: ["07:15", "13:00", "22:40"]),
-        PairSpec(a: "JFK", b: "SEA", carrier: .cascadia, aToB: 370, bToA: 315, number: 645,
+        PairSpec(a: "JFK", b: "SEA", carrier: .baywater, aToB: 370, bToA: 315, number: 645,
                  aDeps: ["07:00", "10:40", "16:25", "19:50"],
                  bDeps: ["06:50", "11:35", "16:10", "22:20"]),
-        PairSpec(a: "MIA", b: "SEA", carrier: .cascadia, aToB: 400, bToA: 350, number: 662,
+        PairSpec(a: "MIA", b: "SEA", carrier: .baywater, aToB: 400, bToA: 350, number: 662,
                  aDeps: ["08:20", "16:45"],
                  bDeps: ["07:40", "18:05"]),
-        PairSpec(a: "SFO", b: "SEA", carrier: .cascadia, aToB: 125, bToA: 120, number: 508,
+        PairSpec(a: "SFO", b: "SEA", carrier: .baywater, aToB: 125, bToA: 120, number: 508,
                  aDeps: ["06:15", "08:45", "11:15", "14:00", "16:30", "19:00", "21:20"],
                  bDeps: ["06:00", "08:30", "11:00", "13:45", "16:15", "18:45", "21:05"]),
-        PairSpec(a: "LAX", b: "SEA", carrier: .cascadia, aToB: 170, bToA: 160, number: 512,
+        PairSpec(a: "LAX", b: "SEA", carrier: .baywater, aToB: 170, bToA: 160, number: 512,
                  aDeps: ["06:30", "09:20", "12:10", "15:40", "18:50", "21:30"],
                  bDeps: ["06:10", "09:00", "11:50", "15:15", "18:25", "21:00"]),
-        PairSpec(a: "SEA", b: "YVR", carrier: .cascadia, aToB: 70, bToA: 70, number: 246,
+        PairSpec(a: "SEA", b: "YVR", carrier: .baywater, aToB: 70, bToA: 70, number: 246,
                  aDeps: ["07:20", "11:50", "16:30", "20:15"],
                  bDeps: ["06:45", "11:10", "15:50", "19:35"]),
-        PairSpec(a: "SEA", b: "YYZ", carrier: .northstar, aToB: 275, bToA: 310, number: 767,
+        PairSpec(a: "SEA", b: "YYZ", carrier: .northline, aToB: 275, bToA: 310, number: 767,
                  aDeps: ["07:45", "13:20", "22:30"],
                  bDeps: ["08:15", "12:40", "17:55"]),
 
@@ -199,19 +215,19 @@ enum RouteCatalog {
         PairSpec(a: "JFK", b: "RDU", carrier: .harborline, aToB: 105, bToA: 100, number: 884,
                  aDeps: ["07:00", "10:15", "13:45", "17:30", "20:50"],
                  bDeps: ["06:40", "09:55", "13:25", "17:05", "20:25"]),
-        PairSpec(a: "MIA", b: "RDU", carrier: .meridian, aToB: 130, bToA: 135, number: 318,
+        PairSpec(a: "MIA", b: "RDU", carrier: .ridgeway, aToB: 130, bToA: 135, number: 318,
                  aDeps: ["08:05", "12:40", "17:20", "21:05"],
                  bDeps: ["07:30", "12:05", "16:45", "20:30"]),
         PairSpec(a: "RDU", b: "SFO", carrier: .voyageAir, aToB: 375, bToA: 315, number: 1566,
                  aDeps: ["07:20", "16:40"],
                  bDeps: ["08:00", "22:15"]),
-        PairSpec(a: "RDU", b: "LAX", carrier: .meridian, aToB: 355, bToA: 300, number: 344,
+        PairSpec(a: "RDU", b: "LAX", carrier: .ridgeway, aToB: 355, bToA: 300, number: 344,
                  aDeps: ["07:40", "17:05"],
                  bDeps: ["08:25", "22:35"]),
-        PairSpec(a: "RDU", b: "SEA", carrier: .cascadia, aToB: 355, bToA: 300, number: 356,
+        PairSpec(a: "RDU", b: "SEA", carrier: .baywater, aToB: 355, bToA: 300, number: 356,
                  aDeps: ["08:10", "16:55"],
                  bDeps: ["07:50", "22:10"]),
-        PairSpec(a: "RDU", b: "YYZ", carrier: .northstar, aToB: 125, bToA: 120, number: 1158,
+        PairSpec(a: "RDU", b: "YYZ", carrier: .northline, aToB: 125, bToA: 120, number: 1158,
                  aDeps: ["07:25", "12:50", "18:20"],
                  bDeps: ["08:05", "13:35", "19:00"]),
     ]

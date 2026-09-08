@@ -131,52 +131,35 @@ struct OnboardingView: View {
         .frame(height: 190)
     }
 
-    // MARK: Globe (mirrors HomeView)
+    // MARK: Globe
+
+    /// The sample arc, built through the same code Home uses so the final
+    /// cross-dissolve lands on an identical picture.
+    private var routeSegments: [GlobeRoute.Segment] {
+        guard let destination, arcRevealed else { return [] }
+        return GlobeRoute.segments(legs: [(home.coordinate, destination.coordinate)])
+    }
 
     private var globe: some View {
         Map(position: $cameraPosition, interactionModes: []) {
-            Annotation(home.code, coordinate: home.coordinate) { homePin }
-                .annotationTitles(.hidden)
+            // Route first, pins second: map content draws in declaration order,
+            // and the old ordering laid the line over the top of the dots.
+            GlobeRoute.arc(routeSegments)
+
+            Annotation(home.code, coordinate: home.coordinate) {
+                GlobeAirportPin(airport: home, role: .origin)
+            }
+            .annotationTitles(.hidden)
 
             if let destination, arcRevealed {
-                Annotation(destination.code, coordinate: destination.coordinate) { destinationPin(destination) }
-                    .annotationTitles(.hidden)
-                MapPolyline(coordinates: [home.coordinate, destination.coordinate], contourStyle: .geodesic)
-                    .stroke(Theme.accent, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                Annotation(destination.code, coordinate: destination.coordinate) {
+                    GlobeAirportPin(airport: destination, role: .destination)
+                        .transition(.scale.combined(with: .opacity))
+                }
+                .annotationTitles(.hidden)
             }
         }
         .mapStyle(.imagery(elevation: .realistic))
-    }
-
-    // Globe markers are the app's shared map pins, identical to HomeView's, so
-    // the final cross-dissolve into Home lands on the same picture. They are
-    // live-map annotations, not onboarding card chrome.
-    private var homePin: some View {
-        ZStack {
-            Circle().fill(.white).frame(width: 26, height: 26)
-                .overlay(Circle().strokeBorder(.white.opacity(0.9), lineWidth: 1.5))
-            Image(systemName: "house.fill")
-                .font(.system(size: 11, weight: .bold))
-                .foregroundStyle(.black)
-        }
-        .shadow(color: .black.opacity(0.4), radius: 4)
-    }
-
-    private func destinationPin(_ airport: Airport) -> some View {
-        VStack(spacing: 3) {
-            ZStack {
-                Circle().fill(Theme.accent).frame(width: 24, height: 24)
-                    .overlay(Circle().strokeBorder(.white.opacity(0.9), lineWidth: 1.5))
-                Image(systemName: "airplane.arrival")
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(.white)
-            }
-            Text(airport.code)
-                .font(.caption2.weight(.bold))
-                .foregroundStyle(.white)
-                .shadow(color: .black.opacity(0.8), radius: 2)
-        }
-        .transition(.scale.combined(with: .opacity))
     }
 
     private var legibilityScrim: some View {

@@ -101,6 +101,55 @@ final class Announcer: NSObject, AVSpeechSynthesizerDelegate {
             }
         }
 
+        /// The same wording marked up for delivery. A cabin PA breathes: a beat
+        /// after the address, a longer one before the part you are meant to act
+        /// on. No rate setting expresses that, so the pauses are written in.
+        /// Only reached when no studio clip is bundled for the script.
+        var ssml: String {
+            func esc(_ value: String) -> String {
+                value.replacingOccurrences(of: "&", with: "&amp;")
+                    .replacingOccurrences(of: "<", with: "&lt;")
+                    .replacingOccurrences(of: ">", with: "&gt;")
+            }
+            let body: String
+            switch self {
+            case .welcomeAboard:
+                body = """
+                Welcome aboard. <break time="400ms"/> The cabin doors are closed \
+                and focus mode is now on. <break time="500ms"/> \
+                <prosody rate="95%">Sit back, <break time="250ms"/> \
+                and enjoy your flight.</prosody>
+                """
+            case let .midpoint(city):
+                body = "We're halfway to \(esc(city))."
+            case let .descent(city):
+                body = """
+                Beginning our descent into \(esc(city)). <break time="450ms"/> \
+                <emphasis level="moderate">Time to wrap up.</emphasis>
+                """
+            case let .landed(city):
+                body = """
+                Welcome to \(esc(city)). <break time="400ms"/> Session complete.
+                """
+            case let .layover(city):
+                body = """
+                Welcome to \(esc(city)). <break time="400ms"/> \
+                Your connection boards shortly.
+                """
+            case let .finalBoardingCall(city):
+                body = """
+                <emphasis level="strong">Final boarding call</emphasis> \
+                for your connecting flight to \(esc(city)).
+                """
+            case .beverageService:
+                body = """
+                The beverage cart is coming through. <break time="450ms"/> \
+                Take a moment for some water.
+                """
+            }
+            return "<speak>\(body)</speak>"
+        }
+
         /// Bundled clip name, without the voice prefix or extension.
         var clip: String {
             switch self {
@@ -135,7 +184,7 @@ final class Announcer: NSObject, AVSpeechSynthesizerDelegate {
     /// Studio clip when one exists, on-device speech otherwise.
     private func play(_ script: Script) {
         if let voice = studioVoice, playClip(named: script.clip, voice: voice) { return }
-        speak(script.text)
+        speak(script.text, ssml: script.ssml)
     }
 
     private func playClip(named clip: String, voice: PAVoice) -> Bool {
@@ -144,8 +193,11 @@ final class Announcer: NSObject, AVSpeechSynthesizerDelegate {
         return CabinAudioEngine.shared.playAnnouncement(url: url) {}
     }
 
-    private func speak(_ text: String) {
-        let utterance = AVSpeechUtterance(string: text)
+    /// `ssml` carries the pauses. An older parser or a malformed body falls back
+    /// to the plain wording rather than going silent.
+    private func speak(_ text: String, ssml: String? = nil) {
+        let utterance = ssml.flatMap { AVSpeechUtterance(ssmlRepresentation: $0) }
+            ?? AVSpeechUtterance(string: text)
         utterance.voice = voice
         // Cabin announcements are unhurried — a PA that races sounds like a
         // notification, not a crew member.
@@ -224,7 +276,9 @@ final class Announcer: NSObject, AVSpeechSynthesizerDelegate {
         switch voice.quality {
         case .premium: score += 300
         case .enhanced: score += 200
-        default: score += 20
+        // `.default` is the compact voice the system ships with. It reads like
+        // a satnav, so it loses to anything the user has downloaded.
+        default: score -= 30
         }
         if voice.language == "en-US" { score += 50 }
         else if voice.language.hasPrefix("en") { score += 20 }
