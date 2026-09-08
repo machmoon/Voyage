@@ -1,6 +1,6 @@
 name: Voyage
 options:
-  bundleIdPrefix: com.patliu
+  bundleIdPrefix: com.patrickliu
   deploymentTarget:
     iOS: "17.0"
   createIntermediateGroups: true
@@ -26,7 +26,8 @@ targets:
         embed: true
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.patliu.voyage
+        PRODUCT_BUNDLE_IDENTIFIER: com.patrickliu.voyage
+        DEVELOPMENT_TEAM: "3QQL2XA4VS"
         INFOPLIST_FILE: Voyage/Support/Info.plist
         TARGETED_DEVICE_FAMILY: "1"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
@@ -34,6 +35,15 @@ targets:
         ENABLE_PREVIEWS: true
         CODE_SIGN_STYLE: Automatic
         ENABLE_TESTABILITY: true
+      configs:
+        # Release signs manually against the App Store distribution profile.
+        # Automatic signing provisions with a *development* profile, which
+        # Apple will not issue to a team with no registered devices. Debug
+        # stays automatic, so simulator builds and tests are unaffected.
+        Release:
+          CODE_SIGN_STYLE: Manual
+          CODE_SIGN_IDENTITY: "Apple Distribution"
+          PROVISIONING_PROFILE_SPECIFIER: "Voyage"
   VoyageWidgets:
     type: app-extension
     platform: iOS
@@ -54,11 +64,17 @@ targets:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.patliu.voyage.widgets
+        PRODUCT_BUNDLE_IDENTIFIER: com.patrickliu.voyage.widgets
+        DEVELOPMENT_TEAM: "3QQL2XA4VS"
         TARGETED_DEVICE_FAMILY: "1"
         CODE_SIGN_STYLE: Automatic
         SKIP_INSTALL: true
         GENERATE_INFOPLIST_FILE: false
+      configs:
+        Release:
+          CODE_SIGN_STYLE: Manual
+          CODE_SIGN_IDENTITY: "Apple Distribution"
+          PROVISIONING_PROFILE_SPECIFIER: "Voyage Widgets"
   VoyageTests:
     type: bundle.unit-test
     platform: iOS
@@ -68,7 +84,7 @@ targets:
       - target: Voyage
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.patliu.voyage.tests
+        PRODUCT_BUNDLE_IDENTIFIER: com.patrickliu.voyage.tests
         GENERATE_INFOPLIST_FILE: true
         TARGETED_DEVICE_FAMILY: "1"
         CODE_SIGN_STYLE: Automatic
@@ -81,7 +97,7 @@ targets:
       - target: Voyage
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.patliu.voyage.uitests
+        PRODUCT_BUNDLE_IDENTIFIER: com.patrickliu.voyage.uitests
         GENERATE_INFOPLIST_FILE: true
         TARGETED_DEVICE_FAMILY: "1"
         CODE_SIGN_STYLE: Automatic

@@ -433,13 +433,13 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					378166E37E4E60CE28AD9D21 = {
-						ProvisioningStyle = Automatic;
+						DevelopmentTeam = 3QQL2XA4VS;
 					};
 					4FF7C8D507A57E3C87D791D3 = {
 						ProvisioningStyle = Automatic;
 					};
 					A304795E7822D1B4E01EDED7 = {
-						ProvisioningStyle = Automatic;
+						DevelopmentTeam = 3QQL2XA4VS;
 					};
 					DD47B6B3610D608AC05419CB = {
 						ProvisioningStyle = Automatic;
@@ -579,8 +579,9 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_IDENTITY = "Apple Distribution";
+				CODE_SIGN_STYLE = Manual;
+				DEVELOPMENT_TEAM = 3QQL2XA4VS;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_TESTABILITY = YES;
 				INFOPLIST_FILE = Voyage/Support/Info.plist;
@@ -588,7 +589,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.patliu.voyage;
+				PRODUCT_BUNDLE_IDENTIFIER = com.patrickliu.voyage;
+				PROVISIONING_PROFILE_SPECIFIER = Voyage;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
@@ -605,7 +607,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.patliu.voyage.uitests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.patrickliu.voyage.uitests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 1;
 				TEST_TARGET_NAME = Voyage;
@@ -623,7 +625,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.patliu.voyage.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.patrickliu.voyage.tests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 1;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Voyage.app/Voyage";
@@ -634,6 +636,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 3QQL2XA4VS;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = VoyageWidgets/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -641,7 +644,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.patliu.voyage.widgets;
+				PRODUCT_BUNDLE_IDENTIFIER = com.patrickliu.voyage.widgets;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
 				TARGETED_DEVICE_FAMILY = 1;
@@ -710,7 +713,9 @@
 		473217E871F8FEFC4D5AD313 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_IDENTITY = "Apple Distribution";
+				CODE_SIGN_STYLE = Manual;
+				DEVELOPMENT_TEAM = 3QQL2XA4VS;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = VoyageWidgets/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -718,7 +723,8 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.patliu.voyage.widgets;
+				PRODUCT_BUNDLE_IDENTIFIER = com.patrickliu.voyage.widgets;
+				PROVISIONING_PROFILE_SPECIFIER = "Voyage Widgets";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
 				TARGETED_DEVICE_FAMILY = 1;
@@ -732,6 +738,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 3QQL2XA4VS;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_TESTABILITY = YES;
 				INFOPLIST_FILE = Voyage/Support/Info.plist;
@@ -739,7 +746,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.patliu.voyage;
+				PRODUCT_BUNDLE_IDENTIFIER = com.patrickliu.voyage;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
@@ -756,7 +763,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.patliu.voyage.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.patrickliu.voyage.tests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 1;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Voyage.app/Voyage";
@@ -774,7 +781,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.patliu.voyage.uitests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.patrickliu.voyage.uitests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 1;
 				TEST_TARGET_NAME = Voyage;
