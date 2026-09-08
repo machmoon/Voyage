@@ -1,6 +1,25 @@
 import Foundation
 import SwiftData
 
+/// How a flight ended. Stored as a raw string on `LogbookEntry` so that
+/// entries written by older builds (which recorded only `completed`) keep
+/// loading; those decode as `.unknown` and the recorder excludes them from
+/// any finding that needs a cause.
+enum FlightOutcome: String, CaseIterable {
+    /// Reached the gate at the final destination.
+    case arrived
+    /// Strict mode ended the flight: the app was backgrounded past the grace period.
+    case interrupted
+    /// The traveler left the flight deliberately from the in-flight screen.
+    case leftEarly
+    /// The layover boarding window expired.
+    case missedConnection
+    /// Written by a build that did not record a cause.
+    case unknown
+
+    var didArrive: Bool { self == .arrived }
+}
+
 /// A completed (or diverted) flight in the passport logbook.
 @Model
 final class LogbookEntry {
@@ -17,6 +36,39 @@ final class LogbookEntry {
     var intentions: [String]
     var intentionsCompleted: [Bool]
 
+    // MARK: Flight-data-recorder signals
+    //
+    // Added after the first release. Every one has a default so SwiftData's
+    // lightweight migration can open an existing store, and every reader
+    // treats the default as "not recorded" rather than as a real value.
+
+    /// Block time the itinerary was booked for, in seconds. `0` on rows
+    /// written before this was recorded.
+    var scheduledSeconds: TimeInterval = 0
+
+    /// Wall-clock moment the boarding pass was torn and leg one began.
+    /// `nil` on rows written before this was recorded; `date` is the
+    /// moment the flight ended, which is not the same thing.
+    var departedAt: Date?
+
+    /// Raw `FlightOutcome`. Empty string on rows written before this
+    /// was recorded, which decodes as `.unknown`.
+    var outcomeRaw: String = ""
+
+    /// How the flight ended. Falls back to `completed` for legacy rows so
+    /// arrivals still read as arrivals; only the *cause* of a non-arrival
+    /// is unrecoverable, and that reads as `.unknown`.
+    var outcome: FlightOutcome {
+        get {
+            if let stored = FlightOutcome(rawValue: outcomeRaw) { return stored }
+            return completed ? .arrived : .unknown
+        }
+        set {
+            outcomeRaw = newValue.rawValue
+            completed = newValue.didArrive
+        }
+    }
+
     init(date: Date = .now,
          originCode: String,
          destinationCode: String,
@@ -27,7 +79,10 @@ final class LogbookEntry {
          focusSeconds: TimeInterval,
          completed: Bool,
          intentions: [String] = [],
-         intentionsCompleted: [Bool] = []) {
+         intentionsCompleted: [Bool] = [],
+         scheduledSeconds: TimeInterval = 0,
+         departedAt: Date? = nil,
+         outcome: FlightOutcome? = nil) {
         self.date = date
         self.originCode = originCode
         self.destinationCode = destinationCode
@@ -39,6 +94,9 @@ final class LogbookEntry {
         self.completed = completed
         self.intentions = intentions
         self.intentionsCompleted = intentionsCompleted
+        self.scheduledSeconds = scheduledSeconds
+        self.departedAt = departedAt
+        self.outcomeRaw = outcome?.rawValue ?? ""
     }
 
     var origin: Airport { Airport.byCode(originCode) }

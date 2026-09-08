@@ -58,6 +58,9 @@ final class FlightSession {
     private(set) var completedMiles: Double = 0
     private(set) var completedFocusSeconds: TimeInterval = 0
     private(set) var logEntry: LogbookEntry?
+    /// Wall-clock moment the pass was torn. The logbook's `date` records
+    /// when the flight ended, so the recorder needs this separately.
+    private(set) var departedAt: Date?
 
     /// Deadline after which backgrounding becomes a diversion.
     private(set) var graceDeadline: Date?
@@ -264,6 +267,7 @@ final class FlightSession {
     /// Called when the boarding pass is ripped: the flight begins.
     func departFirstLeg() {
         guard stage == .preflight else { return }
+        departedAt = clock.now
         startTimer()
         startLeg()
     }
@@ -455,7 +459,7 @@ final class FlightSession {
                 .landed(city: itinerary.destination.city, localTimeText: timeText),
                 premiumChime: hasPremiumChime
             )
-            finishSession(completed: true)
+            finishSession(outcome: .arrived)
             DispatchQueue.main.asyncAfter(deadline: .now() + 8) { [weak self] in
                 // Only stop if we haven't started another leg/session ambience.
                 guard self?.stage == .arrived || self == nil else { return }
@@ -481,7 +485,7 @@ final class FlightSession {
         guard stage == .layover else { return }
         stage = .missedConnection
         stopEverything()
-        finishSession(completed: false)
+        finishSession(outcome: .missedConnection)
     }
 
     // MARK: Strict enforcement
@@ -525,15 +529,21 @@ final class FlightSession {
     }
 
     func divert() {
+        divert(outcome: .interrupted)
+    }
+
+    private func divert(outcome: FlightOutcome) {
         guard stage == .inFlight else { return }
         stage = .diverted
         stopEverything()
-        finishSession(completed: false)
+        finishSession(outcome: outcome)
     }
 
-    /// User bails out intentionally from the in-flight screen.
+    /// User bails out intentionally from the in-flight screen. Recorded
+    /// apart from a strict-mode interruption: leaving on purpose and
+    /// being pulled away are different facts.
     func abandonFlight() {
-        divert()
+        divert(outcome: .leftEarly)
     }
 
     private func stopEverything() {
@@ -546,7 +556,8 @@ final class FlightSession {
 
     // MARK: Logbook
 
-    private func finishSession(completed: Bool) {
+    private func finishSession(outcome: FlightOutcome) {
+        let completed = outcome.didArrive
         timer?.invalidate()
         timer = nil
 
@@ -567,7 +578,10 @@ final class FlightSession {
             focusSeconds: min(focusSeconds, itinerary.totalFocusDuration),
             completed: completed,
             intentions: intentions,
-            intentionsCompleted: Array(repeating: false, count: intentions.count)
+            intentionsCompleted: Array(repeating: false, count: intentions.count),
+            scheduledSeconds: itinerary.totalFocusDuration,
+            departedAt: departedAt,
+            outcome: outcome
         )
         modelContext.insert(entry)
         try? modelContext.save()
