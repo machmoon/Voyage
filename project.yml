@@ -16,7 +16,14 @@ settings:
   base:
     SWIFT_VERSION: "5.0"
     MARKETING_VERSION: "1.0"
-    CURRENT_PROJECT_VERSION: "1"
+    # Build 1 was rejected on 2026-08-05 (guidelines 2.5.4 / 5.2.5). App Store
+    # Connect refuses a re-upload that reuses a build number, so this must
+    # increase for every upload. Builds 2 and 3 were prepared on the abandoned
+    # GitHub-main lineage and may or may not have been uploaded; 4 is above
+    # every number this repository has ever produced, so it is accepted either
+    # way. `scripts/ship.sh --bump` increments it here, and this is the single
+    # source of truth for BOTH the app and the widget extension.
+    CURRENT_PROJECT_VERSION: "4"
     GENERATE_INFOPLIST_FILE: false
 targets:
   Voyage:
@@ -58,6 +65,13 @@ targets:
       path: VoyageWidgets/Info.plist
       properties:
         CFBundleDisplayName: Voyage Flight
+        # XcodeGen regenerates this Info.plist on every `xcodegen generate` and
+        # its defaults are the literals "1.0" / "1", so editing the plist by
+        # hand is useless. Without these two lines the widget keeps
+        # CFBundleVersion 1 while the app moves on, and the upload fails
+        # validation on the app/extension version mismatch.
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
