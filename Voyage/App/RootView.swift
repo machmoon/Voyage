@@ -32,6 +32,10 @@ struct RootView: View {
         }
         .onAppear {
             Haptics.prepare()
+            // Build the audio graph now, away from any tap and off the main
+            // thread. Constructing it inside a button handler is what froze
+            // the UI and coupled an audio-server timeout to a user action.
+            CabinAudioEngine.shared.prewarm()
             sweepOrphanedActivity()
         }
         .preferredColorScheme(session?.stage == .inFlight ? .dark : nil)

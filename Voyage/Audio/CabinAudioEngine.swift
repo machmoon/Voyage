@@ -47,6 +47,20 @@ final class CabinAudioEngine {
     static let shared = CabinAudioEngine()
 
     private let engine = AVAudioEngine()
+    /// Our own mixer, standing in for `AVAudioEngine.mainMixerNode`.
+    /// `mainMixerNode` is a synchronous RPC to the audio server on first
+    /// access and `abort()`s the process on timeout, so nothing reaches for
+    /// it. AudioKit does the same thing for its own reasons — see
+    /// `createEngineMixer()` in
+    /// Sources/AudioKit/Internals/Engine/AudioEngine.swift.
+    private let mixer = AVAudioMixerNode()
+    /// Graph construction touches `engine.outputNode`, which is the same
+    /// aborting RPC. It happens here, once, never on the main thread.
+    private let buildQueue = DispatchQueue(label: "com.patrickliu.voyage.audio-build")
+    /// Main-thread only. False until the graph exists, and every cue is
+    /// dropped while it is false.
+    private var graphReady = false
+    private var prewarming = false
     private var sourceNode: AVAudioSourceNode?
     /// Phase-keyed engine tone layered under the noise bed. See `EngineTone`.
     private let tone = EngineTone()
@@ -78,6 +92,29 @@ final class CabinAudioEngine {
     private var teardownWorkItem: DispatchWorkItem?
 
     private init() {}
+
+    /// Whether we may touch `AVAudioEngine` at all.
+    ///
+    /// Constructing the graph reaches `AVAudioEngine.outputNode`, which is a
+    /// synchronous RPC to the audio server, and AudioToolbox answers a
+    /// timeout with `abort()`. That is unreachable by `do/catch` and fires on
+    /// whatever thread made the call, so there is no in-process way to make
+    /// the call safe — only ways to make fewer of them.
+    ///
+    /// - Under XCTest there is no audio to hear and the host's audio server
+    ///   is frequently starved, so the whole subsystem stays out of the way.
+    ///   Same guard, and same reason, as `WeatherService.reading(for:)`.
+    /// - With every sound switched off, building a graph buys nothing. Note
+    ///   this is both toggles, not just ambience: the PA and the chimes go
+    ///   through the same graph, so a traveller who wants announcements
+    ///   without a cabin bed still gets one.
+    private static var audioIsAvailable: Bool {
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+            return false
+        }
+        let settings = SettingsStore.shared
+        return settings.ambienceEnabled || settings.announcementsEnabled
+    }
 
     // MARK: - Lifecycle
 
@@ -130,16 +167,47 @@ final class CabinAudioEngine {
         startEngineIfNeeded()
     }
 
-    private func startEngineIfNeeded() {
-        // Trust the engine, not the cached flag. Without the `audio`
-        // background mode the system stops the engine whenever we leave the
-        // foreground, and a suspended app can miss the interruption
-        // notification entirely — so `isRunning` can be stale-true over a
-        // stopped engine. Every caller below early-returns on that flag and
-        // then `schedule(_:)` drops the buffer, so the boarding printer, the
-        // rip, and the PA would all go silent until the next flight.
-        if isRunning && !engine.isRunning { isRunning = false }
-        guard !isRunning else { return }
+    /// Builds the audio graph once, off the main thread, before any cue needs
+    /// it. Call this early and away from any user interaction — `RootView`
+    /// does it in `onAppear`.
+    ///
+    /// This exists because the construction path is not merely slow, it is
+    /// fatal on timeout. `AVAudioEngine.mainMixerNode` and `outputNode` both
+    /// make a synchronous RPC to the audio server, and AudioToolbox responds
+    /// to a timeout by calling `abort()` — not by throwing, so no `do/catch`
+    /// can save us. Nine SIGABRTs on 2026-09-08 came in through exactly that
+    /// path from a button handler.
+    ///
+    /// Be clear about what this does and does not buy. It takes the work off
+    /// the main thread and out of the tap handler, so a slow audio server no
+    /// longer freezes the UI and no longer couples a crash to a user action.
+    /// It does **not** make the call survivable: `abort()` takes the process
+    /// down from whatever thread it runs on, and this was measured — moving
+    /// the build to `buildQueue` produced the same SIGABRT with
+    /// `configureAndBuild()` in the stack. `audioIsAvailable` is what limits
+    /// the exposure, by not making the call at all when nothing needs sound.
+    func prewarm() {
+        guard Self.audioIsAvailable else { return }
+        guard !graphReady, !prewarming else { return }
+        prewarming = true
+        buildQueue.async { [weak self] in
+            guard let self else { return }
+            let ok = self.configureAndBuild()
+            DispatchQueue.main.async {
+                self.prewarming = false
+                self.graphReady = ok
+                // A cue that arrived while the graph was still being built
+                // was dropped, which is fine for a one-shot. The ambience bed
+                // is not a one-shot: if someone asked for it in that window,
+                // nothing else will ever retry, so start it here.
+                if ok { self.resumeIfInterrupted() }
+            }
+        }
+    }
+
+    /// Runs on `buildQueue`. Nothing on the main thread touches `engine`
+    /// until `graphReady` becomes true, so this needs no further locking.
+    private func configureAndBuild() -> Bool {
         do {
             let session = AVAudioSession.sharedInstance()
             // `.playback` so the cabin survives the ring/silent switch (the
@@ -148,21 +216,51 @@ final class CabinAudioEngine {
             // stopping it. Foreground only — see `resumeIfInterrupted`.
             try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
             try session.setActive(true)
-            observeInterruptionsIfNeeded()
-
-            if sourceNode == nil {
-                buildGraph()
-            }
+            buildGraph()
+            guard sourceNode != nil else { return false }
             engine.prepare()
+            return true
+        } catch {
+            // Audio is a garnish. A device with no working audio server just
+            // gets a silent flight.
+            return false
+        }
+    }
+
+    /// Non-blocking. Returns whether a cue may be scheduled *right now*.
+    /// Never builds the graph, so it is safe to call from a tap handler.
+    @discardableResult
+    private func startEngineIfNeeded() -> Bool {
+        guard graphReady else {
+            // First cue of the launch beat the prewarm. Drop it and get the
+            // graph built for next time; a missing click is not worth a
+            // blocked main thread.
+            prewarm()
+            return false
+        }
+        observeInterruptionsIfNeeded()
+        // Trust the engine, not the cached flag. Without the `audio`
+        // background mode the system stops the engine whenever we leave the
+        // foreground, and a suspended app can miss the interruption
+        // notification entirely — so `isRunning` can be stale-true over a
+        // stopped engine. Every caller below early-returns on that flag and
+        // then `schedule(_:)` drops the buffer, so the boarding printer, the
+        // rip, and the PA would all go silent until the next flight.
+        if isRunning && !engine.isRunning { isRunning = false }
+        if isRunning { return true }
+        do {
+            // Restarting an already-prepared graph does not re-enter the
+            // construction RPC, so this is cheap. It can still throw, and a
+            // throw is an expected outcome, not an error worth surfacing.
             try engine.start()
             if !effectsPlayer.isPlaying {
                 effectsPlayer.play()
             }
             isRunning = true
         } catch {
-            // Audio is a garnish — never let it take the app down.
             isRunning = false
         }
+        return isRunning
     }
 
     /// The system stops the engine when the session is interrupted; without a
@@ -255,12 +353,14 @@ final class CabinAudioEngine {
             return noErr
         }
 
+        engine.attach(mixer)
+        engine.connect(mixer, to: output, format: nil)
         engine.attach(node)
         engine.attach(toneSource)
         engine.attach(effectsPlayer)
-        engine.connect(node, to: engine.mainMixerNode, format: format)
-        engine.connect(toneSource, to: engine.mainMixerNode, format: format)
-        engine.connect(effectsPlayer, to: engine.mainMixerNode, format: format)
+        engine.connect(node, to: mixer, format: format)
+        engine.connect(toneSource, to: mixer, format: format)
+        engine.connect(effectsPlayer, to: mixer, format: format)
         sourceNode = node
         toneNode = toneSource
     }
@@ -317,7 +417,7 @@ final class CabinAudioEngine {
             }
             let node = AVAudioPlayerNode()
             engine.attach(node)
-            engine.connect(node, to: engine.mainMixerNode, format: format)
+            engine.connect(node, to: mixer, format: format)
             paPlayer = node
             paFormat = format
         }
