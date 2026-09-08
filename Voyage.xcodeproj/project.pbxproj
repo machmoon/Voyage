@@ -36,6 +36,7 @@
 		6B99E16B21802902D1DEA935 /* LogbookEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6D839091C0E94900792F598 /* LogbookEntry.swift */; };
 		6F652E4D3111D6619A714DB7 /* LayoverLoungeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CF9A3E41E2483EE5D95F966 /* LayoverLoungeView.swift */; };
 		816B61B964F1E3583AB5C5C2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CA93F9C86955AB5BB4D19771 /* Assets.xcassets */; };
+		81C5D1238C2C9F4684C5BD34 /* ActivityStaleDateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B95FC7EE99A7EB1A1CB608F3 /* ActivityStaleDateTests.swift */; };
 		87603F97599BDD9EBA2488DE /* RouteCatalogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF3BFC67E078E4199B9419D6 /* RouteCatalogTests.swift */; };
 		8F3E92CC9FB45784EFCBF85D /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0FF1BED67E63D4365884E3C /* HomeView.swift */; };
 		9A956CB9203B010E8C28FB7F /* FlightActivityController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A03A9E0E2A8FB0FC316F94E /* FlightActivityController.swift */; };
@@ -133,6 +134,7 @@
 		A6D839091C0E94900792F598 /* LogbookEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogbookEntry.swift; sourceTree = "<group>"; };
 		A93104A963095B69587AD9F3 /* Announcer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Announcer.swift; sourceTree = "<group>"; };
 		B677A2CF7162DBB0F3C7D092 /* RoutePlanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutePlanner.swift; sourceTree = "<group>"; };
+		B95FC7EE99A7EB1A1CB608F3 /* ActivityStaleDateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityStaleDateTests.swift; sourceTree = "<group>"; };
 		BC2722D2607D1446EB0D8DD9 /* BoardingFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardingFlowView.swift; sourceTree = "<group>"; };
 		BE74ECDDE02CC4592D5DE0E3 /* FlightLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightLiveActivity.swift; sourceTree = "<group>"; };
 		C57BFB1F113BAAF025C5A163 /* EngineTone.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineTone.swift; sourceTree = "<group>"; };
@@ -188,6 +190,7 @@
 		1BA96B100B2F9F9417EFF03F /* VoyageTests */ = {
 			isa = PBXGroup;
 			children = (
+				B95FC7EE99A7EB1A1CB608F3 /* ActivityStaleDateTests.swift */,
 				5D3E563547AFE6A5DA9B46EA /* EngineToneTests.swift */,
 				9968ED4F95A2D37CDE0A2494 /* FlightSessionTests.swift */,
 				415D0FFCD4FA6DB8C28976A0 /* FlyerTierTests.swift */,
@@ -506,6 +509,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				81C5D1238C2C9F4684C5BD34 /* ActivityStaleDateTests.swift in Sources */,
 				54D0FF16692E553D0C9493CE /* EngineToneTests.swift in Sources */,
 				1BB004AE4363B8528A7852C9 /* FlightSessionTests.swift in Sources */,
 				24FA1FC88A608A3DE8CEF338 /* FlyerTierTests.swift in Sources */,
