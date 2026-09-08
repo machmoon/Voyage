@@ -92,7 +92,6 @@ final class CabinAudioEngine {
     private let tonePlayerB = AVAudioPlayerNode()
     private let toneMixer = AVAudioMixerNode()
     private let toneFilter = AVAudioUnitEQ(numberOfBands: 1)
-    private let effectsPlayer = AVAudioPlayerNode()
     /// Announcements run through their own band-limited chain so a clean studio
     /// recording arrives sounding like it came out of a ceiling speaker.
     private let announcementPlayer = AVAudioPlayerNode()
@@ -204,7 +203,7 @@ final class CabinAudioEngine {
         let notes: [(Double, Double)] = premium
             ? [(784, 0), (659, 0.28), (523, 0.56)]
             : [(659, 0), (523, 0.34)]
-        play(duration: premium ? 1.45 : 1.2) { _, t, _ in
+        play(premium ? "chime-premium" : "chime", duration: premium ? 1.45 : 1.2) { _, t, _ in
             notes.reduce(0) { sample, note in
                 let local = t - note.1
                 guard local >= 0 else { return sample }
@@ -219,7 +218,7 @@ final class CabinAudioEngine {
     func playRip() {
         guard soundEffectsEnabled else { return }
         var previous: Float = 0
-        play(duration: 0.38) { i, t, _ in
+        play("rip", duration: 0.38) { i, t, _ in
             let progress = Float(t / 0.38)
             let noise = Self.noise(i &* 19 &+ 31)
             let high = noise - previous * 0.84
@@ -238,7 +237,7 @@ final class CabinAudioEngine {
             cursor += gap
         }
         let completion = cursor + 0.12
-        play(duration: completion + 0.42) { i, t, _ in
+        play("printer-\(Self.digest(feedSchedule))", duration: completion + 0.42) { i, t, _ in
             var sample: Float = t < cursor ? Float(sin(2 * .pi * 92 * t)) * 0.012 : 0
             for start in starts {
                 let local = t - start
@@ -260,14 +259,14 @@ final class CabinAudioEngine {
 
     func playTearTick() {
         guard soundEffectsEnabled else { return }
-        play(duration: 0.045) { i, t, _ in
+        play("tear-tick", duration: 0.045) { i, t, _ in
             Self.noise(i &* 7 &+ 13) * Float(exp(-85 * t)) * 0.11
         }
     }
 
     func playTakeoffSpool() {
         guard soundEffectsEnabled else { return }
-        play(duration: 2.8) { _, t, _ in
+        play("takeoff-spool", duration: 2.8) { _, t, _ in
             let progress = Float(t / 2.8)
             let envelope = min(1, Float(t) / 0.55) * min(1, Float((2.8 - t) / 0.5))
             let phase = 2 * Double.pi * (125 * t + 52 * t * t)
@@ -279,7 +278,7 @@ final class CabinAudioEngine {
 
     func playTouchdown() {
         guard soundEffectsEnabled else { return }
-        play(duration: 1.25) { i, t, _ in
+        play("touchdown", duration: 1.25) { i, t, _ in
             var sample: Float = 0
             for (start, gain) in [(0.0, Float(0.34)), (0.42, Float(0.21))] {
                 let local = t - start
@@ -295,7 +294,7 @@ final class CabinAudioEngine {
 
     func playThunk() {
         guard soundEffectsEnabled else { return }
-        play(duration: 0.42) { i, t, _ in
+        play("thunk", duration: 0.42) { i, t, _ in
             let body = Float(sin(2 * .pi * 54 * t)) * Float(exp(-13 * t)) * 0.28
             let latch = t < 0.018 ? Self.noise(i &* 11) * 0.08 : 0
             return body + latch
@@ -308,7 +307,7 @@ final class CabinAudioEngine {
         guard soundEffectsEnabled else { return }
         // Inharmonic partials are what separate a struck bell from a sine beep.
         let partials: [(Double, Float)] = [(1, 0.085), (2.02, 0.03), (2.76, 0.014), (5.1, 0.005)]
-        play(duration: 2.6) { _, t, _ in
+        play("seatbelt-sign", duration: 2.6) { _, t, _ in
             [0.0, 0.62].reduce(0) { sample, start in
                 let local = t - start
                 guard local >= 0 else { return sample }
@@ -324,7 +323,7 @@ final class CabinAudioEngine {
     /// Seat selection: the click of a latch with a little cushion behind it.
     func playSeatLatch() {
         guard soundEffectsEnabled else { return }
-        play(duration: 0.16) { i, t, _ in
+        play("seat-latch", duration: 0.16) { i, t, _ in
             let click = t < 0.006 ? Self.noise(i &* 23 &+ 5) * 0.16 : 0
             let body = Float(sin(2 * .pi * 148 * t)) * Float(exp(-34 * t)) * 0.09
             return click + body
@@ -334,7 +333,7 @@ final class CabinAudioEngine {
     /// The single clean beep of a gate scanner reading a barcode.
     func playScanBeep() {
         guard soundEffectsEnabled else { return }
-        play(duration: 0.13) { _, t, _ in
+        play("scan-beep", duration: 0.13) { _, t, _ in
             // Flat body with fast edges reads as electronic rather than musical.
             let envelope = min(1, Float(t) / 0.004) * min(1, Float((0.1 - t) / 0.012))
             guard envelope > 0 else { return 0 }
@@ -348,7 +347,7 @@ final class CabinAudioEngine {
     func playDivertTone() {
         guard soundEffectsEnabled else { return }
         let notes: [(Double, Double)] = [(415, 0), (311, 0.34)]
-        play(duration: 1.5) { _, t, _ in
+        play("divert-tone", duration: 1.5) { _, t, _ in
             notes.reduce(0) { sample, note in
                 let local = t - note.1
                 guard local >= 0 else { return sample }
@@ -364,9 +363,38 @@ final class CabinAudioEngine {
         SettingsStore.shared.soundEffectsEnabled
     }
 
+    /// Whether we may touch `AVAudioEngine` at all.
+    ///
+    /// Building the graph reads `AVAudioEngine.outputNode` and
+    /// `mainMixerNode`, each a synchronous RPC to the audio server that
+    /// AudioToolbox answers with `abort()` on timeout. No `do/catch` and no
+    /// choice of thread survives that, so the only lever is to make fewer of
+    /// the calls. Under XCTest there is nothing to hear and the host's audio
+    /// server is routinely starved by parallel simulators — same guard, same
+    /// reasoning as `WeatherService.reading(for:)`.
+    private static var audioIsAvailable: Bool {
+        ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil
+    }
+
+    /// Builds the graph ahead of the first cue that needs it, away from any
+    /// tap or drag. `BoardingFlowView.onAppear` calls it on entry to the
+    /// ritual.
+    ///
+    /// Not at app launch, deliberately: an abort during boarding costs one
+    /// session and the traveler can start again, while an abort at launch
+    /// makes the app look permanently broken. A rarer but unrecoverable
+    /// failure is the worse trade. Moving this call is one line.
+    ///
+    /// This does not make the construction call safe — nothing can. It moves
+    /// it off the interaction path and out of the departure beat, and the
+    /// one-shots no longer reach it at all (see `play(_:duration:build:)`).
+    func prewarm() {
+        guard SettingsStore.shared.ambienceEnabled || SettingsStore.shared.announcementsEnabled else { return }
+        startEngineIfNeeded()
+    }
+
     private func startEngineIfNeeded() {
-        if !graphBuilt { buildGraph() }
-        guard graphBuilt else { return }
+        guard Self.audioIsAvailable else { return }
 
         if !engine.isRunning {
             do {
@@ -375,6 +403,11 @@ final class CabinAudioEngine {
                 // passenger's music instead of taking ownership of the device.
                 try session.setCategory(.ambient, mode: .default, options: [.mixWithOthers])
                 try session.setActive(true)
+                // The session comes up before the graph, deliberately. Building
+                // a graph against an inactive session gives the audio server
+                // more to do at exactly the moment a slow answer is fatal.
+                if !graphBuilt { buildGraph() }
+                guard graphBuilt else { return }
                 engine.prepare()
                 try engine.start()
             } catch {
@@ -394,7 +427,6 @@ final class CabinAudioEngine {
             ambienceScheduled = true
         }
         if !ambiencePlayer.isPlaying { ambiencePlayer.play() }
-        if !effectsPlayer.isPlaying { effectsPlayer.play() }
     }
 
     /// A ceiling speaker is a small, band-limited driver in a hard-trimmed
@@ -445,7 +477,6 @@ final class CabinAudioEngine {
         engine.attach(tonePlayerB)
         engine.attach(toneMixer)
         engine.attach(toneFilter)
-        engine.attach(effectsPlayer)
         engine.attach(announcementPlayer)
         engine.attach(paFilter)
         engine.connect(ambiencePlayer, to: ambienceFilter, format: format)
@@ -454,7 +485,6 @@ final class CabinAudioEngine {
         engine.connect(tonePlayerB, to: toneMixer, format: format)
         engine.connect(toneMixer, to: toneFilter, format: format)
         engine.connect(toneFilter, to: engine.mainMixerNode, format: format)
-        engine.connect(effectsPlayer, to: engine.mainMixerNode, format: format)
         engine.connect(announcementPlayer, to: paFilter, format: format)
         engine.connect(paFilter, to: engine.mainMixerNode, format: format)
         engine.mainMixerNode.outputVolume = 0.86
@@ -609,23 +639,19 @@ final class CabinAudioEngine {
         return buffer
     }
 
-    private func play(duration: Double, build: (Int, Double, Double) -> Float) {
-        startEngineIfNeeded()
-        guard engine.isRunning,
-              let buffer = makeBuffer(duration: duration, build: build) else { return }
-        effectsPlayer.scheduleBuffer(buffer)
-        if !effectsPlayer.isPlaying { effectsPlayer.play() }
-    }
-
-    private func makeBuffer(duration: Double, build: (Int, Double, Double) -> Float) -> AVAudioPCMBuffer? {
-        let rate = 44_100.0
-        let frames = AVAudioFrameCount(max(1, duration * rate))
-        guard let format = AVAudioFormat(standardFormatWithSampleRate: rate, channels: 1),
-              let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frames),
-              let samples = buffer.floatChannelData?[0] else { return nil }
-        buffer.frameLength = frames
-        for i in 0..<Int(frames) { samples[i] = build(i, Double(i) / rate, rate) }
-        return buffer
+    /// Every one-shot goes through here, and here does not touch the engine.
+    ///
+    /// The cue is rendered once to a file and played by System Sound Services,
+    /// which builds no graph and never reads `outputNode` or `mainMixerNode`.
+    /// Those two properties are a synchronous RPC to the audio server that
+    /// `abort()`s the process on timeout, and a one-shot fired from a tap or a
+    /// drag was the entry point in every crash report from 2026-09-08. See
+    /// `SoundEffects` for the full reasoning and the prior art.
+    ///
+    /// `key` names the waveform: same key, same sound, because the second call
+    /// replays the first call's file.
+    private func play(_ key: String, duration: Double, build: (Int, Double, Double) -> Float) {
+        SoundEffects.shared.play(key, duration: duration, build: build)
     }
 
     private func makeAmbienceLoop(format: AVAudioFormat) -> AVAudioPCMBuffer? {
@@ -661,6 +687,20 @@ final class CabinAudioEngine {
 
     /// Fast deterministic noise: reproducible, allocation-free, and never
     /// evaluated on AVAudioEngine's realtime render thread.
+    /// Names a printer cue by the line-feed schedule that shapes it, so two
+    /// passes with different schedules do not share a rendered file.
+    private static func digest(_ schedule: [Double]) -> String {
+        var hash: UInt64 = 0xcbf2_9ce4_8422_2325
+        for gap in schedule {
+            withUnsafeBytes(of: gap.bitPattern) { bytes in
+                for byte in bytes {
+                    hash = (hash ^ UInt64(byte)) &* 0x0000_0100_0000_01B3
+                }
+            }
+        }
+        return String(hash, radix: 16)
+    }
+
     private static func noise(_ index: Int) -> Float {
         var x = UInt32(truncatingIfNeeded: index) &+ 0x9E37_79B9
         x ^= x >> 16
