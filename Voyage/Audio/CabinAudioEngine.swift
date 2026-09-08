@@ -124,6 +124,20 @@ final class CabinAudioEngine {
     }
 
     private func startEngineIfNeeded() {
+        // Tests and QA captures never build the audio graph.
+        //
+        // There is a live P0 on this branch: the graph's teardown can hang in
+        // `AURemoteIO::Cleanup`, and AudioToolbox responds to the RPC timeout
+        // by calling `abort()`. It takes the whole process with it. Confirmed
+        // from a crash report on 2026-09-08 (SIGABRT, `_ReportRPCTimeout` ->
+        // `abort`), and it kills the app within about 40 seconds of boarding,
+        // which makes every in-flight UI capture impossible.
+        //
+        // This does not fix that. It keeps it out of the test and capture
+        // paths, where no assertion depends on sound, the same way and for the
+        // same reason `WeatherService` guards on the XCTest environment.
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil { return }
+        if ProcessInfo.processInfo.arguments.contains("-VoyageSilentCabin") { return }
         // Trust the engine, not the cached flag. Without the `audio`
         // background mode the system stops the engine whenever we leave the
         // foreground, and a suspended app can miss the interruption
