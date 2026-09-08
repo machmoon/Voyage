@@ -214,23 +214,53 @@ struct FlightReceiptView: View {
 
 // MARK: - Rendering
 
+/// A rendered receipt: the shareable PNG, plus the same bitmap as a `UIImage`
+/// for `SharePreview`. Both come from one rasterisation, because encoding a PNG
+/// and immediately decoding it back into a `UIImage` was pure waste.
+struct RenderedReceipt {
+    let pngData: Data
+    let image: UIImage
+}
+
 enum FlightReceiptRenderer {
     @MainActor
     static func pngData(session: FlightSession, caption: String?) -> Data? {
-        pngData(from: FlightReceiptView(session: session, caption: caption))
+        render(FlightReceiptView(session: session, caption: caption))?.pngData
     }
 
     @MainActor
     static func pngData(entry: LogbookEntry) -> Data? {
-        pngData(from: FlightReceiptView(entry: entry))
+        render(FlightReceiptView(entry: entry))?.pngData
+    }
+
+    /// Rasterises a logbook receipt.
+    ///
+    /// This is expensive: measured at ~149 ms on the iPhone 17 simulator in a
+    /// Debug build, because it lays out a whole SwiftUI card and encodes it at
+    /// 3x. Never call it from a view body. `LogbookReceiptStore` exists so the
+    /// logbook list can pay it once per flight rather than once per frame.
+    @MainActor
+    static func receipt(entry: LogbookEntry) -> RenderedReceipt? {
+        render(FlightReceiptView(entry: entry))
     }
 
     @MainActor
-    private static func pngData(from view: FlightReceiptView) -> Data? {
+    private static func render(_ view: FlightReceiptView) -> RenderedReceipt? {
+        #if DEBUG
+        renderCount += 1
+        #endif
         let renderer = ImageRenderer(content: view)
         renderer.scale = 3
-        return renderer.uiImage?.pngData()
+        guard let image = renderer.uiImage, let data = image.pngData() else { return nil }
+        return RenderedReceipt(pngData: data, image: image)
     }
+
+    #if DEBUG
+    /// Counts real rasterisations so tests can pin how often the logbook pays
+    /// for one, instead of timing it on a shared machine.
+    @MainActor private(set) static var renderCount = 0
+    @MainActor static func resetRenderCount() { renderCount = 0 }
+    #endif
 }
 
 private extension String {

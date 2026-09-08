@@ -264,17 +264,8 @@ struct LogbookView: View {
                 .accessibilityLabel("Replay flight to \(entry.destinationCode)")
             }
 
-            if entry.completed, let png = FlightReceiptRenderer.pngData(entry: entry),
-               let uiImage = UIImage(data: png) {
-                ShareLink(
-                    item: ReceiptShareItem(pngData: png),
-                    preview: SharePreview("Flight to \(entry.destinationCode)", image: Image(uiImage: uiImage))
-                ) {
-                    Image(systemName: "square.and.arrow.up")
-                        .font(.body.weight(.semibold))
-                        .foregroundStyle(Theme.accent)
-                }
-                .buttonStyle(.plain)
+            if entry.completed {
+                LogbookShareButton(entry: entry)
             }
 
             VStack(alignment: .trailing, spacing: 3) {
@@ -287,5 +278,97 @@ struct LogbookView: View {
             }
         }
         .padding(.vertical, 4)
+    }
+}
+
+/// Share affordance for one logbook row.
+///
+/// This exists as its own view so it can own `@State`. `entryRow` is a method,
+/// and a method cannot hold per-row state, which is why the receipt used to be
+/// rasterised inline in the row body: `List` re-evaluates that body constantly
+/// while scrolling, so every visible completed flight was re-rendering a whole
+/// SwiftUI card at 3x and PNG-encoding it, tens of times a second. That is the
+/// same shape of fix `ArrivalFlowView` already uses, where the receipt is
+/// rendered once into `@State` and the body only reads the stored value.
+///
+/// The icon is rendered unconditionally so the row's layout does not shift when
+/// the receipt arrives; only the `ShareLink` waits.
+private struct LogbookShareButton: View {
+    let entry: LogbookEntry
+
+    @State private var receipt: RenderedReceipt?
+
+    var body: some View {
+        Group {
+            if let receipt {
+                ShareLink(
+                    item: ReceiptShareItem(pngData: receipt.pngData),
+                    preview: SharePreview(
+                        "Flight to \(entry.destinationCode)",
+                        image: Image(uiImage: receipt.image)
+                    )
+                ) {
+                    icon
+                }
+                .buttonStyle(.plain)
+            } else {
+                icon.opacity(0.35)
+                    .accessibilityHidden(true)
+            }
+        }
+        .task(id: entry.persistentModelID) {
+            receipt = await LogbookReceiptStore.shared.receipt(for: entry)
+        }
+    }
+
+    private var icon: some View {
+        Image(systemName: "square.and.arrow.up")
+            .font(.body.weight(.semibold))
+            .foregroundStyle(Theme.accent)
+    }
+}
+
+/// Renders logbook receipts once each and remembers them for the session.
+///
+/// A receipt is a pure function of its entry, so a row that scrolls out and
+/// back must not pay for it twice. The rasterisation itself has to run on the
+/// main actor, because that is where `ImageRenderer` and SwiftUI layout live,
+/// so the only thing that can be done about its cost is to pay it as rarely as
+/// possible and never while a frame is due: the `Task.yield()` below lets the
+/// row present itself before the render starts.
+///
+/// Bounded, because a long logbook would otherwise hold every receipt bitmap
+/// alive at 3x for the life of the process.
+@MainActor
+final class LogbookReceiptStore {
+    static let shared = LogbookReceiptStore()
+
+    private var cache: [PersistentIdentifier: RenderedReceipt] = [:]
+    private var order: [PersistentIdentifier] = []
+
+    /// Roughly a screenful of rows either side of the visible range.
+    private static let capacity = 24
+
+    private init() {}
+
+    func receipt(for entry: LogbookEntry) async -> RenderedReceipt? {
+        let key = entry.persistentModelID
+        if let cached = cache[key] { return cached }
+
+        // Let the row draw first. Without this the render lands inside the
+        // same turn as the row's first layout and stalls its appearance.
+        await Task.yield()
+        if Task.isCancelled { return nil }
+        if let cached = cache[key] { return cached }
+
+        guard let rendered = FlightReceiptRenderer.receipt(entry: entry) else { return nil }
+
+        cache[key] = rendered
+        order.append(key)
+        if order.count > Self.capacity {
+            let evicted = order.removeFirst()
+            cache.removeValue(forKey: evicted)
+        }
+        return rendered
     }
 }
