@@ -91,7 +91,9 @@ final class LogbookEntry {
         self.seat = seat
         self.miles = miles
         self.focusSeconds = focusSeconds
-        self.completed = completed
+        // An explicit outcome is the more specific fact and wins, so the two
+        // can never disagree on a row this build wrote.
+        self.completed = outcome?.didArrive ?? completed
         self.intentions = intentions
         self.intentionsCompleted = intentionsCompleted
         self.scheduledSeconds = scheduledSeconds

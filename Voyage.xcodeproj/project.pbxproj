@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		0056CD7616753D1EF62C48F1 /* LogbookView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CB577FFDB00B9AA668840E0 /* LogbookView.swift */; };
+		01AD52851A5FFD096583EFC8 /* FlightDataRecorderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D8589DBFE0CCD92E7E178A1 /* FlightDataRecorderTests.swift */; };
 		02E9D9B7CB5F8E8BA71D7A05 /* FlightDataRecorderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70B261169A7B09AB85EFC180 /* FlightDataRecorderView.swift */; };
 		032D7F92BC8E892B6FCCE829 /* WindowSceneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4639BD8F909C425C8B7EC5D /* WindowSceneView.swift */; };
 		07081E57D6E66D161AC72A74 /* RouteCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84CD44E3543F506A3749B2CE /* RouteCatalog.swift */; };
@@ -128,6 +129,7 @@
 		9968ED4F95A2D37CDE0A2494 /* FlightSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightSessionTests.swift; sourceTree = "<group>"; };
 		99CA0EDD0DD64CFDE04B6781 /* DemoReelUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoReelUITests.swift; sourceTree = "<group>"; };
 		9C6FBB0F4116077FBF34D6A5 /* ScreenshotTourUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotTourUITests.swift; sourceTree = "<group>"; };
+		9D8589DBFE0CCD92E7E178A1 /* FlightDataRecorderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightDataRecorderTests.swift; sourceTree = "<group>"; };
 		A0FF1BED67E63D4365884E3C /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		A6D839091C0E94900792F598 /* LogbookEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogbookEntry.swift; sourceTree = "<group>"; };
 		A93104A963095B69587AD9F3 /* Announcer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Announcer.swift; sourceTree = "<group>"; };
@@ -186,6 +188,7 @@
 		1BA96B100B2F9F9417EFF03F /* VoyageTests */ = {
 			isa = PBXGroup;
 			children = (
+				9D8589DBFE0CCD92E7E178A1 /* FlightDataRecorderTests.swift */,
 				9968ED4F95A2D37CDE0A2494 /* FlightSessionTests.swift */,
 				415D0FFCD4FA6DB8C28976A0 /* FlyerTierTests.swift */,
 				44B8A2CEA1D7B030571DC244 /* GreatCircleTests.swift */,
@@ -503,6 +506,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				01AD52851A5FFD096583EFC8 /* FlightDataRecorderTests.swift in Sources */,
 				1BB004AE4363B8528A7852C9 /* FlightSessionTests.swift in Sources */,
 				24FA1FC88A608A3DE8CEF338 /* FlyerTierTests.swift in Sources */,
 				12E4E89E31607A9C0A4359E1 /* GreatCircleTests.swift in Sources */,
