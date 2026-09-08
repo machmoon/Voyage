@@ -183,8 +183,8 @@ struct WindowSceneView: View {
             case .landing:
                 let t = tPhase
                 let brake = max(0.5, FlightSession.landingDuration * 0.85)
-                let v = max(130.0, vMax - (vMax - 130.0) * min(1, t / brake))
-                // Integrate the linear deceleration.
+                // Integrate the linear deceleration from vMax down to the
+                // 130-unit taxi speed reached at `brake`.
                 let tc = min(t, brake)
                 var d = vMax * tc - (vMax - 130.0) * tc * tc / (2 * brake)
                 if t > brake { d += 130.0 * (t - brake) }
