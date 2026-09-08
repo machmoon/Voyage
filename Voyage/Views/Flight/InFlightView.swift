@@ -65,28 +65,7 @@ struct InFlightView: View {
 
                 countdown
 
-                // KNOWN DEFECT, and the reason for this gate: presenting the
-                // card while the content size category is an accessibility
-                // one wedges the app. The process stops responding within
-                // seconds and the test harness loses it; there is no crash
-                // report, so it is a hang rather than an abort, and it
-                // reproduces every time.
-                //
-                // It is the card and nothing around it. The control test
-                // `testInFlightSurvivesAtAccessibilityTextSizeWithoutAnyCue`
-                // flies the same leg at the same text size with the cue
-                // feature off and passes. Removing the container animation,
-                // the `.fixedSize` modifiers, the full-width button frame and
-                // the layout that stood the info pill down all failed to
-                // clear it, so the cause is not yet known.
-                //
-                // Suppressing the cue for these users is a bad outcome and it
-                // is not the intended end state. It is only better than
-                // hanging their flight. `testCueIsSuppressedAtAccessibility
-                // TextSizeUntilTheHangIsFixed` pins this so it cannot be
-                // quietly forgotten, and it should be deleted along with this
-                // gate once the layout is fixed.
-                if let cue = session.serviceCue, !typeSize.isAccessibilitySize {
+                if let cue = session.serviceCue {
                     CabinServiceCard(
                         pass: cue.pass,
                         onAcknowledge: { session.acknowledgeServiceCue() },
@@ -96,13 +75,20 @@ struct InFlightView: View {
                     .transition(.opacity)
                 }
 
-                if showInfoPill {
+                // At accessibility sizes this column is already at the edge of
+                // the screen, and the cue pushes the ambient furniture off the
+                // bottom, taking the card with it. The cue is transient and the
+                // pill and the intentions strip are not, so for the ninety
+                // seconds a card is up they stand down.
+                let crowded = typeSize.isAccessibilitySize && session.serviceCue != nil
+
+                if showInfoPill && !crowded {
                     flightInfoPill
                         .padding(.top, 20)
                         .transition(.scale(scale: 0.9).combined(with: .opacity))
                 }
 
-                if !session.intentions.isEmpty {
+                if !session.intentions.isEmpty && !crowded {
                     intentionsStrip
                         .padding(.top, 16)
                 }

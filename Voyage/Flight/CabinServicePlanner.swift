@@ -118,9 +118,9 @@ extension CabinServicePlanner.Pass {
     var detail: String {
         switch self {
         case .eyeRest:
-            return "The horizon is the furthest thing on this aircraft. Twenty seconds on it rests the muscle that has been holding a page at arm's length for twenty minutes."
+            return "The horizon is the furthest thing on this aircraft. Twenty seconds on it rests the muscle that holds a page in focus."
         case .stretch:
-            return "You are free to move about the cabin. The flight keeps flying either way, and nothing is logged about whether you got up."
+            return "You are free to move about the cabin. The flight keeps flying, and nothing is logged about whether you got up."
         }
     }
 

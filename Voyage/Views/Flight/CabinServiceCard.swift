@@ -42,7 +42,6 @@ struct CabinServiceCard: View {
             Text(pass.detail)
                 .font(.system(.subheadline))
                 .foregroundStyle(.white.opacity(0.6))
-                .lineLimit(6)
 
             Button(action: onAcknowledge) {
                 Text(pass.action)
