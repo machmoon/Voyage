@@ -103,8 +103,11 @@ final class VoyageSmokeUITests: XCTestCase {
         XCTAssertTrue(passport.waitForExistence(timeout: 5))
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.74, dy: 0.19)).tap()
 
-        XCTAssertTrue(app.staticTexts["Voyage Passport"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Destination stamps"].exists)
+        // PassportView.swift:111 and :226. The redesign replaced the old
+        // "Voyage Passport" / "Destination stamps" wording, and this assertion
+        // was left behind spelling strings the app no longer renders.
+        XCTAssertTrue(app.staticTexts["PASSPORT"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Arrival stamps"].exists)
 
         let screenshot = XCUIScreen.main.screenshot()
         try screenshot.pngRepresentation.write(to: URL(fileURLWithPath: "/tmp/voyage-passport-redesign.png"))
