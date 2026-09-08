@@ -71,12 +71,7 @@ final class DemoReelUITests: XCTestCase {
         bookAFlight(in: app)
         pickASeat(in: app)
 
-        let skipBags = app.buttons.matching(
-            NSPredicate(format: "label BEGINSWITH %@", "Travel light")).firstMatch
-        if !tap(skipBags, timeout: 6) {
-            _ = tap(app.buttons.matching(
-                NSPredicate(format: "label BEGINSWITH %@", "Skip")).firstMatch, timeout: 3)
-        }
+        skipBags(in: app)
 
         // Hold on the printed pass, tear, then hold on the aftermath. The rip
         // and the frames just after it are what this capture is for.
@@ -107,11 +102,21 @@ final class DemoReelUITests: XCTestCase {
         _ = tap(app.buttons["depart-now"], timeout: 5)
     }
 
+    /// Clears the bag screen. The button is `CheckBagView.swift:84`, which reads
+    /// "Skip for now" until something is packed and "Check N bags" after. The
+    /// reel packs nothing, so the first spelling is the one it meets; the
+    /// second is here so a seeded run does not stall on the screen.
+    @MainActor
+    private func skipBags(in app: XCUIApplication) {
+        if tap(app.buttons["Skip for now"], timeout: 6) { return }
+        _ = tap(app.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH %@", "Check ")).firstMatch, timeout: 3)
+    }
+
     @MainActor
     private func pickASeat(in app: XCUIApplication) {
-        // Header wording has moved between builds; either spelling is fine.
+        // SeatSelectionView.swift:111.
         _ = app.staticTexts["Choose your seat"].waitForExistence(timeout: 8)
-            || app.staticTexts["Select Seats"].waitForExistence(timeout: 1)
         pause(1.5)
 
         // Sold seats are not buttons, so the first match is always bookable.
@@ -132,9 +137,7 @@ final class DemoReelUITests: XCTestCase {
 
     @MainActor
     private func boardTheAircraft(in app: XCUIApplication) {
-        let skipBags = app.buttons.matching(
-            NSPredicate(format: "label BEGINSWITH %@", "Travel light")).firstMatch
-        _ = tap(skipBags, timeout: 6)
+        skipBags(in: app)
 
         // The pass prints itself line by line; that print is the shot.
         _ = app.buttons["Tear & board"].waitForExistence(timeout: 12)
