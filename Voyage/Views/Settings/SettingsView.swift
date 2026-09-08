@@ -89,6 +89,16 @@ struct SettingsView: View {
                 }
 
                 Section {
+                    Toggle(isOn: $settings.cabinServiceEnabled) {
+                        Label("Cabin service", systemImage: "figure.stand")
+                    }
+                } header: {
+                    Text("In flight")
+                } footer: {
+                    Text("A card appears during cruise about every twenty minutes suggesting you look at the horizon, and once an hour that the seatbelt sign is off. It never interrupts descent or landing, it goes away on its own, and ignoring it has no effect on the flight or the logbook.")
+                }
+
+                Section {
                     Picker(selection: Binding(
                         get: { settings.originOverrideCode ?? "auto" },
                         set: { settings.originOverrideCode = $0 == "auto" ? nil : $0 }

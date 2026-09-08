@@ -16,6 +16,13 @@ final class SettingsStore {
         didSet { defaults.set(announcementsEnabled, forKey: "announcementsEnabled") }
     }
 
+    /// In-flight eye-rest and stretch cues. On by default: the cue is passive,
+    /// costs nothing to ignore, and a traveller who does not want it can say so
+    /// here rather than by learning to dismiss it.
+    var cabinServiceEnabled: Bool {
+        didSet { defaults.set(cabinServiceEnabled, forKey: "cabinServiceEnabled") }
+    }
+
     /// Chosen PA voice identifier; nil means "automatic (best installed)".
     var paVoiceIdentifier: String? {
         didSet { defaults.set(paVoiceIdentifier, forKey: "paVoiceIdentifier") }
@@ -38,6 +45,7 @@ final class SettingsStore {
     private init() {
         ambienceEnabled = defaults.object(forKey: "ambienceEnabled") as? Bool ?? true
         announcementsEnabled = defaults.object(forKey: "announcementsEnabled") as? Bool ?? true
+        cabinServiceEnabled = defaults.object(forKey: "cabinServiceEnabled") as? Bool ?? true
         paVoiceIdentifier = defaults.string(forKey: "paVoiceIdentifier")
         originOverrideCode = defaults.string(forKey: "originOverrideCode")
         resolvedOriginCode = defaults.string(forKey: "resolvedOriginCode") ?? "BOS"

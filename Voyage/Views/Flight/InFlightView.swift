@@ -20,6 +20,7 @@ struct InFlightView: View {
     @State private var curtainVisible = true
     @State private var windowSceneArmed = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     private var isNight: Bool {
         let hour = Calendar.current.component(.hour, from: Date())
@@ -63,6 +64,37 @@ struct InFlightView: View {
                 Spacer(minLength: 18)
 
                 countdown
+
+                // KNOWN DEFECT, and the reason for this gate: presenting the
+                // card while the content size category is an accessibility
+                // one wedges the app. The process stops responding within
+                // seconds and the test harness loses it; there is no crash
+                // report, so it is a hang rather than an abort, and it
+                // reproduces every time.
+                //
+                // It is the card and nothing around it. The control test
+                // `testInFlightSurvivesAtAccessibilityTextSizeWithoutAnyCue`
+                // flies the same leg at the same text size with the cue
+                // feature off and passes. Removing the container animation,
+                // the `.fixedSize` modifiers, the full-width button frame and
+                // the layout that stood the info pill down all failed to
+                // clear it, so the cause is not yet known.
+                //
+                // Suppressing the cue for these users is a bad outcome and it
+                // is not the intended end state. It is only better than
+                // hanging their flight. `testCueIsSuppressedAtAccessibility
+                // TextSizeUntilTheHangIsFixed` pins this so it cannot be
+                // quietly forgotten, and it should be deleted along with this
+                // gate once the layout is fixed.
+                if let cue = session.serviceCue, !typeSize.isAccessibilitySize {
+                    CabinServiceCard(
+                        pass: cue.pass,
+                        onAcknowledge: { session.acknowledgeServiceCue() },
+                        onDismiss: { session.dismissServiceCue() }
+                    )
+                    .padding(.top, 18)
+                    .transition(.opacity)
+                }
 
                 if showInfoPill {
                     flightInfoPill

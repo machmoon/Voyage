@@ -65,6 +65,82 @@ final class FlightSession {
     /// Deadline after which backgrounding becomes a diversion.
     private(set) var graceDeadline: Date?
 
+    // MARK: Cabin service (wellness cues)
+
+    /// A cue currently on screen. Purely presentational: nothing in strict
+    /// mode, diversion, leg completion or the logbook reads this.
+    struct CabinServiceCue: Equatable {
+        let pass: CabinServicePlanner.Pass
+        /// When it disappears on its own if nobody touches it.
+        let expiresAt: Date
+    }
+
+    private(set) var serviceCue: CabinServiceCue?
+    private(set) var servicePlanner = CabinServicePlanner()
+
+    /// Cues offered and ignored on this leg, in safeeyes' sense: a count, kept
+    /// so the screen can be honest, never used to prompt or to penalise.
+    var serviceCuesOffered: Int { servicePlanner.passNumber }
+    var serviceCuesIgnored: Int { servicePlanner.ignored }
+
+    /// Whether cues run at all. Short flights are QA and demo captures, and
+    /// `-VoyageShortFlights` compresses a 90 minute leg into seconds, so a
+    /// 20 minute cadence there would either never fire or fire absurdly.
+    /// Launch argument `-VoyageCabinServiceDemo` compresses the 20 minute
+    /// cadence to seconds and overrides the short-flight suppression, so a UI
+    /// test can photograph a cue. QA and capture only; it changes nothing in
+    /// a shipped build, where the argument is never present.
+    nonisolated static var cabinServiceDemoEnabled: Bool {
+        ProcessInfo.processInfo.arguments.contains("-VoyageCabinServiceDemo")
+    }
+
+    /// Seconds of cruise between cues.
+    nonisolated static var servicePassInterval: TimeInterval {
+        cabinServiceDemoEnabled ? 6 : CabinServicePlanner.passInterval
+    }
+
+    /// Pure so the suppression rules can be tested directly. A unit test
+    /// cannot set a launch argument, so the flags arrive as parameters rather
+    /// than being read inside the check.
+    nonisolated static func cabinServiceActive(enabled: Bool,
+                                               shortFlights: Bool,
+                                               demo: Bool = false) -> Bool {
+        guard enabled else { return false }
+        return demo || !shortFlights
+    }
+
+    private var cabinServiceActive: Bool {
+        Self.cabinServiceActive(
+            enabled: SettingsStore.shared.cabinServiceEnabled,
+            shortFlights: Self.shortFlightsEnabled,
+            demo: Self.cabinServiceDemoEnabled
+        )
+    }
+
+    /// The traveller acted on the cue. Counts it and clears the card. There is
+    /// deliberately no other effect.
+    func acknowledgeServiceCue() {
+        guard serviceCue != nil else { return }
+        servicePlanner.acknowledge()
+        serviceCue = nil
+        Haptics.softTick()
+    }
+
+    /// Dismiss without counting it as taken. Same as letting it expire.
+    func dismissServiceCue() {
+        serviceCue = nil
+    }
+
+    /// Takes the card away when its time is up, or the moment the aircraft
+    /// leaves cruise. A cue raised in the last seconds of cruise must not
+    /// still be sitting there during descent.
+    private func expireServiceCue() {
+        guard let cue = serviceCue else { return }
+        if now >= cue.expiresAt || phase != .cruise {
+            serviceCue = nil
+        }
+    }
+
     private var timer: Timer?
     private var graceWorkItem: DispatchWorkItem?
     private var firedEvents: Set<Event> = []
@@ -146,6 +222,16 @@ final class FlightSession {
         return legRemaining + future
     }
 
+    /// Elapsed seconds at which cruise begins on this leg, using the same
+    /// clamps `phase` uses. Cabin service cues are measured from here so a cue
+    /// can never be scheduled into the climb.
+    var cruiseBeginsAt: TimeInterval {
+        let d = legDuration
+        guard d > 0 else { return 0 }
+        let takeoffEnd = min(Self.takeoffRollDuration, d * 0.15)
+        return min(Self.climbEndsAt, max(takeoffEnd + 0.01, d * 0.35))
+    }
+
     var phase: LegPhase {
         let e = legElapsed
         let d = legDuration
@@ -153,8 +239,8 @@ final class FlightSession {
 
         // Clamp phase windows so short synthetic legs (unit tests / demos)
         // still progress without inverted cruise/descent intervals.
+        let climbEnd = cruiseBeginsAt
         let takeoffEnd = min(Self.takeoffRollDuration, d * 0.15)
-        let climbEnd = min(Self.climbEndsAt, max(takeoffEnd + 0.01, d * 0.35))
         let landingStart = max(climbEnd, d - Self.landingDuration)
         let descentStart = max(climbEnd, min(landingStart, d - min(Self.descentDuration, d * 0.45)))
 
@@ -299,6 +385,11 @@ final class FlightSession {
         legStartDate = t
         now = t
         firedEvents = []
+        // The lounge between legs is itself a break: you stand, you leave the
+        // seat, you look at something further away than a screen. So the
+        // cadence starts over rather than carrying a debt across the layover.
+        servicePlanner.reset()
+        serviceCue = nil
         fetchLegWeather()
         FlightActivityController.shared.start(session: self)
         // Ambience after a beat so a just-played rip one-shot never races
@@ -346,6 +437,7 @@ final class FlightSession {
                 return
             }
             fireDueEvents()
+            expireServiceCue()
             if legElapsed >= legDuration {
                 completeLeg()
             }
@@ -369,6 +461,9 @@ final class FlightSession {
     private enum Event: Hashable {
         case takeoffPower, rotate, gearUp, cruiseReached, midpoint
         case descentStart, gearDown, touchdown, finalCall
+        /// Indexed so the cue can repeat while `fire` keeps its fire-once
+        /// guarantee per pass.
+        case cabinService(Int)
     }
 
     private func fire(_ event: Event, _ action: () -> Void) {
@@ -441,6 +536,38 @@ final class FlightSession {
                 CabinAudioEngine.shared.playTouchdown()
                 Haptics.touchdown()
             }
+        }
+
+        fireDueServiceCue(elapsed: e)
+    }
+
+    /// Offers the next wellness cue if one is due and the cabin is in a state
+    /// where an interruption is legitimate.
+    ///
+    /// Deliberately visual plus haptic only. It never calls `Announcer` or
+    /// `CabinAudioEngine`: building the audio graph is a live crash risk, and
+    /// a cue the traveller is free to ignore has no business being the thing
+    /// that constructs it. Haptics are already a no-op on a device without
+    /// the engine.
+    private func fireDueServiceCue(elapsed e: TimeInterval) {
+        guard cabinServiceActive else { return }
+        // Descent and landing are never interrupted. `phase` is derived, so
+        // this is the whole guard: the cue simply has no window outside cruise.
+        guard phase == .cruise else { return }
+
+        let next = servicePlanner.passNumber + 1
+        let dueAt = CabinServicePlanner.due(pass: next,
+                                            cruiseBeginsAt: cruiseBeginsAt,
+                                            interval: Self.servicePassInterval)
+        guard e >= dueAt else { return }
+
+        fire(.cabinService(next)) {
+            let pass = servicePlanner.offer()
+            serviceCue = CabinServiceCue(
+                pass: pass,
+                expiresAt: now.addingTimeInterval(CabinServicePlanner.cueDuration)
+            )
+            Haptics.softTick()
         }
     }
 
