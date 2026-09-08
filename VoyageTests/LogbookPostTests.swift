@@ -23,7 +23,7 @@ final class LogbookPostTests: XCTestCase {
         let entry = LogbookEntry(
             originCode: "BOS",
             destinationCode: "SFO",
-            flightNumber: "UA 1",
+            flightNumber: "VOY 1",
             seat: "A1",
             miles: 2_600,
             focusSeconds: 3_600,
@@ -32,7 +32,7 @@ final class LogbookPostTests: XCTestCase {
         let older = LogbookEntry(
             originCode: "BOS",
             destinationCode: "SFO",
-            flightNumber: "UA 1",
+            flightNumber: "VOY 1",
             seat: "B2",
             miles: 2_600,
             focusSeconds: 3_000,
@@ -41,7 +41,7 @@ final class LogbookPostTests: XCTestCase {
         let otherRoute = LogbookEntry(
             originCode: "BOS",
             destinationCode: "LAX",
-            flightNumber: "AA 2",
+            flightNumber: "VOY 2",
             seat: "C3",
             miles: 2_600,
             focusSeconds: 9_999,

@@ -99,7 +99,7 @@ final class FlyerTierTests: XCTestCase {
             date: date,
             originCode: "BOS",
             destinationCode: "JFK",
-            flightNumber: "VA 100",
+            flightNumber: "VOY 100",
             seat: "12A",
             miles: miles,
             focusSeconds: 7200,

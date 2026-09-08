@@ -79,7 +79,7 @@ final class GreatCircleTests: XCTestCase {
         let entry = LogbookEntry(
             originCode: "BOS",
             destinationCode: "SFO",
-            flightNumber: "UA 424",
+            flightNumber: "VOY 424",
             seat: "12A",
             miles: 2_700,
             focusSeconds: 4 * 3600,
@@ -99,7 +99,7 @@ final class GreatCircleTests: XCTestCase {
         let entry = LogbookEntry(
             originCode: "JFK",
             destinationCode: "SFO",
-            flightNumber: "UA 424",
+            flightNumber: "VOY 424",
             seat: "12A",
             miles: 2_586,
             focusSeconds: 4 * 3600,

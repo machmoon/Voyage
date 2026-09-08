@@ -7,7 +7,7 @@ import Observation
 struct ScheduledFlight: Codable, Equatable {
     let destinationCode: String
     let departure: Date
-    /// Flight number of the booked departure ("NS 741"). Optional so
+    /// Flight number of the booked departure ("VOY 741"). Optional so
     /// flights persisted by older builds still decode.
     var flightNumber: String?
 

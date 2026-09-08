@@ -37,6 +37,12 @@ enum Carrier: String, CaseIterable, Codable {
         case .lantern: return "Lantern"
         }
     }
+
+    /// A flight number exactly as it prints on the pass, the departure board,
+    /// the Live Activity and the boarding notification: "VOY 424". Every
+    /// flight number in the app is built here, so no caller can invent a
+    /// prefix of its own and land on a live IATA designator.
+    func flightNumberText(_ number: Int) -> String { "\(rawValue) \(number)" }
 }
 
 /// One directed nonstop route: the real-world block time (gate to gate),
@@ -67,7 +73,8 @@ struct NonstopRoute: Hashable {
     }
 
     func flightNumberText(departureIndex: Int) -> String {
-        "\(carrier(departureIndex: departureIndex).rawValue) \(baseFlightNumber + departureIndex * 2)"
+        carrier(departureIndex: departureIndex)
+            .flightNumberText(baseFlightNumber + departureIndex * 2)
     }
 }
 

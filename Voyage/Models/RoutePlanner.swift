@@ -67,9 +67,30 @@ enum RoutePlanner {
             origin: origin,
             destination: destination,
             duration: TimeInterval(estimatedMinutes(forMiles: origin.distanceMiles(to: destination))) * 60,
-            flightNumber: flightNumberOverride ?? "VA \(100 + abs(origin.code.hashValue ^ destination.code.hashValue) % 800)"
+            flightNumber: flightNumberOverride ?? fallbackFlightNumber(from: origin, to: destination)
         )
         return Itinerary(legs: [leg], layoverDuration: 0)
+    }
+
+    /// Flight number for a pair the catalog does not list. The carrier and the
+    /// number come from the airport codes, so the same pair always prints the
+    /// same flight: `String.hashValue` is seeded per process and would have
+    /// renumbered the flight on every launch, which a boarding pass cannot do.
+    /// FNV-1a because it is the standard small stable string hash and needs no
+    /// dependency.
+    static func fallbackFlightNumber(from origin: Airport, to destination: Airport) -> String {
+        let seed = fnv1a(origin.code + destination.code)
+        let carrier = Carrier.allCases[Int(seed % UInt64(Carrier.allCases.count))]
+        return carrier.flightNumberText(100 + Int(seed / 7 % 800))
+    }
+
+    private static func fnv1a(_ text: String) -> UInt64 {
+        var hash: UInt64 = 0xcbf2_9ce4_8422_2325
+        for byte in text.utf8 {
+            hash ^= UInt64(byte)
+            hash = hash &* 0x0000_0100_0000_01b3
+        }
+        return hash
     }
 
     static func isConnection(from origin: Airport, to destination: Airport) -> Bool {
