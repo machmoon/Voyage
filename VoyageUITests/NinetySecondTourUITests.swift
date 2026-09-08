@@ -137,7 +137,8 @@ final class NinetySecondTourUITests: XCTestCase {
         if tap(app.buttons["depart-now"], timeout: 4) { pause(1.2) }
 
         // Seat selection — let the cabin map read before choosing.
-        _ = app.staticTexts["Select Seats"].waitForExistence(timeout: 5)
+        // SeatSelectionView.swift:111.
+        _ = app.staticTexts["Choose your seat"].waitForExistence(timeout: 5)
         pause(1.5)
         app.swipeUp(velocity: .slow)
         pause(1.2)
@@ -158,25 +159,30 @@ final class NinetySecondTourUITests: XCTestCase {
         pause(0.5)
 
         // Bags.
-        if !tap(app.buttons["Travel light — continue"], timeout: 4) {
-            _ = tap(app.buttons["Skip for now"], timeout: 2)
+        // CheckBagView.swift:84: "Skip for now" until something is packed,
+        // "Check N bags" after. The tour packs nothing.
+        if !tap(app.buttons["Skip for now"], timeout: 4) {
+            _ = tap(app.buttons.matching(
+                NSPredicate(format: "label BEGINSWITH %@", "Check ")).firstMatch, timeout: 2)
         }
         pause(0.8)
 
         // Boarding pass prints, then the stub tear commits to the flight.
         // Designs differ across builds: the current pass pulls the stub down,
-        // an older one perforated horizontally. Try down first, then right,
-        // re-querying in between so a stale element never fails the run.
+        // The cut runs sideways: BoardingPassView.swift:380 discards a
+        // mostly-vertical drag, so the swipeDown this used to lead with was
+        // always a no-op and only the fallbacks ever tore the pass. Drive the
+        // button, whose accessibility label is "Tear and board" (:89) rather
+        // than the "Tear & board" its text reads, and keep the sideways swipe
+        // as the fallback.
         let stub = app.otherElements["boarding-pass-stub"]
         if stub.waitForExistence(timeout: 10) {
             pause(2.5)          // watch it print
-            stub.swipeDown(velocity: .slow)
-            pause(1.2)
-            // The pass also exposes an explicit control — the accessible path
-            // to the same commitment, and the reliable one to drive.
-            if !tap(app.buttons["Tear & board"], timeout: 1.5) {
+            if !tap(app.buttons["Tear and board"], timeout: 4) {
                 let stubAgain = app.otherElements["boarding-pass-stub"]
-                if stubAgain.exists && stubAgain.isHittable { stubAgain.swipeRight() }
+                if stubAgain.exists && stubAgain.isHittable {
+                    stubAgain.swipeRight(velocity: .slow)
+                }
             }
         } else {
             pause(3.5)

@@ -49,15 +49,31 @@ final class SFOWindowWorldUITests: XCTestCase {
         XCTAssertTrue(takeSeat.waitForExistence(timeout: 3))
         takeSeat.tap()
 
+        // CheckBagView.swift:84: "Skip for now" until something is packed,
+        // "Check N bags" after. This test packs nothing.
         let skip = app.buttons["Skip for now"]
-        let alternateSkip = app.buttons["Travel light — continue"]
+        let packedSkip = app.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH %@", "Check ")).firstMatch
         if skip.waitForExistence(timeout: 4) { skip.tap() }
-        else { XCTAssertTrue(alternateSkip.waitForExistence(timeout: 2)); alternateSkip.tap() }
+        else { XCTAssertTrue(packedSkip.waitForExistence(timeout: 2)); packedSkip.tap() }
 
         let stub = app.otherElements["boarding-pass-stub"]
         XCTAssertTrue(stub.waitForExistence(timeout: 10))
         Thread.sleep(forTimeInterval: 2)
-        stub.swipeDown(velocity: .slow)
+
+        // Tear with the button, not a swipe. BoardingPassView.swift:380 ignores
+        // a mostly-vertical drag outright, so the swipeDown this used to do
+        // could never part the seam and the flight never departed. The button
+        // at :78 carries .accessibilityLabel("Tear and board") at :89, which
+        // replaces its "Tear & board" text for the accessibility tree, so that
+        // is the name to query. The sideways swipe is the documented gesture
+        // ("Slide across the tear line to board") and stands as the fallback.
+        let tear = app.buttons["Tear and board"]
+        if tear.waitForExistence(timeout: 4) {
+            tear.tap()
+        } else {
+            stub.swipeRight(velocity: .slow)
+        }
 
         let scenery = app.otherElements["real-world-twin-scenery"]
         XCTAssertTrue(

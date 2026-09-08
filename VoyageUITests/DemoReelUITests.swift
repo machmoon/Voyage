@@ -75,11 +75,12 @@ final class DemoReelUITests: XCTestCase {
 
         // Hold on the printed pass, tear, then hold on the aftermath. The rip
         // and the frames just after it are what this capture is for.
-        _ = app.buttons["Tear & board"].waitForExistence(timeout: 15)
+        // The button's text is "Tear & board"; its accessibility label is
+        // "Tear and board" (BoardingPassView.swift:89) and replaces it in the
+        // tree, so only the label matches.
+        _ = app.buttons["Tear and board"].waitForExistence(timeout: 15)
         pause(3.0)
-        if !tap(app.buttons["Tear & board"], timeout: 2) {
-            _ = tap(app.buttons["Tear and board"], timeout: 2)
-        }
+        _ = tap(app.buttons["Tear and board"], timeout: 4)
         pause(6.0)
     }
 
@@ -140,11 +141,9 @@ final class DemoReelUITests: XCTestCase {
         skipBags(in: app)
 
         // The pass prints itself line by line; that print is the shot.
-        _ = app.buttons["Tear & board"].waitForExistence(timeout: 12)
+        _ = app.buttons["Tear and board"].waitForExistence(timeout: 12)
         pause(3.0)
-        if !tap(app.buttons["Tear & board"], timeout: 2) {
-            _ = tap(app.buttons["Tear and board"], timeout: 2)
-        }
+        _ = tap(app.buttons["Tear and board"], timeout: 4)
     }
 
     @MainActor

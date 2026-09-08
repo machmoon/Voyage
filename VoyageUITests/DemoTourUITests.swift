@@ -48,7 +48,8 @@ final class DemoTourUITests: XCTestCase {
         pause(1.0)
 
         // Seat selection — readable, not rushed
-        XCTAssertTrue(app.staticTexts["Select Seats"].waitForExistence(timeout: 5))
+        // SeatSelectionView.swift:111.
+        XCTAssertTrue(app.staticTexts["Choose your seat"].waitForExistence(timeout: 5))
         pause(0.6)
         let economy = app.buttons.matching(
             NSPredicate(format: "label MATCHES %@", #"Seat [A-D](1[0-2]|[3-9])"#)
@@ -66,7 +67,9 @@ final class DemoTourUITests: XCTestCase {
         takeSeat.tap()
 
         // Skip bags — keep boarding moving
-        let continueWithoutBags = app.buttons["Travel light — continue"]
+        // CheckBagView.swift:84. The tour packs nothing, so the button reads
+        // "Skip for now"; it becomes "Check N bags" only once something is in.
+        let continueWithoutBags = app.buttons["Skip for now"]
         XCTAssertTrue(continueWithoutBags.waitForExistence(timeout: 4))
         pause(0.5)
         continueWithoutBags.tap()
@@ -74,7 +77,12 @@ final class DemoTourUITests: XCTestCase {
         let stub = app.otherElements["boarding-pass-stub"]
         XCTAssertTrue(stub.waitForExistence(timeout: 10))
         pause(2.0) // printer finish + linger on pass
-        app.buttons["Tear & board"].tap()
+        // The button reads "Tear & board"; its accessibility label is
+        // "Tear and board" (BoardingPassView.swift:89), which is what the
+        // accessibility tree carries. Match the label.
+        let tear = app.buttons["Tear and board"]
+        XCTAssertTrue(tear.waitForExistence(timeout: 5))
+        tear.tap()
 
         // Curtain → takeoff (~3s short) → climb (through ~8s elapsed)
         pause(3.2)
