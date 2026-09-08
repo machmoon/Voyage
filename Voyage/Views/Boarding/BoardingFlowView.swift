@@ -35,6 +35,17 @@ struct BoardingFlowView: View {
                 content
             }
         }
+        .onAppear {
+            // Build the audio graph here, on entry to the ritual, off the
+            // main thread and ahead of the first cue rather than at app
+            // launch. Constructing it lazily inside a tap or a drag is what
+            // aborted the process; constructing it at launch moved that
+            // abort to startup, where the user cannot get past it. This is
+            // the first beat that needs sound, so the cost lands on a
+            // session rather than on the app. One line to move if you
+            // disagree — see the note in `CabinAudioEngine.prewarm()`.
+            CabinAudioEngine.shared.prewarm()
+        }
     }
 
     private var topBar: some View {

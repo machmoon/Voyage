@@ -168,8 +168,15 @@ final class CabinAudioEngine {
     }
 
     /// Builds the audio graph once, off the main thread, before any cue needs
-    /// it. Call this early and away from any user interaction — `RootView`
-    /// does it in `onAppear`.
+    /// it. Call this away from any user interaction and ahead of the first
+    /// cue — `BoardingFlowView.onAppear` does it, on entry to the ritual.
+    ///
+    /// Not at app launch, deliberately. The two failures are not equivalent:
+    /// an abort during boarding costs a session, an abort at launch makes the
+    /// app look permanently broken with no way for the traveller round it.
+    /// A rarer, worse failure is a bad trade against a more frequent,
+    /// survivable one. Moving this call is a one-line change if that judgement
+    /// turns out to be wrong.
     ///
     /// This exists because the construction path is not merely slow, it is
     /// fatal on timeout. `AVAudioEngine.mainMixerNode` and `outputNode` both
