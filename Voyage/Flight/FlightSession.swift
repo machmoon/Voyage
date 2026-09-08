@@ -308,6 +308,36 @@ final class FlightSession {
         stage == .layover && layoverRemaining == 0 && finalCallRemaining > 0
     }
 
+    /// The instant the lock-screen card stops telling the truth, assuming this
+    /// process never gets to post another update.
+    ///
+    /// That assumption is the point. Voyage has no background modes, so once
+    /// the system suspends us neither the 0.5 s tick nor the grace-period work
+    /// item runs: backgrounding past the grace deadline is a diversion that
+    /// nothing is awake to perform, and without this the lock screen would keep
+    /// showing a live flight for hours. Handing the deadline to ActivityKit as
+    /// a stale date moves the decision to the system, which is awake.
+    ///
+    /// Derived from `now`, so it follows the injected clock like everything
+    /// else here.
+    var activityStaleDate: Date? {
+        switch stage {
+        case .preflight:
+            return nil
+        case .inFlight:
+            let arrival = now.addingTimeInterval(legRemaining)
+            // Backgrounded: the session dies at the grace deadline, which is
+            // sooner than arrival.
+            guard let grace = graceDeadline else { return arrival }
+            return min(arrival, grace)
+        case .layover:
+            guard let departs = connectionDeparts else { return nil }
+            return departs.addingTimeInterval(Self.finalCallWindow)
+        case .arrived, .diverted, .missedConnection:
+            return now
+        }
+    }
+
     // MARK: Flow control
 
     /// Called when the boarding pass is ripped: the flight begins.
@@ -553,6 +583,10 @@ final class FlightSession {
             }
             graceWorkItem = work
             DispatchQueue.main.asyncAfter(deadline: .now() + Self.graceDuration + 0.5, execute: work)
+            // Push the grace deadline to ActivityKit as a stale date *before*
+            // we are suspended. This is the only message the lock screen will
+            // get, so it has to carry the expiry with it.
+            FlightActivityController.shared.update(session: self)
 
         case .active:
             graceWorkItem?.cancel()
@@ -565,6 +599,9 @@ final class FlightSession {
                 // has no `audio` background mode) — bring the cabin back.
                 if stage == .inFlight {
                     CabinAudioEngine.shared.resumeIfInterrupted()
+                    // Back inside the grace period, so push the stale date
+                    // back out to arrival.
+                    FlightActivityController.shared.update(session: self)
                 }
             }
 

@@ -27,12 +27,22 @@ struct RootView: View {
             session?.handleScenePhase(newPhase)
             if newPhase == .active {
                 scheduler.pruneExpired()
+                sweepOrphanedActivity()
             }
         }
         .onAppear {
             Haptics.prepare()
+            sweepOrphanedActivity()
         }
         .preferredColorScheme(session?.stage == .inFlight ? .dark : nil)
+    }
+
+    /// A Live Activity outlives the process that started it. If we are here
+    /// with no session, anything still on the lock screen belongs to a flight
+    /// that ended while the app was suspended or killed, so close it.
+    private func sweepOrphanedActivity() {
+        guard session == nil else { return }
+        FlightActivityController.shared.endOrphaned()
     }
 
     private var sessionStageKey: String {
