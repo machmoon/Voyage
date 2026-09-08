@@ -320,6 +320,18 @@ private struct StampView: View {
     @State private var shareCaption = ""
     @State private var receiptPNG: Data?
 
+    /// The caption `receiptPNG` was actually drawn with, so a pending edit can
+    /// be told apart from an up-to-date card without re-rendering to find out.
+    @State private var renderedCaption = ""
+    @State private var captionRender: Task<Void, Never>?
+    @FocusState private var captionFocused: Bool
+
+    /// Long enough that ordinary typing never triggers a render, short enough
+    /// that the card still reads as following what you type. Rasterising the
+    /// receipt costs ~145 ms, so rendering per keystroke made the field
+    /// unusable rather than making the preview live.
+    private static let captionRenderDelay: Duration = .milliseconds(400)
+
     private var city: Airport { session.itinerary.destination }
 
     var body: some View {
@@ -359,9 +371,44 @@ private struct StampView: View {
         }
         .onAppear { runStampSequence() }
         .onChange(of: shareCaption) { _, _ in
-            receiptPNG = FlightReceiptRenderer.pngData(session: session, caption: shareCaption)
+            // Persisting is cheap and wants to be immediate; drawing the card
+            // is not, so it waits for a pause in typing.
             persistShareCaption()
+            scheduleCaptionRender()
         }
+        .onChange(of: captionFocused) { _, focused in
+            // Leaving the field is a commit. Tapping Share resigns focus, so
+            // this is what keeps the shared card in step with the caption.
+            if !focused { renderReceiptIfCaptionChanged() }
+        }
+        .onDisappear { captionRender?.cancel() }
+    }
+
+    /// Redraws the receipt once typing settles.
+    ///
+    /// The card above the field is a live preview of what gets shared, so this
+    /// stays a debounce rather than deferring to an explicit commit: the
+    /// preview keeps following the caption, it just stops trying to do so
+    /// between keystrokes.
+    private func scheduleCaptionRender() {
+        captionRender?.cancel()
+        captionRender = Task { @MainActor in
+            try? await Task.sleep(for: Self.captionRenderDelay)
+            guard !Task.isCancelled else { return }
+            renderReceiptIfCaptionChanged()
+        }
+    }
+
+    private func renderReceiptIfCaptionChanged() {
+        captionRender?.cancel()
+        captionRender = nil
+        guard renderedCaption != shareCaption else { return }
+        renderReceipt()
+    }
+
+    private func renderReceipt() {
+        receiptPNG = FlightReceiptRenderer.pngData(session: session, caption: shareCaption)
+        renderedCaption = shareCaption
     }
 
     private var backdrop: some View {
@@ -406,7 +453,7 @@ private struct StampView: View {
             }
             Haptics.stamp()
             CabinAudioEngine.shared.playThunk()
-            receiptPNG = FlightReceiptRenderer.pngData(session: session, caption: shareCaption)
+            renderReceipt()
 
             #if DEBUG
             // QA hold: keep the stamp beat on screen for a clean capture.
@@ -444,6 +491,7 @@ private struct StampView: View {
             }
 
             TextField("What did you work on? (optional)", text: $shareCaption, axis: .vertical)
+                .focused($captionFocused)
                 .lineLimit(2...4)
                 .font(.subheadline)
                 .padding(12)
@@ -468,7 +516,14 @@ private struct StampView: View {
                                 .strokeBorder(.white.opacity(0.22), lineWidth: 1)
                         )
                 }
-                .simultaneousGesture(TapGesture().onEnded { persistShareCaption() })
+                .simultaneousGesture(TapGesture().onEnded {
+                    persistShareCaption()
+                    // Belt and braces alongside the focus-loss commit: if a
+                    // debounced render is still pending when Share is tapped,
+                    // draw the current caption now rather than shipping the
+                    // previous one.
+                    renderReceiptIfCaptionChanged()
+                })
             }
         }
     }
