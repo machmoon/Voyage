@@ -65,6 +65,6 @@ WS1 → WS2 (same surfaces), WS3 ∥ WS4 ∥ WS5 independent, WS6 continuous. Ta
 - **WS2 (streaks on Home)** — ✅ shipped: flame chip with day streak + miles on Home.
 - **WS3 (Live Activity)** — ✅ shipped: `VoyageWidgets` extension, lock-screen card + Dynamic Island, updates on phase transitions only.
 - **WS4 (flight receipt)** — open.
-- **WS5 (audio bed v2)** — partial: PA now offline-rendered through a cabin-speaker filter; engine-tone layer still open.
+- **WS5 (audio bed v2)** — ✅ shipped: PA offline-rendered through a cabin-speaker filter, and `EngineTone` adds the phase-keyed detuned-sine layer under the noise bed, crossfaded on phase change. Acceptance met: peak bounded at 0.08 by construction, 0.17% of one core steady state, every gain change ramped.
 - **WS6 (quality gate)** — screenshot tour is the visual regression net; arrival-flow coverage still open.
 Also shipped from the field report: recent-bag quick-add chips, countdown affordance chevron, intentions strip scrolling, notifications-denied banner caption, graceful divert audio fade, Siri-preferring + user-selectable PA voice.
