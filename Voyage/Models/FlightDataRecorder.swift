@@ -1,5 +1,32 @@
 import Foundation
 
+// MARK: - Agreement
+//
+// Every sentence on the recorder screen is generated, and generated
+// sentences break at the boundaries: n = 0 reads as a statement about
+// something that never happened, and n = 1 takes a plural verb and a plural
+// noun. Both have shipped on this screen already ("You have 0. 12 to go.",
+// "and 0 ran out the layover clock", "1 were ended from the cabin"), and
+// none of the three was visible in the code. They are only visible in the
+// rendered string, which is why `FlightDataRecorderTests` now renders every
+// clause at 0, 1 and 2.
+//
+// So counts never get interpolated next to a bare noun or verb. They go
+// through these.
+
+/// "1 flight", "2 flights".
+func pluralized(_ n: Int, _ singular: String, _ plural: String? = nil) -> String {
+    "\(n) \(n == 1 ? singular : plural ?? singular + "s")"
+}
+
+/// The noun alone, agreeing with `n`. For "of 6 landed flights".
+func agreeing(_ n: Int, _ singular: String, _ plural: String? = nil) -> String {
+    n == 1 ? singular : plural ?? singular + "s"
+}
+
+/// "was" / "were".
+func wasWere(_ n: Int) -> String { n == 1 ? "was" : "were" }
+
 // MARK: - Wilson score interval
 //
 // Ported from reddit's confidence sort, r2/r2/lib/db/_sorts.pyx, function
@@ -490,7 +517,7 @@ struct BagDetector: FindingDetector {
             kind: kind,
             mode: .comparative,
             headline: "\(worst.display) comes off the carousel less than your other bags.",
-            detail: "Claimed on \(worst.subject.successes) of \(worst.subject.trials) landed flights. Every other bag: \(worst.rest.successes) of \(worst.rest.trials).",
+            detail: "Claimed on \(worst.subject.successes) of \(worst.subject.trials) landed \(agreeing(worst.subject.trials, "flight")). Every other bag: \(worst.rest.successes) of \(worst.rest.trials).",
             evidence: [
                 FindingEvidence(label: worst.display, interval: worst.subject, isSubject: true),
                 FindingEvidence(label: "Every other bag", interval: worst.rest, isSubject: false),
@@ -532,7 +559,7 @@ struct InterruptionDetector: FindingDetector {
         // reads as a statement about something that never occurred.
         var clauses: [String] = []
         if interrupted > 0 { clauses.append("\(interrupted) ended because the app went to the background") }
-        if leftEarly > 0 { clauses.append("\(leftEarly) were ended from the cabin") }
+        if leftEarly > 0 { clauses.append("\(leftEarly) \(wasWere(leftEarly)) ended from the cabin") }
         if missed > 0 { clauses.append("\(missed) ran out the layover clock") }
         let breakdown = clauses.count > 1
             ? clauses.dropLast().joined(separator: ", ") + ", and " + clauses[clauses.count - 1]
@@ -548,7 +575,7 @@ struct InterruptionDetector: FindingDetector {
             kind: kind,
             mode: .informative,
             headline: headline,
-            detail: "Of \(total) flights that did not land, \(breakdown).",
+            detail: "Of \(pluralized(total, "flight")) that did not land, \(breakdown).",
             evidence: evidence,
             support: total,
             separation: 0
@@ -581,8 +608,8 @@ struct RecentFormDetector: FindingDetector {
         guard let gap = rising ?? falling else { return nil }
 
         let headline = rising != nil
-            ? "Your last \(later.count) flights land more often than the \(earlier.count) before them."
-            : "Your last \(later.count) flights land less often than the \(earlier.count) before them."
+            ? "Your last \(pluralized(later.count, "flight")) \(later.count == 1 ? "lands" : "land") more often than the \(earlier.count) before."
+            : "Your last \(pluralized(later.count, "flight")) \(later.count == 1 ? "lands" : "land") less often than the \(earlier.count) before."
 
         return Finding(
             kind: kind,

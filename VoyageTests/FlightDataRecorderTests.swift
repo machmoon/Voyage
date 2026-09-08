@@ -527,6 +527,172 @@ final class FlightDataRecorderTests: XCTestCase {
         }
     }
 
+    // MARK: Agreement at the boundaries
+    //
+    // Three copy defects have shipped on this screen, all the same family and
+    // none of them visible in the code: "You have 0. 12 to go.", "and 0 ran
+    // out the layover clock", and "1 were ended from the cabin". Generated
+    // sentences break at n = 0 and n = 1. So the boundaries get rendered and
+    // read, rather than reviewed.
+
+    func testPluralHelpersAgreeAtTheBoundaries() {
+        XCTAssertEqual(pluralized(0, "flight"), "0 flights")
+        XCTAssertEqual(pluralized(1, "flight"), "1 flight")
+        XCTAssertEqual(pluralized(2, "flight"), "2 flights")
+        XCTAssertEqual(pluralized(1, "recorded flight"), "1 recorded flight")
+        XCTAssertEqual(agreeing(1, "flight"), "flight")
+        XCTAssertEqual(agreeing(2, "flight"), "flights")
+        XCTAssertEqual(wasWere(1), "was")
+        XCTAssertEqual(wasWere(0), "were")
+        XCTAssertEqual(wasWere(2), "were")
+    }
+
+    /// The lint. Applied to every string a report can produce, over a sweep of
+    /// corpora chosen to drive the interpolated counts to 0, 1 and 2.
+    func testEveryGeneratedSentenceIsGrammaticalAcrossBoundaryCounts() {
+        var checked = 0
+        for corpus in boundaryCorpora() {
+            let report = FlightDataRecorder.report(corpus: corpus)
+            for finding in report.findings {
+                var strings = [finding.headline, finding.detail]
+                strings += finding.evidence.map(\.label)
+                for text in strings {
+                    assertGrammatical(text, context: "\(finding.kind)")
+                    checked += 1
+                }
+            }
+        }
+        XCTAssertGreaterThan(checked, 40, "The sweep should actually be rendering sentences")
+    }
+
+    /// The specific defect the marketing audit found, pinned so it cannot
+    /// come back: one voluntary exit must not read "1 were".
+    func testASingleCabinExitReadsAsWas() throws {
+        let flights = repeated(6) { _ in flight(outcome: .arrived) }
+            + repeated(8) { _ in flight(outcome: .interrupted) }
+            + repeated(1) { _ in flight(outcome: .leftEarly) }
+        let report = FlightDataRecorder.report(corpus: FlightCorpus(flights: flights, calendar: newYork))
+
+        let finding = try XCTUnwrap(report.findings.first { $0.kind == .interruption })
+        XCTAssertTrue(finding.detail.contains("1 was ended from the cabin"), finding.detail)
+        XCTAssertFalse(finding.detail.contains("1 were"), finding.detail)
+    }
+
+    /// And the total, when only one flight failed to land.
+    func testASingleDivertedFlightReadsAsOneFlight() throws {
+        // Two causes are required for the card, so this is the smallest total
+        // that can produce it: one of each.
+        let flights = repeated(6) { _ in flight(outcome: .arrived) }
+            + repeated(1) { _ in flight(outcome: .interrupted) }
+            + repeated(1) { _ in flight(outcome: .leftEarly) }
+        let report = FlightDataRecorder.report(corpus: FlightCorpus(flights: flights, calendar: newYork))
+
+        if let finding = report.findings.first(where: { $0.kind == .interruption }) {
+            XCTAssertFalse(finding.detail.contains("Of 1 flights"), finding.detail)
+            assertGrammatical(finding.detail, context: "interruption")
+        }
+    }
+
+    /// Fails on a plural noun after "1", a plural verb after "1", and on any
+    /// clause built around a count of zero.
+    ///
+    /// Word boundaries matter more than they look: a plain `contains` reads
+    /// "11 flights" as "1 flights" and "10 flights" as "0 flights", which is
+    /// how the first version of this lint produced fourteen false failures.
+    private func assertGrammatical(_ text: String, context: String,
+                                   file: StaticString = #filePath, line: UInt = #line) {
+        let nouns = ["flights", "bags", "days", "minutes", "hours", "connections", "legs", "stamps"]
+        let pluralVerbs = ["were", "are", "have", "land", "run", "come", "reach", "carry"]
+
+        func matches(_ pattern: String) -> String? {
+            guard let r = text.range(of: pattern, options: [.regularExpression]) else { return nil }
+            return String(text[r])
+        }
+
+        for noun in nouns {
+            if let hit = matches("\\b1 \(noun)\\b") {
+                XCTFail("\(context): \"\(hit)\" should be singular in: \(text)", file: file, line: line)
+            }
+        }
+        for verb in pluralVerbs {
+            if let hit = matches("\\b1 \(verb)\\b") {
+                XCTFail("\(context): plural verb in \"\(hit)\" in: \(text)", file: file, line: line)
+            }
+        }
+        // A zero count means the clause is about something that never
+        // happened, and should have been dropped rather than rendered.
+        for word in nouns + ["flight", "bag", "was", "were", "ended", "ran"] {
+            if let hit = matches("\\b0 \(word)\\b") {
+                XCTFail("\(context): clause about a count of zero, \"\(hit)\", in: \(text)",
+                        file: file, line: line)
+            }
+        }
+    }
+
+    /// The lint has to be able to fail, or the sweep above proves nothing.
+    func testTheGrammarLintCatchesTheDefectsThatShipped() {
+        let bad = ["1 were ended from the cabin",
+                   "Of 1 flights that did not land",
+                   "and 0 ran out the layover clock",
+                   "You have 0 flights"]
+        for sentence in bad {
+            XCTAssertNotNil(sentence.range(of: "\\b1 (were|flights)\\b|\\b0 (ran|flights)\\b",
+                                           options: [.regularExpression]),
+                            "The lint should flag: \(sentence)")
+        }
+        // And must not fire on the correct forms, including two-digit counts.
+        let good = ["Of 11 flights that did not land",
+                    "Your last 10 flights land less often than the 10 before",
+                    "1 was ended from the cabin",
+                    "Of 1 flight that did not land"]
+        for sentence in good {
+            XCTAssertNil(sentence.range(of: "\\b1 (were|flights)\\b|\\b0 (ran|flights)\\b",
+                                        options: [.regularExpression]),
+                         "The lint should not flag: \(sentence)")
+        }
+    }
+
+    /// Corpora sized to push the interpolated counts down to their edges:
+    /// one voluntary exit, one missed connection, one bag, minimum groups.
+    private func boundaryCorpora() -> [FlightCorpus] {
+        var corpora: [FlightCorpus] = []
+
+        for leftEarly in 0...2 {
+            for missed in 0...2 {
+                let flights = repeated(8) { _ in flight(outcome: .arrived) }
+                    + repeated(8) { _ in flight(outcome: .interrupted) }
+                    + repeated(leftEarly) { _ in flight(outcome: .leftEarly) }
+                    + repeated(missed) { _ in flight(outcome: .missedConnection) }
+                corpora.append(FlightCorpus(flights: flights, calendar: newYork))
+            }
+        }
+
+        // One bag label against another, at the smallest group the bag
+        // detector will speak for.
+        for n in 1...2 {
+            let flights = repeated(6) { _ in
+                flight(outcome: .arrived, bags: [(label: "Reading", claimed: true)])
+            } + repeated(n + 5) { _ in
+                flight(outcome: .arrived, bags: [(label: "Calculus", claimed: false)])
+            }
+            corpora.append(FlightCorpus(flights: flights, calendar: newYork))
+        }
+
+        // Recent-form, at and just above its minimum group of eight a side.
+        for extra in 0...2 {
+            let flights = repeated(8) { i in
+                flight(departing: date(newYork, 2026, 4, 6, 19).addingTimeInterval(Double(i) * 86_400),
+                       outcome: .interrupted)
+            } + repeated(8 + extra) { i in
+                flight(departing: date(newYork, 2026, 5, 6, 19).addingTimeInterval(Double(i) * 86_400),
+                       outcome: .arrived)
+            }
+            corpora.append(FlightCorpus(flights: flights, calendar: newYork))
+        }
+
+        return corpora
+    }
+
     // MARK: Bridging from SwiftData rows
 
     func testLegacyRowsReadAsArrivedOrUnknownRatherThanBeingGuessedAt() {

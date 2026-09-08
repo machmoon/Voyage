@@ -91,8 +91,7 @@ struct RecorderReadout: View {
     private var headerSubtitle: String {
         let flights = report.flightsAnalyzed
         guard flights > 0 else { return "Your logbook is empty. Nothing leaves this device." }
-        let noun = flights == 1 ? "flight" : "flights"
-        return "Reading \(flights) recorded \(noun) from your logbook. Nothing leaves this device."
+        return "Reading \(pluralized(flights, "recorded flight")) from your logbook. Nothing leaves this device."
     }
 
     // MARK: States before there is anything to say
@@ -102,7 +101,7 @@ struct RecorderReadout: View {
             VStack(alignment: .leading, spacing: 14) {
                 FieldLabel("Recording")
                     .foregroundStyle(Theme.accent)
-                Text("The recorder needs \(FlightDataRecorder.minimumFlights) flights before it will report.")
+                Text("The recorder needs \(pluralized(FlightDataRecorder.minimumFlights, "flight")) before it will report.")
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(.white)
                     .fixedSize(horizontal: false, vertical: true)
@@ -123,7 +122,7 @@ struct RecorderReadout: View {
         guard report.flightsAnalyzed > 0 else {
             return "No flights recorded yet. \(reason)"
         }
-        return "You have \(report.flightsAnalyzed), so \(report.flightsUntilReporting) to go. \(reason)"
+        return "You have \(pluralized(report.flightsAnalyzed, "flight")), so \(report.flightsUntilReporting) to go. \(reason)"
     }
 
     private var nothingSeparatesCard: some View {
