@@ -1,176 +1,95 @@
-# App Store listing copy, Voyage 1.0
+# Voyage App Store copy — proposed September 11, 2026
 
-Paste-ready values for App Store Connect. Character counts are exact and were measured, not
-estimated. Apple's limits are in the headings.
+Status: original copy for owner review. Not applied to App Store Connect; version 1.1 (4) is already In Review. Do not withdraw that submission solely to change this copy.
 
-Sources for the structural choices are in the launch package (positioning, competitive research,
-keyword reasoning). This file is only the copy.
+## Positioning
 
----
+Voyage turns study time into a flight. The audience is students who want a more inviting way to begin and stay with a study session. The destination, boarding ritual, window, and arrival make an abstract countdown feel like a journey with an end.
 
-## App name (30 max)
+Lead with what the app does, demonstrate how it works, then tell Patrick's story. Open source is a reason to trust and participate in the project; it should support the main promise. Use warm, specific language. Avoid productivity guilt, unsupported learning claims, and promises to block other apps.
 
-```
-Voyage: Focus Flight Timer
-```
+## Audit of the current page
 
-**26 / 30.** Identity first, then a plain-English category. Backup, if "Voyage" is contested:
-`Voyage Focus: Flight Timer` (26 / 30).
+| Section | Current issue | Recommended change |
+| --- | --- | --- |
+| Name: Voyage: Lock In | Expresses an attitude but leaves the category unclear. | Keep Voyage; name the study/focus timer. |
+| Subtitle: Open-Source Study App + Flying | Lists ingredients; “+ Flying” does not explain their relationship. | State the experience in one sentence fragment. |
+| Promotional text: empty | Misses a chance to give the project a human voice. | Introduce the student builder and the open-source invitation. |
+| Description | Real block times and satellite scenery lead; the study ritual, outcome, and founder are missing. | Explain the session first, then its details and origin. |
+| Screenshots | Current sequence starts with the globe and seat selection; the actual study experience arrives last. | Show the study window/timer first, then booking, boarding, and passport. |
+| Keywords | Repeats “study app” and relies on vague phrases. | Use relevant search intent without repeating the new name or inventing Pomodoro support. |
 
-## Subtitle (30 max)
+## Name — 30 characters maximum
 
-```
-Study Timer, Pomodoro & Focus
-```
+Voyage: Study & Focus Timer
 
-**29 / 30.** Keyword line, no verb, no claim, no price term.
+## Subtitle — 30 characters maximum
 
-## Promotional text (170 max)
+Turn study time into a flight
 
-Editable without a new build. Use this slot for seasonal swaps.
+## Promotional text — 170 characters maximum
 
-```
-New: 37 routes across 10 airports, a 15-minute lounge break on connections, and a trip replay you can export. Book a flight, study until you land.
-```
+Made by a student who loves flying. Built for students who have somewhere to go. Voyage is open source, and your feedback helps shape the next flight.
 
-**146 / 170.**
+## Description — 4,000 characters maximum
 
-Finals-week alternate:
+Turn your next study session into a flight.
 
-```
-Finals week. Book the long haul: Boston to San Francisco is 6h 45m of block time. Pack three tasks, tear the pass, and do not leave the aircraft.
-```
+Voyage is a study timer built around the journey: choose a destination, take your seat, and study until you land. Real-world route times set your session length. A window view, cabin sounds, and a moving map bring the flight to your desk.
 
-**145 / 170.**
+GIVE YOUR STUDY TIME A DESTINATION
 
-## Keywords (100 max)
+Pick a route on the globe, choose your seat, and add the tasks you want to finish. Tear your boarding pass to start. From takeoff to touchdown, your flight gives the session a beginning, a middle, and somewhere to arrive.
 
-```
-study,pomodoro,focus,timer,concentration,deep work,homework,exam,revision,session,plane,adhd
-```
+SETTLE IN
 
-**92 / 100.** No spaces after commas. No plurals, since Apple stems. No competitor names, no
-`free`, no `best`, no manufacturer names, no `airline`.
+Study beside the window or follow your progress on the map. Optional cabin reminders make room for water, eye rests, and stretching. Connecting itineraries include a layover before your next leg.
 
-Optional trade: `study`, `pomodoro`, `focus` and `timer` already appear in the name or subtitle
-and are indexed from there. Dropping all four frees 30 characters for
-`flashcards,library,semester`. Owner's call.
+Voyage asks you to stay with your session: leaving the app for more than 30 seconds during a flight causes a diversion. It does not block other apps.
 
-## Description (4000 max)
+SEE WHERE YOUR TIME TOOK YOU
 
-**2,814 / 4000.** Re-measured after the "live" edit. Leaves room to add press quotes later.
+Complete flights to collect passport stamps and build your logbook. Look back at the routes you finished and replay your journeys. Each arrival is a record of time you set aside.
 
-```
-Pick a destination and the real flight time becomes your study timer. San Francisco to
-Los Angeles is 1 hour 25 minutes because that is what the flight takes. Tear the boarding
-pass to start. Leave the app for more than thirty seconds and the flight diverts.
+BUILT BY A STUDENT, FOR STUDENTS
 
-I'm Patrick. I built Voyage because starting a timer is easy and obeying one is not. A
-countdown asks nothing of you. A flight has a destination, a seat you picked, and bags you
-checked, and you do not walk off it halfway.
+I'm Patrick. I'm a student, I fly often, and I love flying. I wanted to bring a little of that experience to studying, so I started building Voyage.
 
-HOW A FLIGHT WORKS
+My aim is to make a study app students love using, and to keep making it better with the people who use it. That's why Voyage is open source. You can explore the code, report a problem, suggest a route, or help build what comes next.
 
-- Book a route. Spin the satellite globe, pick a runway. Real directional block times set
-  the session length, so eastbound is shorter than westbound.
-- Choose a seat. Your seat decides which side the window looks out of and whether the wing
-  is in the way.
-- Pack your tasks. Up to three, checked as baggage. You claim the ones you finished after
-  you land.
-- Tear the pass. Slide across the tear line. That is the start button.
-- Study. Watch the window or the moving map. Takeoff, climb, cruise, descent and
-  landing each change what you see and hear.
-- Land. Claim your bags, take the passport stamp, add the miles to your logbook.
+No account, ads, or subscription. Your study history is stored on your device.
 
-WHAT HAPPENS IF YOU LEAVE
-
-Strict mode gives you a thirty second grace period. Miss it and the aircraft diverts and
-the session ends. You keep the miles for the legs you finished. Turn strict mode off in
-Settings if you would rather not fly that way.
-
-A LONG SESSION HAS A BREAK IN IT
-
-Longer routes connect. You land at the connecting airport, get fifteen minutes in the
-lounge to stretch and drink something, and board again before the gate closes. The break
-is part of the itinerary, not a button you have to remember to press.
-
-THE CABIN
-
-- 37 routes between 10 airports, from a 1 hour 10 minute hop to a 6 hour 45 minute long haul
-- Cabin crew and captain announcements for every destination, bundled into the app so they
-  play offline and no audio leaves your device
-- Procedurally generated cabin ambience that mixes with your own music
-- Live Activity and Dynamic Island, so you can check the remaining time without opening the
-  app and diverting your own flight
-- Beverage service during cruise, if you want a reminder to drink some water
-- "Depart on a focus flight" works from Siri and Shortcuts
-
-YOUR LOGBOOK
-
-Every completed flight is stored on your device. Routes, seats, miles, streaks, the tasks
-you claimed, and the weather at departure. Passport stamps fill in as you visit new cities.
-Export a trip replay of your week as a video.
-
-FREE, AND ACTUALLY FREE
-
-Voyage costs nothing. There is no subscription, no in-app purchase, no advertising and no
-analytics. There is no account and no sign-in. Your logbook stays on your phone.
-
-Voyage is open source under the MIT license.
+Come build with me:
 https://github.com/machmoon/Voyage
 
-Weather data by Open-Meteo, CC BY 4.0.
-```
+Happy studying. Happy flying.
+Patrick
 
-## What's New (4000 max)
+## Keywords — 100 bytes maximum
 
-**482 characters.** Measured.
+homework,concentration,exam,revision,deep work,school,college,library,plane,session,student
 
-```
-This is the first release.
+## Screenshot story — next production task
 
-Voyage turns a study session into a flight. Book a real route, pick a seat, pack up to
-three tasks, tear the pass, and study until you land. Leave the app and you divert.
+1. “Turn study time into a flight.” Show the in-flight window with a readable countdown. This must communicate the product even if the visitor never swipes.
+2. “Pick where you're headed.” Show destination selection and session duration.
+3. “Bring something to work on.” Show tasks and boarding pass.
+4. “Stay with it until touchdown.” Show map progress; explain the 30-second leave rule in supporting copy.
+5. “See how far you've come.” Show passport and completed logbook entries.
 
-37 routes between 10 airports. Cabin announcements for every destination. A
-fifteen minute lounge break on connections. A logbook that stamps every arrival.
+Use actual app captures, one headline per image, large legible type, and a consistent palette drawn from the app. Avoid a title slide that hides the product. Screenshot artwork has not yet been changed.
 
-No account, no subscription, no ads. If something is broken or a route is wrong, open an
-issue on GitHub and I will read it.
-```
+## Cohesive launch strategy
 
----
+The reusable message is “Turn study time into a flight.” The App Store demonstrates the experience; Patrick's build story explains its origin; GitHub makes the open-source promise tangible. Later social posts can show one complete session, a real flying moment that inspired a detail, or a user suggestion becoming a shipped feature. Each should lead back to the same product promise. Do not imply a team of student founders when describing Patrick's personal story.
 
-## Other App Store Connect fields
+Judge this page by whether a new visitor can explain what Voyage does after seeing the name and first screenshot. After release, establish a product-page conversion baseline, then test the first screenshot before changing several elements at once. No conversion lift is claimed in advance.
 
-| Field | Value |
-| --- | --- |
-| Primary category | Education |
-| Secondary category | Productivity |
-| Age rating | 4+ |
-| Price | Free, no in-app purchases |
-| Localizations | English (US) only. There are no `.lproj` directories in the tree |
-| Support URL | https://github.com/machmoon/Voyage/issues |
-| Marketing URL | https://github.com/machmoon/Voyage |
-| Copyright | 2026 Patrick Liu |
+## References and what to borrow
 
-**Privacy nutrition label:** Data Not Collected. There are no analytics or advertising SDKs in
-the tree. If the location prompt ships, declare Location as used but not linked to identity and
-not used for tracking. See `review-notes.md` for the reviewer-facing explanation.
+- [ChatGPT's App Store page](https://apps.apple.com/us/app/chatgpt/id6448311069) combines a recognizable name with a plain-language role and concrete uses. Borrow that clarity; Voyage needs more category explanation because its name is less familiar.
+- [Flighty's App Store page](https://apps.apple.com/us/app/flighty-live-flight-tracker/id1358823008) names its category and supports benefits with specific capabilities. Borrow the specificity, not its awards, claims, or long feature inventory.
+- [Apple product-page guidance](https://developer.apple.com/app-store/product-page/) emphasizes the first sentence, relevant screenshots, and a concise subtitle. Promotional text is not a keyword field.
+- [Apple field limits](https://developer.apple.com/help/app-store-connect/reference/app-information/platform-version-information) specify 170 characters for promotional text, 4,000 for description, and 100 bytes for keywords.
 
----
-
-## Claims that must not appear anywhere in metadata
-
-Each of these has a specific reason, and two of them have already caused a rejection on this
-project.
-
-| Do not write | Why |
-| --- | --- |
-| Any real airline name, or a real carrier's flight number | App Review 5.2.5. Carriers in the app are fictional. See `review-notes.md` |
-| `Boeing`, `Airbus`, `Boom`, or any manufacturer mark | Other companies' trademarks. See the aircraft-naming recommendation in the launch package |
-| Apple WeatherKit, or any Apple Weather attribution | The app does not use WeatherKit and never should. Weather is Open-Meteo only |
-| Google, Google Maps, streamed or photorealistic scenery, any third-party SDK | There is no Google dependency. `project.yml` declares no packages at all |
-| `free` in the name or subtitle, or any price claim | Apple prohibits price and promotional terms in those fields. The description body may state it, and does |
-| `best`, `#1`, or any superlative | Apple prohibits unverifiable superlatives |
-| A competitor's app name | Apple rejects competitor names in metadata |
+This copy intentionally omits outdated route counts, unverified feature claims, Pomodoro terminology, and invented founder experiences from the previous local draft. The founder paragraph uses the owner's stated story. The ambition is to keep improving the app, not to claim it is already the best.

@@ -2,8 +2,7 @@
 
 ## Source of truth
 
-App Store Connect confirms Voyage: Lock In 1.0 (3) is live. Version 1.1 is the
-update draft. The full app lived on `release/app-review-on-submission-base`, while
+App Store Connect confirms Voyage: Lock In 1.0 (3) is live. Version 1.1 (4) has been uploaded, processed VALID, and is In Review. The full app lived on `release/app-review-on-submission-base`, while
 GitHub main contained a smaller lineage. `codex/unified-app-store-release` joins
 main, the release branch, both audio branches, and the lifecycle and recorder
 worktrees. All original branch pointers are retained. Archive/stash backups are
@@ -61,9 +60,21 @@ Audio and optional network fallbacks need explicit diagnostics and failure
 injection. Retain useful offline behavior, but distinguish unavailable data from
 successful live data. A wholesale backend migration is not required for this.
 
-## Submission dependencies
+## Verification
+
+257 iOS unit tests, 14 worker tests, and 3 release-validator tests passed.
+The UI suite passed 9 of 12 initially; after correcting test setup, foreground
+waiting, and destination selection, all three targeted rechecks passed. The
+signed 1.1 (4) archive passed validation. App Store Connect confirms the version
+in review references build a4307b92-aae2-410c-a88a-be396df02630.
+
+The new marketing copy in AppStore/listing.md is a proposal, not the metadata
+currently in review. The five-hour retry condition was not met: the updated
+build is already submitted.
+
+## Earlier submission notices
 
 Apple displayed an updated Developer Program agreement requiring Account Holder
-acceptance. The owner must review that agreement. The prior local submission
+acceptance. The owner must review any outstanding agreement; this audit does not attest to acceptance. The prior local submission
 notes also leave commercial-use rights for the bundled ElevenLabs announcements
-unconfirmed; obtain that fact before a content-rights attestation.
+unconfirmed; confirm those rights independently. The version subsequently reached In Review; this audit did not make a new content-rights attestation.
