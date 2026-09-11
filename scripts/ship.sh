@@ -21,12 +21,8 @@ set -euo pipefail
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO"
 
-# The branch that carries the app. `fix/app-review-2026-08` was a branch of
-# the thin GitHub `main` lineage, which is missing two thirds of the app;
-# shipping from there uploads a build without the PA audio, the real-world
-# window scenery or the round-3 design work. Update this if the branch is
-# renamed, or pass --any-branch.
-EXPECTED_BRANCH="release/app-review-on-submission-base"
+# Main contains the reconciled production and feature histories.
+EXPECTED_BRANCH="main"
 SCHEME="Voyage"
 PROJECT="Voyage.xcodeproj"
 DEVICE="${VOYAGE_SIM_DEVICE:-iPhone 17}"
@@ -104,8 +100,7 @@ command -v python3 >/dev/null 2>&1 || die "python3 is required for the release c
 
 BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?')"
 if [ "$BRANCH" != "$EXPECTED_BRANCH" ] && [ "$ALLOW_ANY_BRANCH" -eq 0 ]; then
-  die "On branch '$BRANCH', expected '$EXPECTED_BRANCH' (the branch carrying the 2.5.4 and
-5.2.5 App Review fixes). Shipping from anywhere else re-uploads the rejected code.
+  die "On branch '$BRANCH', expected the reconciled release branch '$EXPECTED_BRANCH'.
   Either:  git switch $EXPECTED_BRANCH
   Or, if you really mean it:  scripts/ship.sh --any-branch"
 fi
@@ -207,21 +202,10 @@ if [ "$DO_ARCHIVE" -eq 0 ]; then
 fi
 step "Archiving for App Store distribution"
 # ---------------------------------------------------------------------------
-if [ -z "${VOYAGE_TEAM_ID:-}" ]; then
-  die "VOYAGE_TEAM_ID is not set, and project.yml carries no DEVELOPMENT_TEAM, so a device
-archive cannot be signed — xcodebuild would stop with
-  \"Signing for 'Voyage' requires a development team\".
-Your 10-character Team ID is not a secret; find it at
-  https://developer.apple.com/account  ->  Membership details
-Then:
-  export VOYAGE_TEAM_ID=ABCDE12345
-  scripts/ship.sh"
-fi
+# Use the checked-in distribution team unless explicitly overridden.
+VOYAGE_TEAM_ID="${VOYAGE_TEAM_ID:-$(sed -n 's/.*DEVELOPMENT_TEAM: *"\([A-Z0-9]*\)".*/\1/p' project.yml | head -1)}"
+[ -n "$VOYAGE_TEAM_ID" ] || die "Set DEVELOPMENT_TEAM in project.yml or export VOYAGE_TEAM_ID."
 
-# -allowProvisioningUpdates lets Xcode create/refresh the App Store provisioning
-# profiles for com.patliu.voyage and com.patliu.voyage.widgets. It authenticates
-# with the Apple ID signed into Xcode, or with an App Store Connect API key if
-# you pass one — see the upload instructions printed at the end.
 xcodebuild -project "$PROJECT" -scheme "$SCHEME" \
   -configuration Release \
   -destination 'generic/platform=iOS' \
@@ -232,8 +216,8 @@ xcodebuild -project "$PROJECT" -scheme "$SCHEME" \
   archive > "$LOGS/archive.log" 2>&1 \
   || { grep -E "error:|Signing|provisioning" "$LOGS/archive.log" | head -30; die "archive failed — full log: $LOGS/archive.log
 If this is a signing error, confirm the Apple ID with access to team $VOYAGE_TEAM_ID is
-added in Xcode > Settings > Accounts, and that the bundle ids com.patliu.voyage and
-com.patliu.voyage.widgets exist in App Store Connect."; }
+added in Xcode > Settings > Accounts, and that the bundle ids com.patrickliu.voyage and
+com.patrickliu.voyage.widgets exist in App Store Connect."; }
 ok "archived to $ARCHIVE"
 
 # ---------------------------------------------------------------------------
@@ -242,24 +226,9 @@ step "Validating the archive"
 python3 scripts/check_release.py --archive "$ARCHIVE" \
   || die "The archive would be rejected by App Store Connect. Fix the blockers, then re-run."
 
-cat > "$BUILD_DIR/ExportOptions.plist" <<PLIST
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-	<key>method</key>
-	<string>app-store-connect</string>
-	<key>teamID</key>
-	<string>$VOYAGE_TEAM_ID</string>
-	<key>signingStyle</key>
-	<string>automatic</string>
-	<key>uploadSymbols</key>
-	<true/>
-	<key>destination</key>
-	<string>export</string>
-</dict>
-</plist>
-PLIST
+# Export with the same manual distribution profiles used by the archive.
+cp "$REPO/ExportOptions-local.plist" "$BUILD_DIR/ExportOptions.plist"
+/usr/libexec/PlistBuddy -c "Set :teamID $VOYAGE_TEAM_ID" "$BUILD_DIR/ExportOptions.plist"
 ok "wrote $BUILD_DIR/ExportOptions.plist"
 
 # ---------------------------------------------------------------------------

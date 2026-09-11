@@ -80,6 +80,11 @@ jobs:
         # Voyage/PrivacyInfo.xcprivacy reaches the app bundle.
         run: xcodegen generate
 
+      - name: Validate release configuration
+        run: |
+          python3 scripts/check_release.py
+          python3 scripts/test_check_release.py
+
       - name: List available simulators
         # Diagnostic only. When the destination below stops resolving, this is
         # the step that says why.

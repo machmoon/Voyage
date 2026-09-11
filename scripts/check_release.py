@@ -220,7 +220,9 @@ def check_archive(archive):
           % (app.get("CFBundleIdentifier"), app.get("CFBundleShortVersionString"),
              app.get("CFBundleVersion")))
 
-    if "CFBundleIconName" not in app:
+    # actool writes the iOS asset-catalog name under CFBundlePrimaryIcon.
+    primary_icon = app.get("CFBundleIcons", {}).get("CFBundlePrimaryIcon", {})
+    if not primary_icon.get("CFBundleIconName") and not app.get("CFBundleIconName"):
         blocker("built app Info.plist: CFBundleIconName is missing (ITMS-90713). The asset "
                 "catalog icon was not compiled in — check ASSETCATALOG_COMPILER_APPICON_NAME.")
     if "ITSAppUsesNonExemptEncryption" not in app:

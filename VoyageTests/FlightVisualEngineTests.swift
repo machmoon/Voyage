@@ -39,6 +39,25 @@ final class FlightVisualEngineTests: XCTestCase {
         XCTAssertEqual(schedule.landingDuration, 15, accuracy: 0.001)
     }
 
+    func testCompressedAndTinyLegsReachEveryPhaseInOrder() {
+        for duration in [0.1, 1, 10, 60, 90, 300, 5_400] as [TimeInterval] {
+            for shortFlights in [false, true] {
+                let schedule = FlightPhaseSchedule.make(
+                    legDuration: duration, aircraft: .boeing737800, shortFlights: shortFlights
+                )
+                let boundaries = [0, schedule.takeoffEnd, schedule.climbEnd,
+                                  schedule.descentStart, schedule.landingStart, duration]
+                let phases: [LegPhase] = [.takeoffRoll, .climb, .cruise, .descent, .landing]
+                for index in 0..<phases.count {
+                    XCTAssertLessThan(boundaries[index], boundaries[index + 1],
+                                      "duration \(duration), compressed \(shortFlights)")
+                    XCTAssertEqual(schedule.phase(at: (boundaries[index] + boundaries[index + 1]) / 2),
+                                   phases[index])
+                }
+            }
+        }
+    }
+
     func testRunwayCatalogCoversEveryAirportAndBothSFOFamilies() {
         for airport in Airport.all {
             let runways = FlightVisualEngine.runways(for: airport)

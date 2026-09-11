@@ -127,7 +127,7 @@ struct SettingsView: View {
                 } header: {
                     Text("In flight")
                 } footer: {
-                    Text("A card appears during cruise about every twenty minutes suggesting you look at the horizon, and once an hour that the seatbelt sign is off. It never interrupts descent or landing, it goes away on its own, and ignoring it has no effect on the flight or the logbook.")
+                    Text("During cruise, optional cards suggest resting your eyes, stretching, or taking water. They disappear on their own, stop before descent, and never affect your flight or logbook.")
                 }
 
                 Section {
@@ -149,18 +149,6 @@ struct SettingsView: View {
                     Text("You always take off from the airport nearest you. It sets the routes and focus durations on the globe. Override it here if you would rather fly from somewhere else.")
                 }
 
-                Section {
-                    Toggle(isOn: Binding(
-                        get: { settings.cabinServiceEnabled },
-                        set: { settings.cabinServiceEnabled = $0 }
-                    )) {
-                        Label("Beverage service", systemImage: "cup.and.saucer.fill")
-                    }
-                } header: {
-                    Text("Cabin service")
-                } footer: {
-                    Text("During cruise the cart comes through every 25 minutes with a reminder to drink some water.")
-                }
 
                 Section {
                     Picker(selection: Binding(

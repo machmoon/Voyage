@@ -35,8 +35,8 @@ struct FlightPhaseSchedule: Equatable, Codable {
             let climbEnd = min(180, max(takeoffEnd + 120, duration * 0.42))
             // Scale the manoeuvres together for demo legs, preserving a cruise
             // interval instead of letting climb extend beyond arrival.
-            let descent = min(180, duration * 0.45)
             let landing = min(15, duration * 0.15)
+            let descent = max(0.001, min(180, duration * 0.45) - landing)
             let scale = min(1, duration * 0.88 / (climbEnd + descent + landing))
             return FlightPhaseSchedule(
                 legDuration: duration,
@@ -67,7 +67,7 @@ struct FlightPhaseSchedule: Equatable, Codable {
 
         // Catalog legs all fit the requested schedule. This proportional path
         // exists for previews/tests that deliberately create tiny legs.
-        let scale = requested > duration ? max(0.001, duration / requested) : 1
+        let scale = requested > duration ? duration / requested : 1
         let scaledRoll = roll * scale
         let scaledClimb = climb * scale
         let scaledDescent = descent * scale

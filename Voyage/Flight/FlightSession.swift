@@ -248,6 +248,7 @@ final class FlightSession {
         session.watersTaken = 2
         session.stage = .arrived
         let entry = LogbookEntry(
+            date: session.now,
             originCode: itinerary.origin.code,
             destinationCode: itinerary.destination.code,
             connectionCode: itinerary.connection?.code,
@@ -937,6 +938,7 @@ final class FlightSession {
             ? legTrajectories.map { $0.replaySamples(count: 192, seat: seat) }
             : legMapSamples
         let entry = LogbookEntry(
+            date: now,
             originCode: itinerary.origin.code,
             destinationCode: itinerary.destination.code,
             connectionCode: itinerary.connection?.code,

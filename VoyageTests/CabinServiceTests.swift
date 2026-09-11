@@ -18,7 +18,7 @@ final class CabinServiceTests: XCTestCase {
     private let longLeg: TimeInterval = 7200
     /// A leg sized so pass 1 lands 30 seconds before descent begins, which is
     /// the only way to exercise a cue that is still on screen at the handover.
-    private let tightLeg: TimeInterval = 1500
+    private let tightLeg: TimeInterval = 2376
 
     override func setUp() async throws {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
@@ -149,12 +149,12 @@ final class CabinServiceTests: XCTestCase {
         session.departFirstLeg()
 
         // Straight past the moment pass 1 was due, into descent.
-        advance(session, to: tightLeg - FlightSession.descentDuration + 20)
+        advance(session, to: session.phaseSchedule.descentStart + 20)
         XCTAssertEqual(session.phase, .descent)
         XCTAssertNil(session.serviceCue)
         XCTAssertEqual(session.serviceCuesOffered, 0, "A missed cue is skipped, never deferred into descent")
 
-        advance(session, to: tightLeg - FlightSession.landingDuration + 1)
+        advance(session, to: session.phaseSchedule.landingStart + 1)
         XCTAssertEqual(session.phase, .landing)
         XCTAssertNil(session.serviceCue)
         XCTAssertEqual(session.serviceCuesOffered, 0)
@@ -170,9 +170,9 @@ final class CabinServiceTests: XCTestCase {
         let dueAt = session.cruiseBeginsAt + CabinServicePlanner.passInterval
         advance(session, to: dueAt + 1)
         XCTAssertNotNil(session.serviceCue, "Precondition: a cue is up during cruise")
-        XCTAssertLessThan(dueAt + 1, tightLeg - FlightSession.descentDuration)
+        XCTAssertLessThan(dueAt + 1, session.phaseSchedule.descentStart)
 
-        advance(session, to: tightLeg - FlightSession.descentDuration + 5)
+        advance(session, to: session.phaseSchedule.descentStart + 5)
         XCTAssertEqual(session.phase, .descent)
         XCTAssertNil(session.serviceCue, "The card must not survive into descent")
     }

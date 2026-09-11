@@ -57,3 +57,9 @@ private_keys/
 
 # Agent worktrees are local scratch, never part of the repo
 .claude/worktrees/
+
+# Wrangler local caches and diagnostic logs
+worker/.wrangler/
+
+# Python bytecode
+__pycache__/
