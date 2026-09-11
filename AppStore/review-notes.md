@@ -49,5 +49,5 @@ Debug-only Settings command and is not present in the submitted build. A walkthr
 recording can demonstrate arrival and the logbook without making the reviewer wait for
 a full route.
 
-Release artifact: version 1.0, build 4, pending a live App Store Connect build-number check.
+App Store Connect confirmed version 1.0 (3) is live. The update draft is 1.1; its build is 4.
 Contact details and existing listing metadata must be checked in App Store Connect.

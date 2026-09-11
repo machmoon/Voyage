@@ -60,6 +60,7 @@ final class E2EWalkthroughUITests: XCTestCase {
     func testE01_FreshFirstRunWithPermissionsDenied() throws {
         let app = XCUIApplication()
         app.launchArguments += Self.localeArguments + Self.mutedAudioArguments
+            + ["-VoyageResetOnboarding"]
         app.launch()
 
         // Whatever alert is first, deny it, then keep denying until quiet.
@@ -125,11 +126,8 @@ final class E2EWalkthroughUITests: XCTestCase {
         app.activate()
         // How long the app takes to come back matters: this is the exact moment
         // a diverted user is looking at the screen. Poll instead of guessing.
-        var resumed = false
-        for _ in 0..<60 {
-            if app.state == .runningForeground { resumed = true; break }
-            usleep(500_000)
-        }
+        let resumed = app.wait(for: .runningForeground, timeout: 30)
+        if !resumed { capture(app, "e2e-08-resume-failure") }
         let resumeSeconds = Date().timeIntervalSince(resumeStart)
         let timing = XCTAttachment(string: String(format: "resume took %.2fs, resumed=%@",
                                                   resumeSeconds, resumed ? "yes" : "no"))
@@ -338,20 +336,20 @@ final class E2EWalkthroughUITests: XCTestCase {
         require(app.staticTexts["VOYAGE"], "the VOYAGE home header", timeout: 25)
         let yqr = app.buttons["destination-YQR"]
         require(yqr, "the YQR destination card (the only connecting route)", timeout: 10)
-        // The card exists in the accessibility tree while sitting outside the
-        // window: XCUITest measured it at x=446pt on a 402pt-wide screen and
-        // refused to compute a hit point (and querying `isHittable` in that
-        // state throws rather than returning false). So scroll the rail blind
-        // to its end first, then tap.
-        // One swipe moved YQR from x=+446 to well past x=-460 on a 402pt screen,
-        // so the rail is only about two cards wider than the display. Scroll a
-        // little, then tap by coordinate inside the card's own frame rather than
-        // relying on the activation point, which XCUITest refuses to compute for
-        // an element it believes is off-window.
-        app.scrollViews.firstMatch.swipeLeft()
-        settle(2)
-        capture(app, "e2e-lay-00-rail-scrolled")
-        yqr.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        // Move the target fully into the viewport and tap the element itself.
+        // A blind full-width swipe plus an offscreen coordinate tapped YYZ,
+        // producing a nonstop flight while this test expected a connection.
+        let rail = app.scrollViews.firstMatch
+        for _ in 0..<8 {
+            let frame = yqr.frame
+            if frame.minX >= 0 && frame.maxX <= app.frame.width { break }
+            let movingLeft = frame.maxX > app.frame.width
+            rail.coordinate(withNormalizedOffset: CGVector(dx: movingLeft ? 0.75 : 0.3, dy: 0.5))
+                .press(forDuration: 0.05, thenDragTo:
+                    rail.coordinate(withNormalizedOffset: CGVector(dx: movingLeft ? 0.3 : 0.75, dy: 0.5)))
+        }
+        XCTAssertTrue(yqr.isHittable, "The Regina connection must be visible before booking")
+        yqr.tap()
         settle(1)
         capture(app, "e2e-lay-01-connection-selected")
 
