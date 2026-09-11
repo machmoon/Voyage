@@ -39,6 +39,7 @@ struct RootView: View {
             session?.handleScenePhase(newPhase)
             if newPhase == .active {
                 scheduler.pruneExpired()
+                sweepOrphanedActivity()
                 if !Self.debugStampScreenshot {
                     Task { await FocusIntegration.shared.refresh() }
                 }
@@ -46,6 +47,7 @@ struct RootView: View {
         }
         .onAppear {
             Haptics.prepare()
+            sweepOrphanedActivity()
             #if DEBUG
             // QA-only: jump straight to the passport-stamp payoff, and skip the
             // Focus authorization prompt so it can't cover the capture.
@@ -59,6 +61,11 @@ struct RootView: View {
             }
         }
         .preferredColorScheme(session?.stage == .inFlight ? .dark : nil)
+    }
+
+    private func sweepOrphanedActivity() {
+        guard session == nil else { return }
+        FlightActivityController.shared.endOrphaned()
     }
 
     private static var debugStampScreenshot: Bool {

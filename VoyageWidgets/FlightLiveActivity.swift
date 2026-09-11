@@ -17,6 +17,28 @@ struct FlightLiveActivity: Widget {
     private static let skyTop = Color(red: 0x0A / 255, green: 0x10 / 255, blue: 0x30 / 255)
     private static let skyBottom = Color(red: 0x1B / 255, green: 0x24 / 255, blue: 0x47 / 255)
 
+    /// True once the flight is over, whether the app said so or the content
+    /// simply went past its stale date. Voyage has no background modes, so a
+    /// session that dies while the app is suspended can never send a final
+    /// update; the stale date is what tells us instead. Same use of
+    /// `context.isStale` as duckduckgo/apple-browsers'
+    /// `iOS/DuckDuckGo/VPNSnoozeLiveActivityWidget.swift`, which draws its
+    /// whole card from `!context.isStale`.
+    private static func isOver(_ context: ActivityViewContext<FlightActivityAttributes>) -> Bool {
+        context.state.concluded || context.isStale
+    }
+
+    /// Caption and symbol, overridden when the card has gone stale. The
+    /// wording matches `FlightActivityController.end`, so a card that expires
+    /// on its own reads the same as one the app closed.
+    private static func caption(_ context: ActivityViewContext<FlightActivityAttributes>) -> String {
+        isOver(context) && !context.state.concluded ? "Flight ended" : context.state.phaseCaption
+    }
+
+    private static func symbol(_ context: ActivityViewContext<FlightActivityAttributes>) -> String {
+        isOver(context) && !context.state.concluded ? "xmark.circle" : context.state.phaseSymbol
+    }
+
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: FlightActivityAttributes.self) { context in
             lockScreenCard(context)
@@ -37,7 +59,7 @@ struct FlightLiveActivity: Widget {
                 DynamicIslandExpandedRegion(.center) {
                     VStack(spacing: 2) {
                         countdown(context, font: .system(size: 24, weight: .bold, design: .monospaced))
-                        Text(context.state.phaseCaption)
+                        Text(Self.caption(context))
                             .font(.caption2)
                             .foregroundStyle(.white.opacity(0.6))
                     }
@@ -48,7 +70,7 @@ struct FlightLiveActivity: Widget {
                         .padding(.top, 4)
                 }
             } compactLeading: {
-                Image(systemName: context.state.phaseSymbol)
+                Image(systemName: Self.symbol(context))
                     .foregroundStyle(Self.accent)
             } compactTrailing: {
                 countdown(context, font: .system(size: 13, weight: .semibold, design: .monospaced))
@@ -70,7 +92,7 @@ struct FlightLiveActivity: Widget {
                     .font(.system(size: 26, weight: .heavy, design: .monospaced))
                 Spacer()
                 VStack(spacing: 2) {
-                    Image(systemName: context.state.phaseSymbol)
+                    Image(systemName: Self.symbol(context))
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(Self.accent)
                     Text(context.attributes.flightNumber)
@@ -91,12 +113,14 @@ struct FlightLiveActivity: Widget {
             progressBar(context)
 
             HStack {
-                Text(context.state.phaseCaption)
+                Text(Self.caption(context))
                     .font(.caption.weight(.medium))
                     .foregroundStyle(.white.opacity(0.65))
                 Spacer()
-                if context.state.concluded {
-                    Image(systemName: "checkmark.seal.fill")
+                if Self.isOver(context) {
+                    // A card that expired on its own did not land; the seal is
+                    // for a flight the app actually closed out.
+                    Image(systemName: context.state.concluded ? "checkmark.seal.fill" : "xmark.circle")
                         .foregroundStyle(Self.accent)
                 } else {
                     countdown(context, font: .system(size: 16, weight: .bold, design: .monospaced))
@@ -117,7 +141,7 @@ struct FlightLiveActivity: Widget {
     @ViewBuilder
     private func countdown(_ context: ActivityViewContext<FlightActivityAttributes>,
                            font: Font) -> some View {
-        if context.state.concluded {
+        if Self.isOver(context) {
             Text("00:00")
                 .font(font)
                 .foregroundStyle(.white.opacity(0.6))

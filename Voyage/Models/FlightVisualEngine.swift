@@ -33,17 +33,17 @@ struct FlightPhaseSchedule: Equatable, Codable {
             // read like a narrow-body: ~28s roll, then ~90s of gradual climb.
             let takeoffEnd = min(28, duration * 0.25)
             let climbEnd = min(180, max(takeoffEnd + 120, duration * 0.42))
-            let landingStart = max(climbEnd, duration - 15)
-            let descentStart = max(
-                climbEnd,
-                min(landingStart, duration - min(180, duration * 0.45))
-            )
+            // Scale the manoeuvres together for demo legs, preserving a cruise
+            // interval instead of letting climb extend beyond arrival.
+            let descent = min(180, duration * 0.45)
+            let landing = min(15, duration * 0.15)
+            let scale = min(1, duration * 0.88 / (climbEnd + descent + landing))
             return FlightPhaseSchedule(
                 legDuration: duration,
-                takeoffEnd: takeoffEnd,
-                climbEnd: climbEnd,
-                descentStart: descentStart,
-                landingStart: landingStart
+                takeoffEnd: takeoffEnd * scale,
+                climbEnd: climbEnd * scale,
+                descentStart: duration - (descent + landing) * scale,
+                landingStart: duration - landing * scale
             )
         }
 

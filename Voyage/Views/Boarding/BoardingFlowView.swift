@@ -64,15 +64,7 @@ struct BoardingFlowView: View {
             // starts the flight. See `CabinAudioEngine.prewarm()`.
             CabinAudioEngine.shared.prewarm()
         }
-    }
-
-    private var topBar: some View {
-        HStack {
-            if step == .seat {
-                Button(action: onCancel) {
-                    backButtonIcon("chevron.left", ink: Theme.seatMapInk, background: Theme.seatMapInk.opacity(0.06))
-                }
-                .accessibilityLabel("Cancel booking")
+        .accessibilityLabel("Cancel booking")
             } else {
                 Button { retreat(by: -1) } label: {
                     backButtonIcon("chevron.left",

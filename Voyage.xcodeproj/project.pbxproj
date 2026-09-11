@@ -126,6 +126,7 @@
 		801AE4A88A22BB908D3B2291 /* FeedbackSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 668FF95FA41782B6DD89C9AE /* FeedbackSheet.swift */; };
 		80362849743AFE22DC328091 /* crew_midpoint_boston.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 8AB9E2B12781602B785FA7FE /* crew_midpoint_boston.m4a */; };
 		816B61B964F1E3583AB5C5C2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CA93F9C86955AB5BB4D19771 /* Assets.xcassets */; };
+		81C5D1238C2C9F4684C5BD34 /* ActivityStaleDateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B95FC7EE99A7EB1A1CB608F3 /* ActivityStaleDateTests.swift */; };
 		821CB140226E8AB297CB2327 /* crew_finalcall_boston.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 769B66EA814D4152B1FFA3E1 /* crew_finalcall_boston.m4a */; };
 		830A6D5893A053711BDC2CFD /* AppFeedback.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAD8B69CF65E78B46148736E /* AppFeedback.swift */; };
 		84D96C365E0154599BE41940 /* FlightDataAPIArchiveTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52BC5A1D0F75E530ADD37BB2 /* FlightDataAPIArchiveTests.swift */; };
@@ -414,6 +415,7 @@
 		B5780AD54B7CADA1C817EAF8 /* captain_layover_seattle.m4a */ = {isa = PBXFileReference; path = captain_layover_seattle.m4a; sourceTree = "<group>"; };
 		B66571CD21FE7457375B9B67 /* AirportWorldMetalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirportWorldMetalView.swift; sourceTree = "<group>"; };
 		B677A2CF7162DBB0F3C7D092 /* RoutePlanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutePlanner.swift; sourceTree = "<group>"; };
+		B95FC7EE99A7EB1A1CB608F3 /* ActivityStaleDateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityStaleDateTests.swift; sourceTree = "<group>"; };
 		B9EDD1957010314B223AF200 /* SoundEffectsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundEffectsTests.swift; sourceTree = "<group>"; };
 		BAD8B69CF65E78B46148736E /* AppFeedback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppFeedback.swift; sourceTree = "<group>"; };
 		BBF5EEF22F534CB2D783D7DE /* crew_landed_toronto.m4a */ = {isa = PBXFileReference; path = crew_landed_toronto.m4a; sourceTree = "<group>"; };
@@ -514,6 +516,7 @@
 		1BA96B100B2F9F9417EFF03F /* VoyageTests */ = {
 			isa = PBXGroup;
 			children = (
+				B95FC7EE99A7EB1A1CB608F3 /* ActivityStaleDateTests.swift */,
 				134BB3C9048429012FAC668C /* AppFeedbackTests.swift */,
 				99DF6468F2274971635705B0 /* DepartureGateTests.swift */,
 				CEAB439A61F321209907F358 /* DigitalTwinTests.swift */,
@@ -1133,6 +1136,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				81C5D1238C2C9F4684C5BD34 /* ActivityStaleDateTests.swift in Sources */,
 				4F56F7320D0D62850DBE977B /* AppFeedbackTests.swift in Sources */,
 				E00864ADDEA25BDE9F8D8353 /* DepartureGateTests.swift in Sources */,
 				C8201A0E76B2053A2174980B /* DigitalTwinTests.swift in Sources */,
