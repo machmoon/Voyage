@@ -22,6 +22,12 @@ struct VoyageApp: App {
     /// Ensures Application Support exists before opening the SwiftData store.
     /// Without this, the first launch can race CoreData against a missing directory.
     private static func makeContainer() -> ModelContainer {
+        // `-VoyageRecorderDemo` swaps in an in-memory logbook so the flight
+        // data recorder can be reviewed without flying twenty-two sessions.
+        // In-memory on purpose: a demo launch cannot touch the real store.
+        if RecorderDemoLogbook.isEnabled, let demo = try? RecorderDemoLogbook.makeContainer() {
+            return demo
+        }
         do {
             let support = URL.applicationSupportDirectory.appending(path: "Voyage", directoryHint: .isDirectory)
             try FileManager.default.createDirectory(at: support, withIntermediateDirectories: true)

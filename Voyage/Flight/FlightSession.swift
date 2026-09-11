@@ -76,6 +76,9 @@ final class FlightSession {
     private(set) var logEntry: LogbookEntry?
     /// Set when `stage == .diverted` — distinguishes user exit from background timeout.
     private(set) var diversionReason: DiversionReason?
+    /// Wall-clock moment the pass was torn. The logbook's `date` records
+    /// when the flight ended, so the recorder needs this separately.
+    private(set) var departedAt: Date?
 
     /// Deadline after which backgrounding becomes a diversion.
     private(set) var graceDeadline: Date?
@@ -83,6 +86,81 @@ final class FlightSession {
     /// While set, the beverage cart is at your row; nil once it moves on.
     private(set) var beverageCartUntil: Date?
     private(set) var watersTaken = 0
+    // MARK: Cabin service (wellness cues)
+
+    /// A cue currently on screen. Purely presentational: nothing in strict
+    /// mode, diversion, leg completion or the logbook reads this.
+    struct CabinServiceCue: Equatable {
+        let pass: CabinServicePlanner.Pass
+        /// When it disappears on its own if nobody touches it.
+        let expiresAt: Date
+    }
+
+    private(set) var serviceCue: CabinServiceCue?
+    private(set) var servicePlanner = CabinServicePlanner()
+
+    /// Cues offered and ignored on this leg, in safeeyes' sense: a count, kept
+    /// so the screen can be honest, never used to prompt or to penalise.
+    var serviceCuesOffered: Int { servicePlanner.passNumber }
+    var serviceCuesIgnored: Int { servicePlanner.ignored }
+
+    /// Whether cues run at all. Short flights are QA and demo captures, and
+    /// `-VoyageShortFlights` compresses a 90 minute leg into seconds, so a
+    /// 20 minute cadence there would either never fire or fire absurdly.
+    /// Launch argument `-VoyageCabinServiceDemo` compresses the 20 minute
+    /// cadence to seconds and overrides the short-flight suppression, so a UI
+    /// test can photograph a cue. QA and capture only; it changes nothing in
+    /// a shipped build, where the argument is never present.
+    nonisolated static var cabinServiceDemoEnabled: Bool {
+        ProcessInfo.processInfo.arguments.contains("-VoyageCabinServiceDemo")
+    }
+
+    /// Seconds of cruise between cues.
+    nonisolated static var servicePassInterval: TimeInterval {
+        cabinServiceDemoEnabled ? 6 : CabinServicePlanner.passInterval
+    }
+
+    /// Pure so the suppression rules can be tested directly. A unit test
+    /// cannot set a launch argument, so the flags arrive as parameters rather
+    /// than being read inside the check.
+    nonisolated static func cabinServiceActive(enabled: Bool,
+                                               shortFlights: Bool,
+                                               demo: Bool = false) -> Bool {
+        guard enabled else { return false }
+        return demo || !shortFlights
+    }
+
+    private var cabinServiceActive: Bool {
+        Self.cabinServiceActive(
+            enabled: SettingsStore.shared.cabinServiceEnabled,
+            shortFlights: Self.shortFlightsEnabled,
+            demo: Self.cabinServiceDemoEnabled
+        )
+    }
+
+    /// The traveller acted on the cue. Counts it and clears the card. There is
+    /// deliberately no other effect.
+    func acknowledgeServiceCue() {
+        guard serviceCue != nil else { return }
+        servicePlanner.acknowledge()
+        serviceCue = nil
+        Haptics.softTick()
+    }
+
+    /// Dismiss without counting it as taken. Same as letting it expire.
+    func dismissServiceCue() {
+        serviceCue = nil
+    }
+
+    /// Takes the card away when its time is up, or the moment the aircraft
+    /// leaves cruise. A cue raised in the last seconds of cruise must not
+    /// still be sitting there during descent.
+    private func expireServiceCue() {
+        guard let cue = serviceCue else { return }
+        if now >= cue.expiresAt || phase != .cruise {
+            serviceCue = nil
+        }
+    }
 
     private var timer: Timer?
     private var graceWorkItem: DispatchWorkItem?
@@ -260,6 +338,11 @@ final class FlightSession {
         return legRemaining + future
     }
 
+    /// Elapsed seconds at which cruise begins on this leg, using the same
+    /// clamps `phase` uses. Cabin service cues are measured from here so a cue
+    /// can never be scheduled into the climb.
+    var cruiseBeginsAt: TimeInterval { phaseSchedule.climbEnd }
+
     var phase: LegPhase {
         phaseSchedule.phase(at: legElapsed)
     }
@@ -429,6 +512,7 @@ final class FlightSession {
     func departFirstLeg() {
         guard stage == .preflight else { return }
         freezeVisualPlanIfNeeded()
+        departedAt = clock.now
         startTimer()
         startLeg()
         FocusIntegration.shared.onDepart(session: self)
@@ -454,6 +538,11 @@ final class FlightSession {
             originCondition = environment.departureWeather?.condition ?? .clear
             destinationCondition = environment.arrivalWeather?.condition ?? .clear
         }
+        // The lounge between legs is itself a break: you stand, you leave the
+        // seat, you look at something further away than a screen. So the
+        // cadence starts over rather than carrying a debt across the layover.
+        servicePlanner.reset()
+        serviceCue = nil
         FlightActivityController.shared.start(session: self)
         // The passenger enters the scene already lined up for departure, so
         // the first sound bed is runway acceleration rather than taxiing.
@@ -536,6 +625,7 @@ final class FlightSession {
             if let until = beverageCartUntil, now >= until || phase >= .descent {
                 beverageCartUntil = nil
             }
+            expireServiceCue()
             if legElapsed >= legDuration {
                 completeLeg()
             }
@@ -563,6 +653,9 @@ final class FlightSession {
         case takeoffPower, rotate, gearUp, cruiseReached, midpoint
         case descentStart, gearDown, touchdown, finalCall
         case beverageService(Int)
+        /// Indexed so the cue can repeat while `fire` keeps its fire-once
+        /// guarantee per pass.
+        case cabinService(Int)
     }
 
     /// Exposes deterministic cue state to the session tests without leaking
@@ -657,6 +750,38 @@ final class FlightSession {
                 Haptics.touchdown()
             }
         }
+
+        fireDueServiceCue(elapsed: e)
+    }
+
+    /// Offers the next wellness cue if one is due and the cabin is in a state
+    /// where an interruption is legitimate.
+    ///
+    /// Deliberately visual plus haptic only. It never calls `Announcer` or
+    /// `CabinAudioEngine`: building the audio graph is a live crash risk, and
+    /// a cue the traveller is free to ignore has no business being the thing
+    /// that constructs it. Haptics are already a no-op on a device without
+    /// the engine.
+    private func fireDueServiceCue(elapsed e: TimeInterval) {
+        guard cabinServiceActive else { return }
+        // Descent and landing are never interrupted. `phase` is derived, so
+        // this is the whole guard: the cue simply has no window outside cruise.
+        guard phase == .cruise else { return }
+
+        let next = servicePlanner.passNumber + 1
+        let dueAt = CabinServicePlanner.due(pass: next,
+                                            cruiseBeginsAt: cruiseBeginsAt,
+                                            interval: Self.servicePassInterval)
+        guard e >= dueAt else { return }
+
+        fire(.cabinService(next)) {
+            let pass = servicePlanner.offer()
+            serviceCue = CabinServiceCue(
+                pass: pass,
+                expiresAt: now.addingTimeInterval(CabinServicePlanner.cueDuration)
+            )
+            Haptics.softTick()
+        }
     }
 
     // MARK: Beverage service
@@ -697,7 +822,7 @@ final class FlightSession {
                 .landed(city: itinerary.destination.city),
                 premiumChime: hasPremiumChime
             )
-            finishSession(completed: true)
+            finishSession(outcome: .arrived)
             DispatchQueue.main.asyncAfter(deadline: .now() + 8) { [weak self] in
                 // Only stop if we haven't started another leg/session ambience.
                 guard self?.stage == .arrived || self == nil else { return }
@@ -722,7 +847,7 @@ final class FlightSession {
         guard stage == .layover else { return }
         stage = .missedConnection
         stopEverything()
-        finishSession(completed: false)
+        finishSession(outcome: .missedConnection)
     }
 
     // MARK: Strict enforcement
@@ -733,8 +858,8 @@ final class FlightSession {
             guard stage == .inFlight else { return }
             let deadline = clock.now.addingTimeInterval(Self.graceDuration)
             graceDeadline = deadline
-            // Real-time backup: if ambience keeps the process alive, this fires
-            // even in background. Tests rely on `tick()` + the injected clock.
+            // Best-effort timer until suspension; ActivityKit carries the expiry.
+            // Tests rely on `tick()` and the injected clock.
             let work = DispatchWorkItem { [weak self] in
                 Task { @MainActor [weak self] in
                     guard let self, self.stage == .inFlight,
@@ -756,6 +881,7 @@ final class FlightSession {
                 divert()
             } else {
                 graceDeadline = nil
+                FlightActivityController.shared.update(session: self)
             }
 
         default:
@@ -768,15 +894,18 @@ final class FlightSession {
         diversionReason = reason
         stage = .diverted
         stopEverything()
-        finishSession(completed: false)
+        finishSession(outcome: reason == .voluntary ? .leftEarly : .interrupted)
     }
 
-    /// User bails out intentionally from the in-flight screen.
+    /// User bails out intentionally from the in-flight screen. Recorded
+    /// apart from a strict-mode interruption: leaving on purpose and
+    /// being pulled away are different facts.
     func abandonFlight() {
         divert(reason: .voluntary)
     }
 
     private func stopEverything() {
+        serviceCue = nil
         beverageCartUntil = nil
         Announcer.shared.stop()
         CabinAudioEngine.shared.stopAmbience()
@@ -787,7 +916,8 @@ final class FlightSession {
 
     // MARK: Logbook
 
-    private func finishSession(completed: Bool) {
+    private func finishSession(outcome: FlightOutcome) {
+        let completed = outcome.didArrive
         timer?.invalidate()
         timer = nil
         preflightWeatherTask?.cancel()
@@ -825,7 +955,10 @@ final class FlightSession {
             departureCorridorID: legTrajectories.first?.departureCorridor.id,
             arrivalCorridorID: legTrajectories.last?.arrivalCorridor.id,
             environmentSnapshots: frozenLegEnvironments.isEmpty ? nil : frozenLegEnvironments,
-            trajectoryLegSamples: trajectoryLegSamples.isEmpty ? nil : trajectoryLegSamples
+            trajectoryLegSamples: trajectoryLegSamples.isEmpty ? nil : trajectoryLegSamples,
+            scheduledSeconds: itinerary.totalFocusDuration,
+            departedAt: departedAt,
+            outcome: outcome
         )
         modelContext.insert(entry)
         try? modelContext.save()

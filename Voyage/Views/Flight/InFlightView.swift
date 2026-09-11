@@ -21,6 +21,7 @@ struct InFlightView: View {
     /// Network and thermal signal, so the window control can tell the traveler
     /// which world they are actually looking at rather than which one is set.
     @ObservedObject private var sceneryAvailability = WorldSceneryAvailability.shared
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     // MARK: Study-map warm-up
     //
@@ -101,19 +102,36 @@ struct InFlightView: View {
 
                 countdown
 
-                if session.beverageCartUntil != nil {
+                if session.beverageCartUntil != nil && session.serviceCue == nil {
                     beverageCartCard
                         .padding(.top, 16)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
 
-                if showInfoPill {
+                if let cue = session.serviceCue {
+                    CabinServiceCard(
+                        pass: cue.pass,
+                        onAcknowledge: { session.acknowledgeServiceCue() },
+                        onDismiss: { session.dismissServiceCue() }
+                    )
+                    .padding(.top, 18)
+                    .transition(.opacity)
+                }
+
+                // At accessibility sizes this column is already at the edge of
+                // the screen, and the cue pushes the ambient furniture off the
+                // bottom, taking the card with it. The cue is transient and the
+                // pill and the intentions strip are not, so for the ninety
+                // seconds a card is up they stand down.
+                let crowded = typeSize.isAccessibilitySize && session.serviceCue != nil
+
+                if showInfoPill && !crowded {
                     flightInfoPill
                         .padding(.top, 20)
                         .transition(.scale(scale: 0.9).combined(with: .opacity))
                 }
 
-                if !session.intentions.isEmpty {
+                if !session.intentions.isEmpty && !crowded {
                     intentionsStrip
                         .padding(.top, 16)
                 }

@@ -70,6 +70,11 @@ struct LogbookView: View {
                     .listRowBackground(Color.clear)
             }
 
+            Section {
+                NavigationLink { FlightDataRecorderView() } label: { recorderRow }
+                    .accessibilityIdentifier("open-recorder")
+            }
+
             Section("Flights") {
                 if entries.isEmpty {
                     ContentUnavailableView(
@@ -83,6 +88,39 @@ struct LogbookView: View {
                     }
                 }
             }
+        }
+    }
+
+    // MARK: Recorder row
+
+    /// Entry point to the flight data recorder. The caption states where the
+    /// recorder stands rather than promising insight it may not have.
+    private var recorderRow: some View {
+        HStack(spacing: 13) {
+            Image(systemName: "waveform.path.ecg.rectangle")
+                .font(.system(size: 19))
+                .foregroundStyle(Theme.accent)
+                .frame(width: 26)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Flight data recorder")
+                    .font(.subheadline.weight(.semibold))
+                Text(recorderCaption)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.vertical, 2)
+    }
+
+    private var recorderCaption: String {
+        let report = FlightDataRecorder.report(entries: entries)
+        guard report.isReporting else {
+            return "\(report.flightsUntilReporting) more flights until it reports"
+        }
+        switch report.findings.count {
+        case 0: return "Nothing separates yet across \(report.flightsAnalyzed) flights"
+        case 1: return "1 finding from \(report.flightsAnalyzed) flights"
+        default: return "\(report.findings.count) findings from \(report.flightsAnalyzed) flights"
         }
     }
 
