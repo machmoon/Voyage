@@ -15,23 +15,73 @@ final class FlightActivityController {
 #if canImport(ActivityKit)
     private var activity: Activity<FlightActivityAttributes>?
 
+    /// The in-flight request, if one is running. Only one may be in flight, and
+    /// it must be reconcilable with an `end` that arrives while it runs.
+    private var startTask: Task<Void, Never>?
+
+    /// Bumped by `end`. A request that completes against a stale token belongs
+    /// to a session that is already over, so it is ended rather than adopted.
+    private var generation = 0
+
+    /// Lets the departure beat finish before any ActivityKit traffic. The rip
+    /// is the app's most animation-dense moment and the Live Activity is not
+    /// visible while Voyage is foregrounded, so this costs the traveller
+    /// nothing and buys the transition a clear main thread.
+    private static let startDelay: Duration = .milliseconds(300)
+
+    /// Requests the Live Activity, off the rip.
+    ///
+    /// `ActivityAuthorizationInfo()` queries the Live Activity daemon when it is
+    /// constructed and `Activity.request` performs its own synchronous IPC, so
+    /// calling both inline from `FlightSession.startLeg` put a cross-process
+    /// round trip on the main thread at the exact frame the boarding pass tears.
+    /// That is the same shape of defect as the CoreLocation and AVAudioEngine
+    /// hangs, and it gets the same treatment as `CoreLocationRequester`: no
+    /// framework object is constructed and no framework property is read until
+    /// the moment that needed the main thread has passed.
+    ///
+    /// Callers stay synchronous. The ordering hazard the deferral introduces,
+    /// an `end` landing while the request is still running, is handled by
+    /// `generation` rather than left to timing.
     func start(session: FlightSession) {
-        guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
         // A new leg on an existing activity is an update, not a new request.
         if activity != nil {
             update(session: session)
             return
         }
-        let attributes = FlightActivityAttributes(
-            originCode: session.itinerary.origin.code,
-            destinationCode: session.itinerary.destination.code,
-            viaCode: session.itinerary.connection?.code,
-            flightNumber: session.currentLeg.flightNumber
-        )
-        activity = try? Activity.request(
-            attributes: attributes,
-            content: .init(state: state(for: session), staleDate: nil)
-        )
+        guard startTask == nil else { return }
+
+        let token = generation
+        startTask = Task { @MainActor [weak self, weak session] in
+            // Only retire our own handle. `end` followed by a new `start`
+            // installs a different task, and this one must not clear it.
+            defer { if token == self?.generation { self?.startTask = nil } }
+            try? await Task.sleep(for: Self.startDelay)
+            guard !Task.isCancelled, let self, let session else { return }
+            guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
+
+            let attributes = FlightActivityAttributes(
+                originCode: session.itinerary.origin.code,
+                destinationCode: session.itinerary.destination.code,
+                viaCode: session.itinerary.connection?.code,
+                flightNumber: session.currentLeg.flightNumber
+            )
+            // Built here rather than at call time so the first frame the
+            // traveller sees reflects the flight now, not 300 ms ago.
+            guard let requested = try? Activity.request(
+                attributes: attributes,
+                content: .init(state: self.state(for: session), staleDate: nil)
+            ) else { return }
+
+            guard token == self.generation else {
+                // The session ended while the daemon was answering. Nothing is
+                // going to send this a final frame, so retire it immediately
+                // instead of leaving it on the lock screen.
+                await requested.end(nil, dismissalPolicy: .immediate)
+                return
+            }
+            self.activity = requested
+        }
     }
 
     func update(session: FlightSession) {
@@ -42,6 +92,12 @@ final class FlightActivityController {
 
     /// Ends the activity with a final frame ("Landed in …" / "Diverted").
     func end(session: FlightSession) {
+        // Invalidate any request still in flight before looking at `activity`:
+        // a session can end before the daemon has answered.
+        generation &+= 1
+        startTask?.cancel()
+        startTask = nil
+
         guard let activity else { return }
         var final = state(for: session)
         final.concluded = true

@@ -209,25 +209,36 @@ struct HomeView: View {
                     .font(.system(size: 23, weight: .black))
                     .kerning(5)
                     .foregroundStyle(.white)
-                HStack(spacing: 6) {
-                    Image(systemName: "location.fill")
-                        .font(.system(size: 9))
-                    Text("\(origin.city) · \(origin.code)")
-                        .font(.caption.weight(.medium))
-
-                    if lifetimeMiles > 0 {
-                        Circle()
-                            .frame(width: 3, height: 3)
-                            .opacity(0.65)
-                        Text("\(lifetimeMiles.formatted()) mi")
-                            .font(.caption2.weight(.semibold))
+                if settings.originIsUnknown {
+                    // No fix and no choice, so the app does not know what is
+                    // nearest and must not draw a location arrow next to a
+                    // default. Name the airport it is actually flying from and
+                    // make the line the way to change it: one tap, no extra
+                    // screen, and nothing on screen claims to be your location.
+                    Button {
+                        Haptics.tap()
+                        showingSettings = true
+                    } label: {
+                        originLine(
+                            glyph: "airplane.departure",
+                            trailing: "Set your airport",
+                            showsChevron: true
+                        )
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(
+                        "Departing \(origin.city), \(origin.code). "
+                        + "Voyage could not find your nearest airport. Set it in Settings."
+                    )
+                } else {
+                    originLine(
+                        // A chosen origin is not a location fix, so it does not
+                        // get the location glyph either.
+                        glyph: settings.originIsFromLocation ? "location.fill" : "airplane.departure",
+                        trailing: lifetimeMiles > 0 ? "\(lifetimeMiles.formatted()) mi" : nil,
+                        showsChevron: false
+                    )
                 }
-                .foregroundStyle(.white.opacity(0.75))
-                .lineLimit(1)
-                // The whole line is one unit: it shrinks rather than letting the
-                // origin code truncate to "S…" behind the Logbook pill.
-                .minimumScaleFactor(0.75)
             }
 
             Spacer(minLength: 8)
@@ -236,6 +247,39 @@ struct HomeView: View {
         }
         .padding(.horizontal, 20)
         .padding(.top, 8)
+    }
+
+    /// The origin line under the VOYAGE mark. One shape for all three origin
+    /// states so they keep the same rhythm and only the glyph and the trailing
+    /// item change.
+    private func originLine(glyph: String,
+                            trailing: String?,
+                            showsChevron: Bool) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: glyph)
+                .font(.system(size: 9))
+            Text("\(origin.city) · \(origin.code)")
+                .font(.caption.weight(.medium))
+
+            if let trailing {
+                Circle()
+                    .frame(width: 3, height: 3)
+                    .opacity(0.65)
+                Text(trailing)
+                    .font(.caption2.weight(.semibold))
+            }
+
+            if showsChevron {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 8, weight: .bold))
+                    .opacity(0.8)
+            }
+        }
+        .foregroundStyle(.white.opacity(0.75))
+        .lineLimit(1)
+        // The whole line is one unit: it shrinks rather than letting the
+        // origin code truncate to "S…" behind the Logbook pill.
+        .minimumScaleFactor(0.75)
     }
 
     private var lifetimeMiles: Int {
@@ -266,6 +310,12 @@ struct HomeView: View {
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(.white)
                     .frame(width: 34, height: 34)
+                    // Without this the hit area is the glyph, not the frame:
+                    // XCUITest measured this button at 16x16pt on device while
+                    // the frame above asks for 34x34. An Image label has no fill
+                    // of its own, so `Button` takes the drawn glyph's bounds.
+                    // The sibling Logbook button already does this (above).
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Settings")

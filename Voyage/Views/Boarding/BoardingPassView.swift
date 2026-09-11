@@ -289,13 +289,17 @@ struct BoardingPassView: View {
                 }
             }
 
-            HStack(spacing: 0) {
+            // spacing: 0 let neighbouring columns touch. At the default text
+            // size "FOCUSED FLYER" ends 2pt before "MAIN" starts; at
+            // accessibilityLarge they render as the single word
+            // "FOCUSED FLYERMAIN" (QA/e2e-ax-06-boarding-pass.png).
+            HStack(spacing: 12) {
                 passField("Passenger", "FOCUSED FLYER")
                 passField("Class", cabinClass)
                 passField("Gate", gate)
             }
 
-            HStack(spacing: 0) {
+            HStack(spacing: 12) {
                 passField("Board", "NOW")
                 passField("Focus", session.itinerary.totalFocusDuration.shortDurationText)
                 passField("Bags", session.intentions.isEmpty ? "—" : "\(session.intentions.count)")

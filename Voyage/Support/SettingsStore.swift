@@ -58,9 +58,36 @@ final class SettingsStore {
     }
 
     /// Last origin resolved from CoreLocation, so the app works offline next launch.
+    ///
+    /// Writing this is what makes the origin location-derived, so the setter is
+    /// also what flips `originIsFromLocation`. Nothing else assigns it.
     var resolvedOriginCode: String {
-        didSet { defaults.set(resolvedOriginCode, forKey: "resolvedOriginCode") }
+        didSet {
+            defaults.set(resolvedOriginCode, forKey: "resolvedOriginCode")
+            defaults.set(true, forKey: "hasResolvedOriginFromLocation")
+            hasResolvedOriginFromLocation = true
+        }
     }
+
+    /// Whether `resolvedOriginCode` was ever actually produced by CoreLocation,
+    /// as opposed to being the working default the app starts with.
+    ///
+    /// This is provenance, not a second source of truth: `homeAirport` is still
+    /// the only place the origin comes from. It exists because the app used to
+    /// present its unresolved default as though it had been sensed, which is
+    /// the same class of problem as a screen claiming Airplane Mode is on.
+    private(set) var hasResolvedOriginFromLocation: Bool
+
+    /// True when the traveler picked the origin in Settings instead of it being
+    /// sensed. Not a location fix, so it must not be drawn as one.
+    var originIsChosen: Bool { originOverrideCode != nil }
+
+    /// True when the origin on screen is neither sensed nor chosen: it is the
+    /// working default, and the app has no idea what is nearest.
+    var originIsUnknown: Bool { originOverrideCode == nil && !hasResolvedOriginFromLocation }
+
+    /// Only a real location fix earns the location glyph.
+    var originIsFromLocation: Bool { originOverrideCode == nil && hasResolvedOriginFromLocation }
 
     /// Post a local notification at depart if Focus / DND isn't enabled.
     var flightFocusRemindersEnabled: Bool {
@@ -132,7 +159,22 @@ final class SettingsStore {
         }
         paVoiceIdentifier = defaults.string(forKey: "paVoiceIdentifier")
         originOverrideCode = defaults.string(forKey: "originOverrideCode")
-        resolvedOriginCode = defaults.string(forKey: "resolvedOriginCode") ?? "BOS"
+        // BOS stays as the value the app runs on before a fix arrives, because
+        // the globe, the destination rail and every route duration need an
+        // origin to exist at all. What changes is that the app now knows this
+        // is a default rather than a location, and Home says so instead of
+        // drawing a location arrow next to it.
+        let storedOrigin = defaults.string(forKey: "resolvedOriginCode")
+        resolvedOriginCode = storedOrigin ?? "BOS"
+        // Property observers do not fire during `init`, so the assignment above
+        // does not mark this default as resolved. A store written before this
+        // flag existed still has `resolvedOriginCode`, and the only thing that
+        // ever wrote that key was a CoreLocation fix, so treat its presence as
+        // the fix it was and do not re-prompt an existing traveler.
+        let originWasSensed =
+            defaults.bool(forKey: "hasResolvedOriginFromLocation") || storedOrigin != nil
+        hasResolvedOriginFromLocation = originWasSensed
+        defaults.set(originWasSensed, forKey: "hasResolvedOriginFromLocation")
         flightFocusRemindersEnabled = defaults.object(forKey: "flightFocusRemindersEnabled") as? Bool ?? true
         cabinServiceEnabled = defaults.object(forKey: "cabinServiceEnabled") as? Bool ?? true
         flightTrailsEnabled = defaults.object(forKey: "flightTrailsEnabled") as? Bool ?? true
