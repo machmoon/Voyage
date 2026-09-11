@@ -29,33 +29,35 @@ A window seat for study time
 
 ## Promotional text — 170 characters maximum
 
-Pick a destination. Bring something to work on. Turn your next study session into a flight, from boarding pass to passport stamp. Made by a student. Open source.
+Voyage turns your study time into a flight with a window view and a destination to work toward. It is an open-source project built by a student, for students.
 
 ## Description — 4,000 characters maximum
 
-A window seat. A destination. Time for your work.
+Voyage is a study timer that brings the experience of flying to your desk. You choose a destination, settle into a window seat, and work while your flight makes its way toward landing.
 
-Voyage turns a study session into a flight. Pick a route, choose your seat, and tear your boarding pass. The flight time becomes your study timer. You bring the work.
+Your route gives the session a clear duration
 
-The details make the difference. Cabin sounds. A view from the window. A moving map that follows you from takeoff to touchdown. When you land, you collect a passport stamp and add another journey to your logbook.
+Choose a route on the globe and see how long the flight will take before you board. You can select your seat and add up to three tasks, whether you are working through a problem set, reading for class, or preparing for an exam. When you tear your boarding pass, the flight begins and its scheduled duration becomes your study timer.
 
-Stay with your session
+The cabin gives you somewhere to settle in
 
-Keep Voyage open while you study. Leaving the app for more than 30 seconds during a flight causes a diversion. Voyage doesn't block other apps.
+A view from the airplane window and cabin sounds accompany your session, while a moving map shows your progress along the route. Optional reminders encourage you to drink water, rest your eyes, and stretch. Connecting itineraries include a layover so you can take a break before the next leg.
 
-On connecting routes, a layover gives you a break between legs. Optional cabin reminders prompt you to drink water, rest your eyes, and stretch.
+Voyage asks you to keep the app open while you work. Leaving it for more than 30 seconds during a flight causes a diversion; it does not block other apps or turn on airplane mode.
 
-Built by a student, for students
+Your passport records the journeys you finish
 
-I'm Patrick. I fly often, love the experience, and wanted to bring some of it to studying. So I built Voyage: a place to settle in, work toward a destination, and see where your time took you.
+When you land, you collect a passport stamp and add the flight to your logbook. Over time, your completed routes become a record of the study sessions you have made time for. You can revisit those journeys and replay your flights.
 
-It's open source because I want other students to help make it better. Explore the code. Tell me what's broken. Suggest something you'd love to use. There's room to help shape what comes next.
+I built Voyage because I love flying
 
-No account, ads, or subscription. Your study history stays on your device.
+I'm Patrick, a student who flies often and wanted to bring something I enjoy into the hours I spend studying. Voyage grew from that idea, and I want to keep making it more useful and enjoyable for other students.
 
-https://github.com/machmoon/Voyage
+The project is open source, so you can explore how it works, report something that needs fixing, suggest a feature, or contribute to the code. You do not need to be a developer to help; feedback from the people studying with Voyage matters just as much.
 
-Your next flight starts at your desk.
+Voyage has no account requirement, advertising, or subscription. Your study history is stored on your device.
+
+You can find the project and share your ideas at https://github.com/machmoon/Voyage.
 
 ## Keywords — 100 bytes maximum
 
@@ -125,3 +127,10 @@ Use direct openings, short paragraphs, concrete evidence, and a personal voice. 
 ## Resubmission completed
 
 September 11, 2026, 23:22 UTC: all five marketing fields were saved and read back successfully, then version 1.1 with existing valid build 4 was resubmitted. Submission ID: 43a17088-c267-4f20-b5ac-236482623179. Verified state: WAITING_FOR_REVIEW. This supersedes earlier draft-only deployment notes above. Public listing changes remain subject to Apple approval.
+
+
+## Complete-sentence copy and screenshot update
+
+The owner requested natural prose instead of sentence fragments. Promotional text and description above are now deployed. Three unmodified, visually reviewed 1206 × 2622 simulator screenshots were added for the 6.3-inch display class (API APP_IPHONE_61): study window, route selection, and passport arrival. Apple processed all three as COMPLETE. The existing 6.5-inch gallery was reordered to show the study window first. No generated app UI or retouched screenshots were used. Captures with misleading airplane-mode text, clipped map controls, or empty logbooks were excluded.
+
+Version 1.1 (4) was resubmitted with these changes. Submission ID: 9780ff34-5162-4538-bc6d-f0a640892524. Verified submission state: WAITING_FOR_REVIEW. The live version also has the new promotional text; the remaining changes await approval.
