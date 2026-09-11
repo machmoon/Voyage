@@ -1,6 +1,6 @@
 # Voyage App Store copy — proposed September 11, 2026
 
-Status: original copy for owner review. Not applied to App Store Connect; version 1.1 (4) is already In Review. Do not withdraw that submission solely to change this copy.
+Status: revised copy. Version 1.1 (4) is In Review; name, subtitle, and description await an editable submission. Promotional-text deployment is recorded below. Preserve the current review.
 
 ## Positioning
 
@@ -25,45 +25,43 @@ Voyage: Study & Focus Timer
 
 ## Subtitle — 30 characters maximum
 
-Turn study time into a flight
+A window seat for study time
 
 ## Promotional text — 170 characters maximum
 
-Made by a student who loves flying. Built for students who have somewhere to go. Voyage is open source, and your feedback helps shape the next flight.
+Pick a destination. Bring something to work on. Turn your next study session into a flight, from boarding pass to passport stamp. Made by a student. Open source.
 
 ## Description — 4,000 characters maximum
 
-Turn your next study session into a flight.
+Turn study time into a flight.
 
-Voyage is a study timer built around the journey: choose a destination, take your seat, and study until you land. Real-world route times set your session length. A window view, cabin sounds, and a moving map bring the flight to your desk.
+Choose a destination, pick a window seat, and bring something to work on. Voyage turns the route's flight time into your study timer, with cabin sounds, a view from the window, and a map that follows your journey.
 
-GIVE YOUR STUDY TIME A DESTINATION
+A little ritual to get started
 
-Pick a route on the globe, choose your seat, and add the tasks you want to finish. Tear your boarding pass to start. From takeoff to touchdown, your flight gives the session a beginning, a middle, and somewhere to arrive.
+Add your tasks and tear your boarding pass. You're on your way. Settle into your work as your flight moves from takeoff to touchdown.
 
-SETTLE IN
+Stay for the journey
 
-Study beside the window or follow your progress on the map. Optional cabin reminders make room for water, eye rests, and stretching. Connecting itineraries include a layover before your next leg.
+Keep Voyage open while you study. Leave the app for more than 30 seconds during a flight and you'll divert. Voyage doesn't block other apps; the commitment is yours.
 
-Voyage asks you to stay with your session: leaving the app for more than 30 seconds during a flight causes a diversion. It does not block other apps.
+Optional cabin reminders prompt you to drink water, rest your eyes, and stretch. On connecting routes, a layover gives you a break before the next leg.
 
-SEE WHERE YOUR TIME TOOK YOU
+Something to show for your time
 
-Complete flights to collect passport stamps and build your logbook. Look back at the routes you finished and replay your journeys. Each arrival is a record of time you set aside.
+Land to collect a passport stamp and add the flight to your logbook. Revisit the places you've reached and replay your journeys, one study session at a time.
 
-BUILT BY A STUDENT, FOR STUDENTS
+From one student's desk to yours
 
-I'm Patrick. I'm a student, I fly often, and I love flying. I wanted to bring a little of that experience to studying, so I started building Voyage.
+I'm Patrick, a student who flies often and loves the experience. I built Voyage to bring a little of that feeling to the hours we spend studying: somewhere to go, a window to look through, and an arrival to work toward.
 
-My aim is to make a study app students love using, and to keep making it better with the people who use it. That's why Voyage is open source. You can explore the code, report a problem, suggest a route, or help build what comes next.
+I'm building it in the open so other students can help make it better. Found a bug? Have an idea? You can read the code, share feedback, or contribute on GitHub.
 
-No account, ads, or subscription. Your study history is stored on your device.
+No account, ads, or subscription. Your study history stays on your device.
 
-Come build with me:
 https://github.com/machmoon/Voyage
 
-Happy studying. Happy flying.
-Patrick
+Pick your next destination. Bring your work along.
 
 ## Keywords — 100 bytes maximum
 
@@ -71,7 +69,7 @@ homework,concentration,exam,revision,deep work,school,college,library,plane,sess
 
 ## Screenshot story — next production task
 
-1. “Turn study time into a flight.” Show the in-flight window with a readable countdown. This must communicate the product even if the visitor never swipes.
+1. “A window seat for study time.” Show the in-flight window with a readable countdown. This must communicate the product even if the visitor never swipes.
 2. “Pick where you're headed.” Show destination selection and session duration.
 3. “Bring something to work on.” Show tasks and boarding pass.
 4. “Stay with it until touchdown.” Show map progress; explain the 30-second leave rule in supporting copy.
@@ -81,7 +79,7 @@ Use actual app captures, one headline per image, large legible type, and a consi
 
 ## Cohesive launch strategy
 
-The reusable message is “Turn study time into a flight.” The App Store demonstrates the experience; Patrick's build story explains its origin; GitHub makes the open-source promise tangible. Later social posts can show one complete session, a real flying moment that inspired a detail, or a user suggestion becoming a shipped feature. Each should lead back to the same product promise. Do not imply a team of student founders when describing Patrick's personal story.
+The product explanation is “Turn study time into a flight.” The emotional expression is “A window seat for study time.” The App Store demonstrates the experience; Patrick's build story explains its origin; GitHub makes the open-source promise tangible. Later social posts can show one complete session, a real flying moment that inspired a detail, or a user suggestion becoming a shipped feature. Each should lead back to the same product promise. Do not imply a team of student founders when describing Patrick's personal story.
 
 Judge this page by whether a new visitor can explain what Voyage does after seeing the name and first screenshot. After release, establish a product-page conversion baseline, then test the first screenshot before changing several elements at once. No conversion lift is claimed in advance.
 
@@ -93,3 +91,33 @@ Judge this page by whether a new visitor can explain what Voyage does after seei
 - [Apple field limits](https://developer.apple.com/help/app-store-connect/reference/app-information/platform-version-information) specify 170 characters for promotional text, 4,000 for description, and 100 bytes for keywords.
 
 This copy intentionally omits outdated route counts, unverified feature claims, Pomodoro terminology, and invented founder experiences from the previous local draft. The founder paragraph uses the owner's stated story. The ambition is to keep improving the app, not to claim it is already the best.
+
+
+## Second editorial pass: what the first draft was missing
+
+These are two editorial lenses inspired by the qualities in the owner's brief, not impersonations or claims about how any named executive works. The supplied testimonials describe leadership qualities; they are not samples of those executives' writing.
+
+### Clarity and strategic discipline
+
+- Give each field a separate job. The title identifies the category; the subtitle creates a picture; promotional text demonstrates the experience; the description answers practical questions and gives the founder's reason.
+- Cut phrases that sound meaningful but do not explain anything: “students who have somewhere to go,” “built around the journey,” and “a beginning, a middle, and somewhere to arrive.”
+- Keep the distinctive product facts: a route sets the duration, tearing a boarding pass starts the timer, leaving causes diversion, and arrivals become passport stamps.
+- Keep limitations visible. Do not suggest flexible Pomodoro lengths or app blocking. The actual route duration should be visible in the booking screenshot.
+- Treat “best possible app” as a development ambition. Demonstrate care through reliable behavior, accurate screenshots, and responses to feedback.
+
+### Emotion and audience connection
+
+- Give the reader a scene they can imagine: a window seat, cabin sounds, work in front of them, and a destination ahead.
+- Connect the founder's love of flying to the study experience in one paragraph. Avoid invented anecdotes, a fictional founding team, or an inflated mission.
+- Replace the vague invitation to “shape the next flight” with concrete ways to participate: report a bug, share an idea, contribute code.
+- End with an action for the student. A GitHub invitation alone makes the page feel like a developer project rather than an app to use.
+- Let the app's details supply delight. Avoid promising better grades, mental-health outcomes, or proven concentration benefits without evidence.
+
+### Missing evidence and next assets
+
+The copy is ready, but screenshots must prove the promise. The highest-value next asset is an actual in-flight capture with a legible timer, followed by the booking duration and passport. A short demo can show the boarding-pass tear and transition into the window view. Genuine student feedback can become evidence later; do not invent testimonials or usage statistics. Social distribution should follow a working product-page story, with actual app footage and a clear App Store link.
+
+
+## Deployment record
+
+Promotional text saved and read back successfully for the English (US) localizations of both live version 1.0 and in-review version 1.1. Public storefront propagation has not been verified. The proposed title, subtitle, description, and keywords are saved in metadata-en-US.json for the next editable submission. No submission was withdrawn and no social messages were posted.
