@@ -33,35 +33,29 @@ Pick a destination. Bring something to work on. Turn your next study session int
 
 ## Description — 4,000 characters maximum
 
-Turn study time into a flight.
+A window seat. A destination. Time for your work.
 
-Choose a destination, pick a window seat, and bring something to work on. Voyage turns the route's flight time into your study timer, with cabin sounds, a view from the window, and a map that follows your journey.
+Voyage turns a study session into a flight. Pick a route, choose your seat, and tear your boarding pass. The flight time becomes your study timer. You bring the work.
 
-A little ritual to get started
+The details make the difference. Cabin sounds. A view from the window. A moving map that follows you from takeoff to touchdown. When you land, you collect a passport stamp and add another journey to your logbook.
 
-Add your tasks and tear your boarding pass. You're on your way. Settle into your work as your flight moves from takeoff to touchdown.
+Stay with your session
 
-Stay for the journey
+Keep Voyage open while you study. Leaving the app for more than 30 seconds during a flight causes a diversion. Voyage doesn't block other apps.
 
-Keep Voyage open while you study. Leave the app for more than 30 seconds during a flight and you'll divert. Voyage doesn't block other apps; the commitment is yours.
+On connecting routes, a layover gives you a break between legs. Optional cabin reminders prompt you to drink water, rest your eyes, and stretch.
 
-Optional cabin reminders prompt you to drink water, rest your eyes, and stretch. On connecting routes, a layover gives you a break before the next leg.
+Built by a student, for students
 
-Something to show for your time
+I'm Patrick. I fly often, love the experience, and wanted to bring some of it to studying. So I built Voyage: a place to settle in, work toward a destination, and see where your time took you.
 
-Land to collect a passport stamp and add the flight to your logbook. Revisit the places you've reached and replay your journeys, one study session at a time.
-
-From one student's desk to yours
-
-I'm Patrick, a student who flies often and loves the experience. I built Voyage to bring a little of that feeling to the hours we spend studying: somewhere to go, a window to look through, and an arrival to work toward.
-
-I'm building it in the open so other students can help make it better. Found a bug? Have an idea? You can read the code, share feedback, or contribute on GitHub.
+It's open source because I want other students to help make it better. Explore the code. Tell me what's broken. Suggest something you'd love to use. There's room to help shape what comes next.
 
 No account, ads, or subscription. Your study history stays on your device.
 
 https://github.com/machmoon/Voyage
 
-Pick your next destination. Bring your work along.
+Your next flight starts at your desk.
 
 ## Keywords — 100 bytes maximum
 
@@ -121,3 +115,8 @@ The copy is ready, but screenshots must prove the promise. The highest-value nex
 ## Deployment record
 
 Promotional text saved and read back successfully for the English (US) localizations of both live version 1.0 and in-review version 1.1. Public storefront propagation has not been verified. The proposed title, subtitle, description, and keywords are saved in metadata-en-US.json for the next editable submission. No submission was withdrawn and no social messages were posted.
+
+
+## Voice refinement from the supplied writing samples
+
+Use direct openings, short paragraphs, concrete evidence, and a personal voice. Vary sentence length so the page does not become a stack of slogans. Keep restrained fragments for sensory details. Do not copy the recommendations' claims, authorship, employment history, or personal endorsements. Product facts carry the confidence. This pass changes the proposed description; the previously deployed promotional text remains unchanged.
