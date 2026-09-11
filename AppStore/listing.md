@@ -1,6 +1,6 @@
 # Voyage App Store copy — proposed September 11, 2026
 
-Status: revised copy. Version 1.1 (4) is In Review; name, subtitle, and description await an editable submission. Promotional-text deployment is recorded below. Preserve the current review.
+Status: deployed. At the owner’s request, version 1.1 (4) was removed from review, updated with this name, subtitle, description, promotional text, and keywords, and resubmitted on September 11, 2026. Apple confirms Waiting for Review.
 
 ## Positioning
 
@@ -120,3 +120,8 @@ Promotional text saved and read back successfully for the English (US) localizat
 ## Voice refinement from the supplied writing samples
 
 Use direct openings, short paragraphs, concrete evidence, and a personal voice. Vary sentence length so the page does not become a stack of slogans. Keep restrained fragments for sensory details. Do not copy the recommendations' claims, authorship, employment history, or personal endorsements. Product facts carry the confidence. This pass changes the proposed description; the previously deployed promotional text remains unchanged.
+
+
+## Resubmission completed
+
+September 11, 2026, 23:22 UTC: all five marketing fields were saved and read back successfully, then version 1.1 with existing valid build 4 was resubmitted. Submission ID: 43a17088-c267-4f20-b5ac-236482623179. Verified state: WAITING_FOR_REVIEW. This supersedes earlier draft-only deployment notes above. Public listing changes remain subject to Apple approval.
