@@ -1,6 +1,6 @@
 # Voyage App Store copy — proposed September 11, 2026
 
-Status: deployed. At the owner’s request, version 1.1 (4) was removed from review, updated with this name, subtitle, description, promotional text, and keywords, and resubmitted on September 11, 2026. Apple confirms Waiting for Review.
+Status: live. Version 1.1 (4) shipped with this name, subtitle, description, promotional text, and keywords on September 13, 2026. Version 1.1.1 (build 6) is waiting for review with the same copy, a new "What's new" (screen stays awake in flight, boarding pass print fix, interrupted flights logged, large-text layout fixes), and the first app preview: a 29-second clip of one booking from the globe to the takeoff roll, recorded by `scripts/record_app_preview.sh`.
 
 ## Positioning
 

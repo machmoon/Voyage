@@ -10,6 +10,9 @@ Built with **Codex powered by GPT-5.6** for the **Apps for Your Life** track of 
 [![Swift](https://img.shields.io/badge/Swift-5-F05138)](#technical-implementation)
 [![Dependencies](https://img.shields.io/badge/third--party%20dependencies-0-16A34A)](#technical-implementation)
 [![License](https://img.shields.io/badge/license-MIT-2563EB)](LICENSE)
+[![App Store](https://img.shields.io/badge/App%20Store-Voyage%3A%20Study%20%26%20Focus%20Timer-0D96F6)](https://apps.apple.com/app/id6794570257)
+
+**[Download Voyage on the App Store](https://apps.apple.com/app/id6794570257)** — free, no account, no ads. Version 1.1.1 keeps the screen awake for the whole flight, prints the boarding pass cleanly, logs a flight the app did not survive, and fixes large-text layouts in flight and on the seat map.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/machmoon/Voyage-QA/main/qa-01-home.png" width="170" alt="Book a focus flight from the globe">

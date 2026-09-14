@@ -195,7 +195,9 @@ final class SettingsStore {
             "-VoyageSkipOnboarding",
             "-VoyageShortFlights",
             "-VoyageRealWorldTwinEnabled",
-            "-VoyageHomeAirport"
+            "-VoyageHomeAirport",
+            "-VoyageRecorderDemo",
+            "-VoyageDemoFlight"
         ]
         if arguments.contains(where: onboardingSkipFlags.contains) {
             hasCompletedOnboarding = true

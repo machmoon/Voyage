@@ -211,6 +211,9 @@ final class FlightSession {
     nonisolated static var descentDuration: TimeInterval { demoFlightEnabled ? 20 : 25 * 60 }
     nonisolated static var landingDuration: TimeInterval { demoFlightEnabled ? 8 : 30 }
     nonisolated static let graceDuration: TimeInterval = 30
+    /// Shortest unfinished flight the logbook records. Below this a diversion
+    /// is a false start and is shown but not kept.
+    nonisolated static let minimumLoggedFocus: TimeInterval = 60
     nonisolated static let finalCallWindow: TimeInterval = 3 * 60
 
     /// Beverage service: a hydration nudge for long study flights — first
@@ -989,12 +992,18 @@ final class FlightSession {
             departedAt: departedAt,
             outcome: outcome
         )
-        modelContext.insert(entry)
-        do {
-            try modelContext.save()
-        } catch {
-            logbookSaveFailed = true
-            Self.logger.error("Logbook save failed: \(error.localizedDescription, privacy: .public)")
+        // A flight that ended within its first minute is a false start, not
+        // a trip: the diverted screen still shows it, the logbook does not.
+        // Tearing a pass and backing out immediately used to leave rows of
+        // "DIVERTED · 0m" at the top of the logbook.
+        if completed || entry.focusSeconds >= Self.minimumLoggedFocus {
+            modelContext.insert(entry)
+            do {
+                try modelContext.save()
+            } catch {
+                logbookSaveFailed = true
+                Self.logger.error("Logbook save failed: \(error.localizedDescription, privacy: .public)")
+            }
         }
         InterruptedFlightRecovery.clear()
         logEntry = entry

@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import SwiftData
 
 /// Top-level router: shows the globe home screen until a flight session
@@ -37,6 +38,17 @@ struct RootView: View {
         // curtain → in-flight window — so takeoff reads as one clean fade rather
         // than a hard cut.
         .animation(.smooth(duration: 0.55), value: sessionStageKey)
+        // Keep the screen awake for the whole trip. Without this the default
+        // auto-lock (30 s to 1 min) put the app in the background mid-flight
+        // and the 30 s grace period diverted every session the traveler did
+        // not keep touching. Scoped to the trip the way Monal scopes it to a
+        // call (Monal/Classes/AVCallUI.swift) rather than set for the app's
+        // lifetime as ZenTuner does (ZenTuner/ZenTunerApp.swift): the globe
+        // and logbook should still let the phone sleep.
+        .onChange(of: sessionStageKey, initial: true) { _, _ in
+            let travelling = session.map { [.inFlight, .layover].contains($0.stage) } ?? false
+            UIApplication.shared.isIdleTimerDisabled = travelling
+        }
         .onChange(of: scenePhase) { _, newPhase in
             session?.handleScenePhase(newPhase)
             if newPhase == .active {

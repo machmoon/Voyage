@@ -72,9 +72,17 @@ struct CheckBagView: View {
                 }
             }
             .scrollBounceBehavior(.basedOnSize)
-            // The last field used to sit half under the footer at large text
-            // sizes (QA/e2e-ax-05-checkbag.png); this keeps a gap above it.
             .contentMargins(.bottom, 16, for: .scrollContent)
+            // At large text sizes the third field scrolls under the footer.
+            // Fading the list's last 28pt says "there is more below" instead
+            // of looking like the footer cut it off (QA/e2e-ax-05-checkbag.png).
+            .mask {
+                VStack(spacing: 0) {
+                    Color.black
+                    LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom)
+                        .frame(height: 28)
+                }
+            }
 
             Spacer(minLength: 0)
 

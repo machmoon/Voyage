@@ -62,6 +62,10 @@ enum InterruptedFlightRecovery {
         clear(defaults: defaults)
 
         let legElapsed = min(max(0, now.timeIntervalSince(record.legStartedAt)), record.legDuration)
+        // Same floor as `FlightSession.finishSession`: a process that died in
+        // the first minute of a flight has nothing worth a logbook row or an
+        // alert on the next launch.
+        guard record.completedFocusSeconds + legElapsed >= FlightSession.minimumLoggedFocus else { return nil }
         let entry = LogbookEntry(
             date: min(now, record.legStartedAt.addingTimeInterval(record.legDuration)),
             originCode: record.originCode,

@@ -49,5 +49,8 @@ Debug-only Settings command and is not present in the submitted build. A walkthr
 recording can demonstrate arrival and the logbook without making the reviewer wait for
 a full route.
 
-App Store Connect confirmed version 1.0 (3) is live. The update draft is 1.1; its build is 4.
+App Store Connect: 1.1 (4) is live since September 13, 2026. The update in review is 1.1.1
+(build 6), submitted through `build/submit_update.py` with the 886x1920 app preview from
+`scripts/record_app_preview.sh` on the 6.9", 6.5" and 6.1" slots. Build 5 was withdrawn before
+review to add the screen-awake fix and the large-text layout fixes.
 Contact details and existing listing metadata must be checked in App Store Connect.
