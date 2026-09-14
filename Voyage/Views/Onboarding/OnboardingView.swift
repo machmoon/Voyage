@@ -47,7 +47,7 @@ struct OnboardingView: View {
             body: """
             I'm Patrick, the developer. Voyage models every study session on a real flight: actual block times set your focus timer, and you study through a window with satellite scenery along your route.
 
-            Your nearest airport becomes home. Voyage asks for location once to set it, or you can pick one in Settings.
+            You always take off from the airport nearest you. Voyage asks for your location once to find it, or you can choose one in Settings.
             """,
             showsOpenSource: true
         ),

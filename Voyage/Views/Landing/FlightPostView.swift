@@ -24,6 +24,7 @@ struct FlightPostView: View {
     @State private var shareCaption = ""
     @State private var posted = false
     @State private var receiptPNG: Data?
+    @State private var saveError: String?
 
     private var itinerary: Itinerary { session.itinerary }
     private var destination: Airport { itinerary.destination }
@@ -106,14 +107,16 @@ struct FlightPostView: View {
                         .foregroundStyle(.white)
                 }
 
-                TextField("What did you work on? (optional)", text: $shareCaption, axis: .vertical)
+                TextField("What did you work on? (optional)", text: $shareCaption,
+                      prompt: Text("What did you work on? (optional)").foregroundStyle(.white.opacity(0.45)),
+                      axis: .vertical)
                     .lineLimit(2...5)
                     .font(.subheadline)
                     .padding(12)
                     .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                     .foregroundStyle(.white)
 
-                TextField("Title", text: $postTitle)
+                TextField("Title", text: $postTitle, prompt: Text("Title").foregroundStyle(.white.opacity(0.45)))
                     .font(.headline)
                     .padding(12)
                     .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
@@ -133,10 +136,19 @@ struct FlightPostView: View {
                     shareSection
                 }
 
+                if let saveError {
+                    Text(saveError)
+                        .font(.footnote.weight(.medium))
+                        .foregroundStyle(Theme.destructive)
+                        .multilineTextAlignment(.center)
+                }
+
                 Button(action: posted ? onDone : postToLogbook) {
                     Text(posted ? "Back to the terminal" : "Post to logbook")
                 }
                 .buttonStyle(VoyagePrimaryButtonStyle())
+                // Nothing to post to: the entry never existed or never reached disk.
+                .disabled(!posted && (session.logEntry == nil || session.logbookSaveFailed))
 
                 if !posted {
                     Button("Skip for now", action: onDone)
@@ -291,7 +303,13 @@ struct FlightPostView: View {
         let trimmedCaption = shareCaption.trimmingCharacters(in: .whitespacesAndNewlines)
         entry.postTitle = trimmedTitle.isEmpty ? LogbookStats.defaultPostTitle() : trimmedTitle
         entry.shareCaption = trimmedCaption.isEmpty ? nil : trimmedCaption
-        try? modelContext.save()
+        do {
+            try modelContext.save()
+        } catch {
+            saveError = "Couldn't save to your logbook. Check free space and try again."
+            Haptics.warning()
+            return
+        }
         receiptPNG = FlightReceiptRenderer.pngData(session: session, caption: shareCaption)
         Haptics.success()
         withAnimation(.smooth(duration: 0.35)) { posted = true }

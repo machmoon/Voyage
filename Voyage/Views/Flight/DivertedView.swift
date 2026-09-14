@@ -70,7 +70,7 @@ struct DivertedView: View {
 
     private var statsRow: some View {
         HStack(spacing: 28) {
-            stat("Status", "Incomplete")
+            stat("Status", session.logbookSaveFailed ? "Not saved" : "Incomplete")
             stat("Focus time", (session.logEntry?.focusSeconds ?? 0).shortDurationText)
             stat("Miles earned", "\(Int(session.completedMiles).formatted())")
         }

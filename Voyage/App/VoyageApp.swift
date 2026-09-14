@@ -1,9 +1,14 @@
 import SwiftUI
 import SwiftData
+import os
 
 @main
 struct VoyageApp: App {
     private let modelContainer: ModelContainer
+    /// True when the on-disk logbook could not be opened and the app is
+    /// running on an in-memory store. Everything saved this launch is lost on
+    /// quit, and the Logbook and Settings screens say so.
+    static private(set) var logbookIsEphemeral = false
 
     init() {
         modelContainer = Self.makeContainer()
@@ -34,9 +39,18 @@ struct VoyageApp: App {
             let config = ModelConfiguration(url: support.appending(path: "Logbook.store"))
             return try ModelContainer(for: LogbookEntry.self, configurations: config)
         } catch {
-            // Still launch — persistence is important but never worth a crash on open.
+            // Still launch — persistence is important but never worth a crash on
+            // open. But say so: a silent in-memory store looks like a working
+            // logbook that empties itself on every launch.
+            Logger(subsystem: "com.patrickliu.voyage", category: "persistence")
+                .fault("Logbook store failed to open, running in memory: \(error.localizedDescription, privacy: .public)")
+            logbookIsEphemeral = true
             let fallback = ModelConfiguration(isStoredInMemoryOnly: true)
-            return try! ModelContainer(for: LogbookEntry.self, configurations: fallback)
+            do {
+                return try ModelContainer(for: LogbookEntry.self, configurations: fallback)
+            } catch {
+                fatalError("SwiftData cannot open even an in-memory store: \(error)")
+            }
         }
     }
 }

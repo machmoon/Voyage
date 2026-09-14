@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import SwiftData
+import os
 import Observation
 import CoreLocation
 
@@ -74,6 +75,11 @@ final class FlightSession {
     private(set) var completedMiles: Double = 0
     private(set) var completedFocusSeconds: TimeInterval = 0
     private(set) var logEntry: LogbookEntry?
+    /// True when the logbook entry could not be written to disk. The arrival
+    /// and diversion screens say so instead of celebrating a flight that is
+    /// about to vanish on the next launch.
+    private(set) var logbookSaveFailed = false
+    private static let logger = Logger(subsystem: "com.patrickliu.voyage", category: "session")
     /// Set when `stage == .diverted` — distinguishes user exit from background timeout.
     private(set) var diversionReason: DiversionReason?
     /// Wall-clock moment the pass was torn. The logbook's `date` records
@@ -516,6 +522,7 @@ final class FlightSession {
         departedAt = clock.now
         startTimer()
         startLeg()
+        writeInFlightRecord()
         FocusIntegration.shared.onDepart(session: self)
     }
 
@@ -524,6 +531,26 @@ final class FlightSession {
         guard stage == .layover, legIndex + 1 < itinerary.legs.count else { return }
         legIndex += 1
         startLeg()
+        writeInFlightRecord()
+    }
+
+    /// Enough to log this flight if the process dies before `finishSession`.
+    private func writeInFlightRecord() {
+        guard let departedAt, let legStartDate else { return }
+        InterruptedFlightRecovery.save(InFlightRecord(
+            originCode: itinerary.origin.code,
+            destinationCode: itinerary.destination.code,
+            connectionCode: itinerary.connection?.code,
+            flightNumber: itinerary.primaryFlightNumber,
+            seat: seat,
+            intentions: intentions,
+            departedAt: departedAt,
+            completedFocusSeconds: completedFocusSeconds,
+            completedMiles: completedMiles,
+            legStartedAt: legStartDate,
+            legDuration: legDuration,
+            scheduledSeconds: itinerary.totalFocusDuration
+        ))
     }
 
     private func startLeg() {
@@ -963,7 +990,13 @@ final class FlightSession {
             outcome: outcome
         )
         modelContext.insert(entry)
-        try? modelContext.save()
+        do {
+            try modelContext.save()
+        } catch {
+            logbookSaveFailed = true
+            Self.logger.error("Logbook save failed: \(error.localizedDescription, privacy: .public)")
+        }
+        InterruptedFlightRecovery.clear()
         logEntry = entry
         // Only a flight that actually landed counts toward the review ask.
         if completed { AppFeedback.recordCompletedFlight() }

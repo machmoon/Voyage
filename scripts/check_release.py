@@ -228,6 +228,19 @@ def check_archive(archive):
     if "ITSAppUsesNonExemptEncryption" not in app:
         blocker("built app Info.plist: ITSAppUsesNonExemptEncryption is missing")
 
+    if not app.get("NSSupportsLiveActivities"):
+        blocker("built app Info.plist: NSSupportsLiveActivities is missing — Activity.request "
+                "would throw and FlightActivityController swallows it, so no Live Activity ever appears")
+    if not os.path.exists(os.path.join(bundle, "PrivacyInfo.xcprivacy")):
+        blocker("built app: PrivacyInfo.xcprivacy is not in the bundle")
+    pa_clips = [n for n in os.listdir(bundle) if n.endswith(".m4a")]
+    expected_clips = len([n for n in os.listdir(os.path.join(ROOT, "Voyage", "Resources", "PA"))
+                          if n.endswith(".m4a")]) if os.path.isdir(
+        os.path.join(ROOT, "Voyage", "Resources", "PA")) else 0
+    if expected_clips and len(pa_clips) != expected_clips:
+        blocker("built app: %d of %d PA clips were bundled — missing clips fall back to "
+                "speech synthesis without any error" % (len(pa_clips), expected_clips))
+
     plugins = os.path.join(bundle, "PlugIns")
     appexes = ([os.path.join(plugins, n) for n in os.listdir(plugins) if n.endswith(".appex")]
                if os.path.isdir(plugins) else [])

@@ -99,11 +99,6 @@ final class SettingsStore {
         didSet { defaults.set(cabinServiceEnabled, forKey: "cabinServiceEnabled") }
     }
 
-    /// Draw completed focus flights as translucent paths on the home globe.
-    var flightTrailsEnabled: Bool {
-        didSet { defaults.set(flightTrailsEnabled, forKey: "flightTrailsEnabled") }
-    }
-
     /// Streams the route-aware real-world window from runway to runway.
     /// The renderer still falls back automatically when credentials, network,
     /// or device conditions make an online provider unavailable.
@@ -177,7 +172,6 @@ final class SettingsStore {
         defaults.set(originWasSensed, forKey: "hasResolvedOriginFromLocation")
         flightFocusRemindersEnabled = defaults.object(forKey: "flightFocusRemindersEnabled") as? Bool ?? true
         cabinServiceEnabled = defaults.object(forKey: "cabinServiceEnabled") as? Bool ?? true
-        flightTrailsEnabled = defaults.object(forKey: "flightTrailsEnabled") as? Bool ?? true
         hasCompletedOnboarding = defaults.bool(forKey: "hasCompletedOnboarding")
         realWorldTwinEnabled = defaults.object(forKey: "realWorldTwinEnabled") as? Bool
             ?? defaults.object(forKey: "realSceneryEnabled") as? Bool

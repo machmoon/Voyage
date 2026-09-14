@@ -153,3 +153,22 @@ private final class CountingFactory {
         return StubRequester(status: .denied)
     }
 }
+
+// MARK: - Catalog reach
+
+@MainActor
+final class NearestAirportBoundsTests: XCTestCase {
+    /// Central London: 5,500 km from the closest catalog airport (BOS).
+    private let london = CLLocation(latitude: 51.5074, longitude: -0.1278)
+    /// Cambridge, MA: a few km from BOS.
+    private let nearBoston = CLLocation(latitude: 42.3736, longitude: -71.1097)
+
+    func testNearestWithinBoundReturnsTheAirportWhenClose() {
+        XCTAssertEqual(Airport.nearest(to: nearBoston, within: LocationManager.maximumOriginDistance)?.code, "BOS")
+    }
+
+    func testNearestWithinBoundIsNilAcrossAnOcean() {
+        XCTAssertNil(Airport.nearest(to: london, within: LocationManager.maximumOriginDistance),
+                     "A traveler outside the catalog's reach must not be told their location is JFK")
+    }
+}

@@ -46,6 +46,12 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
+                if VoyageApp.logbookIsEphemeral {
+                    Section {
+                        LogbookStorageWarning()
+                    }
+                }
+
                 Section {
                     Toggle(isOn: Binding(
                         get: { settings.soundEffectsEnabled },
@@ -168,7 +174,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Window")
                 } footer: {
-                    Text(settings.windowWorldMode.caption)
+                    Text(settings.windowWorldMode.caption + " Illustrated window views work offline. If you choose Real world, map provider attribution appears in the airplane window.")
                 }
 
                 Section {
@@ -246,15 +252,14 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    LabeledContent("Version", value: "1.0")
+                    LabeledContent("Version", value: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—")
                     LabeledContent("Airline", value: "Voyage Air")
                     LabeledContent("Cabin voice", value: "AI voice by ElevenLabs")
                     Link("Voyage Terms of Use", destination: URL(string: "https://github.com/machmoon/Voyage/blob/main/TERMS.md")!)
                     Link("Voyage Privacy Notice", destination: URL(string: "https://github.com/machmoon/Voyage/blob/main/PRIVACY.md")!)
-                } footer: {
-                    Text("Illustrated window views work offline. If you choose Real world, map provider attribution appears in the airplane window.")
                 }
             }
+            .tint(Theme.accent)
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear { hasSeededData = TestModeSeeder.hasSeededData(in: modelContext) }

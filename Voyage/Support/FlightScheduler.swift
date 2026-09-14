@@ -83,11 +83,15 @@ final class FlightScheduler: NSObject, UNUserNotificationCenterDelegate {
             content.body = "Your flight departs in 10 minutes. Boarding closes 15 minutes after departure."
             content.sound = .default
 
-            let interval = flight.boardingOpens.timeIntervalSinceNow
-            guard interval > 1 else { return }
+            // A departure inside the next ten minutes still gets its reminder,
+            // just now: the sheet promised one, so skipping it would be a lie.
+            let interval = max(1, flight.boardingOpens.timeIntervalSinceNow)
             let trigger = UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: false)
             let request = UNNotificationRequest(identifier: Self.notificationID, content: content, trigger: trigger)
-            center.add(request)
+            center.add(request) { error in
+                guard error != nil else { return }
+                DispatchQueue.main.async { self.notificationsDenied = true }
+            }
         }
     }
 

@@ -192,6 +192,11 @@ final class LocationManager {
         self.init(requester: { CoreLocationRequester() })
     }
 
+    /// Farthest a sensed location may be from a catalog airport and still be
+    /// called "nearest". 1,500 km covers every catalog city from its region
+    /// and nothing across an ocean.
+    nonisolated static let maximumOriginDistance: CLLocationDistance = 1_500_000
+
     /// Designated initializer. Tests pass a stub in place of CoreLocation.
     nonisolated init(requester: @escaping @Sendable @MainActor () -> LocationRequesting) {
         makeRequester = requester
@@ -226,7 +231,11 @@ final class LocationManager {
         guard status == .authorizedWhenInUse || status == .authorizedAlways else { return }
         guard case .location(let location) = await requester.requestLocation() else { return }
 
+        // Outside the catalog's reach the app has no honest "nearest"
+        // airport, so it leaves the origin unknown and Home offers "Set your
+        // airport" instead of drawing a location glyph next to a guess.
+        guard let nearest = Airport.nearest(to: location, within: Self.maximumOriginDistance) else { return }
         resolved = true
-        SettingsStore.shared.resolvedOriginCode = Airport.nearest(to: location).code
+        SettingsStore.shared.resolvedOriginCode = nearest.code
     }
 }

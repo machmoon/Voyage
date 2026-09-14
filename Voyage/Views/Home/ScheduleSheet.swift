@@ -111,7 +111,7 @@ struct ScheduleSheet: View {
                         .lineLimit(1)
                     Text(itinerary.connection.map { "1 stop · \($0.code)" } ?? "Nonstop")
                         .font(.caption)
-                        .foregroundStyle(itinerary.isConnection ? .orange : .green)
+                        .foregroundStyle(.secondary)
                 }
             }
             .padding(.horizontal, 16)

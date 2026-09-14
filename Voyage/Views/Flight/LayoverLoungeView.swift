@@ -42,7 +42,7 @@ struct LayoverLoungeView: View {
                     .kerning(3)
             }
             .font(.system(size: 13, weight: .heavy))
-            .foregroundStyle(Color(hex: "E8B23A"))
+            .foregroundStyle(Theme.loungeGold)
 
             Text("Welcome to \(connection.city)")
                 .font(.title2.bold())
@@ -51,6 +51,8 @@ struct LayoverLoungeView: View {
             Text("First leg complete. Take a real break before the next one.")
                 .font(.subheadline)
                 .foregroundStyle(.white.opacity(0.6))
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 24)
         }
     }
 
@@ -109,7 +111,7 @@ struct LayoverLoungeView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
                 .background(
-                    session.isFinalCall ? Color.red : Color(hex: "E8B23A"),
+                    session.isFinalCall ? Color.red : Theme.loungeGold,
                     in: RoundedRectangle(cornerRadius: 18, style: .continuous)
                 )
         }

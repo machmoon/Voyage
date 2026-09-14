@@ -15,10 +15,10 @@ fileTypes:
 settings:
   base:
     SWIFT_VERSION: "5.0"
-    MARKETING_VERSION: "1.1"
-    # App Store Connect: 1.0 (3) is live. The unified update is 1.1 (4).
+    MARKETING_VERSION: "1.1.1"
+    # App Store Connect: 1.1 (4) is live. The 1.1.1 update ships as build 5.
     # Increment this shared app/widget build number for each upload.
-    CURRENT_PROJECT_VERSION: "4"
+    CURRENT_PROJECT_VERSION: "5"
     GENERATE_INFOPLIST_FILE: false
 targets:
   Voyage:

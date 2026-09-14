@@ -90,4 +90,10 @@ extension Airport {
     static func nearest(to location: CLLocation) -> Airport {
         all.min { $0.location.distance(from: location) < $1.location.distance(from: location) } ?? all[0]
     }
+
+    /// The nearest catalog airport, or nil when even that one is farther than `distance`.
+    static func nearest(to location: CLLocation, within distance: CLLocationDistance) -> Airport? {
+        let closest = nearest(to: location)
+        return closest.location.distance(from: location) <= distance ? closest : nil
+    }
 }

@@ -1,4 +1,5 @@
 import SwiftUI
+import os
 import UIKit
 import StoreKit
 import MapKit
@@ -311,6 +312,7 @@ private struct StampView: View {
 
     @Environment(\.requestReview) private var requestReview
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.modelContext) private var modelContext
 
     /// Two beats: the stamp presses into the page (`stamped`), then once it has
     /// settled the receipt and share controls reveal (`revealed`). Sequencing
@@ -490,7 +492,9 @@ private struct StampView: View {
                     .shadow(color: .black.opacity(0.35), radius: 8, y: 4)
             }
 
-            TextField("What did you work on? (optional)", text: $shareCaption, axis: .vertical)
+            TextField("What did you work on? (optional)", text: $shareCaption,
+                      prompt: Text("What did you work on? (optional)").foregroundStyle(.white.opacity(0.45)),
+                      axis: .vertical)
                 .focused($captionFocused)
                 .lineLimit(2...4)
                 .font(.subheadline)
@@ -532,6 +536,12 @@ private struct StampView: View {
         let trimmed = shareCaption.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let entry = session.logEntry else { return }
         entry.shareCaption = trimmed.isEmpty ? nil : trimmed
+        // Autosave is not configured anywhere, so an explicit save is the only
+        // thing standing between the caption and a kill before the next tick.
+        do { try modelContext.save() } catch {
+            Logger(subsystem: "com.patrickliu.voyage", category: "arrival")
+                .error("Caption save failed: \(error.localizedDescription, privacy: .public)")
+        }
     }
 
     // MARK: The spread

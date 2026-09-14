@@ -9,6 +9,8 @@ struct RootView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var scheduler = FlightScheduler.shared
     @State private var settings = SettingsStore.shared
+    /// A flight the previous process did not survive, logged on this launch.
+    @State private var recoveredFlight: LogbookEntry?
 
     var body: some View {
         ZStack {
@@ -48,6 +50,7 @@ struct RootView: View {
         .onAppear {
             Haptics.prepare()
             sweepOrphanedActivity()
+            recoverInterruptedFlight()
             #if DEBUG
             // QA-only: jump straight to the passport-stamp payoff, and skip the
             // Focus authorization prompt so it can't cover the capture.
@@ -61,6 +64,26 @@ struct RootView: View {
             }
         }
         .preferredColorScheme(session?.stage == .inFlight ? .dark : nil)
+        .alert("Flight diverted", isPresented: Binding(
+            get: { recoveredFlight != nil },
+            set: { if !$0 { recoveredFlight = nil } }
+        )) {
+            Button("OK") { recoveredFlight = nil }
+        } message: {
+            if let recoveredFlight {
+                Text("Voyage was closed during \(recoveredFlight.originCode) to \(recoveredFlight.destinationCode). The flight is in your logbook as diverted with \(recoveredFlight.focusSeconds.shortDurationText) of focus time.")
+            }
+        }
+    }
+
+    /// QA launches and the unit-test host are exempt: a run killed mid-flight
+    /// must not put an alert over the next run's first tap.
+    private func recoverInterruptedFlight() {
+        guard session == nil, recoveredFlight == nil,
+              !FlightSession.shortFlightsEnabled,
+              ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil
+        else { return }
+        recoveredFlight = InterruptedFlightRecovery.recover(into: modelContext)
     }
 
     private func sweepOrphanedActivity() {

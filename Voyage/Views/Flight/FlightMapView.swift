@@ -48,7 +48,9 @@ struct FlightMapView: View {
             // restarts every 0.5 s and makes the tracking pulse.
             if cameraMode == .follow { updateCamera(animated: true, tracking: true) }
         }
-        .overlay(alignment: .bottom) {
+        // A bottom safe-area inset, not an overlay: MapKit keeps its "Legal"
+        // link above the inset, so the pickers never sit on the attribution.
+        .safeAreaInset(edge: .bottom, spacing: 0) {
             if showsControls { controls }
         }
     }

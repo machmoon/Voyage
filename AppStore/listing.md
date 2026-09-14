@@ -29,35 +29,23 @@ A window seat for study time
 
 ## Promotional text — 170 characters maximum
 
-Voyage turns your study time into a flight with a window view and a destination to work toward. It is an open-source project built by a student, for students.
+Voyage is a completely free study timer that turns your focus sessions into flights. It is open source and built by a student who loves flying.
 
 ## Description — 4,000 characters maximum
 
-Voyage is a study timer that brings the experience of flying to your desk. You choose a destination, settle into a window seat, and work while your flight makes its way toward landing.
+Voyage is a completely free study timer that turns your study sessions into flights. You choose a destination, pick your seat, and work while your plane travels toward landing. Along the way, you can look out the window, listen to the cabin, or follow your route on the map.
 
-Your route gives the session a clear duration
+I'm Patrick, a student who flies often and loves it. I built Voyage because I wanted to bring something I enjoy into the time I spend studying, and I thought other students might enjoy it too.
 
-Choose a route on the globe and see how long the flight will take before you board. You can select your seat and add up to three tasks, whether you are working through a problem set, reading for class, or preparing for an exam. When you tear your boarding pass, the flight begins and its scheduled duration becomes your study timer.
+To start a session, choose a route on the globe and check its flight time. That becomes the length of your study session. You can add up to three things you want to work on, then tear your boarding pass to begin. When you finish a flight, you collect a passport stamp and save the trip in your logbook, where you can look back at the routes you've completed and replay your journeys.
 
-The cabin gives you somewhere to settle in
+For longer sessions, connecting flights include a layover between legs. You can also turn on reminders to drink water, rest your eyes, and stretch. During a flight, leaving Voyage for more than 30 seconds causes a diversion, so keep it open while you study. The app does not block other apps or turn on airplane mode.
 
-A view from the airplane window and cabin sounds accompany your session, while a moving map shows your progress along the route. Optional reminders encourage you to drink water, rest your eyes, and stretch. Connecting itineraries include a layover so you can take a break before the next leg.
+Everything in Voyage is free. There are no subscriptions, in-app purchases, or ads, and you don't need an account. Your study history stays on your device.
 
-Voyage asks you to keep the app open while you work. Leaving it for more than 30 seconds during a flight causes a diversion; it does not block other apps or turn on airplane mode.
+Voyage is also open source. I'm building it with the hope that students who use it will help make it better, whether that means reporting a bug, suggesting a route, sharing an idea, or contributing code. You can find the project and leave feedback at https://github.com/machmoon/Voyage.
 
-Your passport records the journeys you finish
-
-When you land, you collect a passport stamp and add the flight to your logbook. Over time, your completed routes become a record of the study sessions you have made time for. You can revisit those journeys and replay your flights.
-
-I built Voyage because I love flying
-
-I'm Patrick, a student who flies often and wanted to bring something I enjoy into the hours I spend studying. Voyage grew from that idea, and I want to keep making it more useful and enjoyable for other students.
-
-The project is open source, so you can explore how it works, report something that needs fixing, suggest a feature, or contribute to the code. You do not need to be a developer to help; feedback from the people studying with Voyage matters just as much.
-
-Voyage has no account requirement, advertising, or subscription. Your study history is stored on your device.
-
-You can find the project and share your ideas at https://github.com/machmoon/Voyage.
+I hope you enjoy studying with it as much as I've enjoyed building it.
 
 ## Keywords — 100 bytes maximum
 

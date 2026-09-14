@@ -64,6 +64,12 @@ struct LogbookView: View {
 
     private var flightsList: some View {
         List {
+            if VoyageApp.logbookIsEphemeral {
+                Section {
+                    LogbookStorageWarning()
+                }
+            }
+
             Section {
                 statusCard
                     .listRowInsets(EdgeInsets())

@@ -37,36 +37,43 @@ struct CheckBagView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            VStack(spacing: 6) {
-                Image(systemName: "suitcase.rolling.fill")
-                    .voyageFont(34)
-                    .foregroundStyle(Theme.accent)
-                    .padding(.bottom, 4)
-                Text("Check a bag")
-                    .font(.title2.bold())
-                    .foregroundStyle(Theme.seatMapInk)
-                Text("Pack up to three things you want done on this flight. Claim the ones you finish when you land.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
-            }
-            .padding(.top, 24)
+            // Scrolls so the intro copy wraps instead of truncating when the
+            // three fields plus the keyboard leave it no room at large text sizes.
+            ScrollView {
+                VStack(spacing: 0) {
+                    VStack(spacing: 6) {
+                        Image(systemName: "suitcase.rolling.fill")
+                            .voyageFont(34)
+                            .foregroundStyle(Theme.accent)
+                            .padding(.bottom, 4)
+                        Text("Check a bag")
+                            .font(.title2.bold())
+                            .foregroundStyle(Theme.seatMapInk)
+                        Text("Pack up to three things you want done on this flight. Claim the ones you finish when you land.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 32)
+                    }
+                    .padding(.top, 24)
 
-            VStack(spacing: 12) {
-                ForEach(0..<3, id: \.self) { index in
-                    bagField(index)
+                    VStack(spacing: 12) {
+                        ForEach(0..<3, id: \.self) { index in
+                            bagField(index)
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 28)
+
+                    if !recentBags.isEmpty {
+                        recentBagsRow
+                            .padding(.top, 14)
+                    }
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 28)
+            .scrollBounceBehavior(.basedOnSize)
 
-            if !recentBags.isEmpty {
-                recentBagsRow
-                    .padding(.top, 14)
-            }
-
-            Spacer()
+            Spacer(minLength: 0)
 
             VStack(spacing: 10) {
                 focusNote

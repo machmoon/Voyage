@@ -56,6 +56,16 @@ struct HomeView: View {
             // above the map, below the chrome — dissolved once MapKit paints.
             StartupGlobeCover()
 
+            // Pins that scroll under the header fade behind it instead of
+            // drawing through the wordmark and the origin line.
+            VStack {
+                LinearGradient(colors: [.black.opacity(0.55), .clear], startPoint: .top, endPoint: .bottom)
+                    .frame(height: 140)
+                    .ignoresSafeArea(edges: .top)
+                    .allowsHitTesting(false)
+                Spacer()
+            }
+
             VStack(spacing: 0) {
                 header
                 if let scheduled = scheduler.scheduled {

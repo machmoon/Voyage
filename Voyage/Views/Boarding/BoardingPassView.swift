@@ -10,6 +10,15 @@ struct BoardingPassView: View {
     @State private var printed = false
     /// 0→1 feed progress: the pass emerges below the slot in line-feed steps.
     @State private var printProgress: CGFloat = 0
+    /// Measured height of the pass, so the feed starts with the paper fully
+    /// inside the slot and every line-feed step shows a strip of it. A fixed
+    /// travel was wrong both ways: taller passes peeked out before the first
+    /// feed, shorter ones stayed hidden for the first three.
+    @State private var passHeight: CGFloat = 0
+    /// The last line has fed. The housing shows READY for a beat before it
+    /// withdraws (`printed`), the way a gate printer sits still for a moment
+    /// once the pass is out.
+    @State private var feedComplete = false
     @State private var ripped = false
     /// 0→1 progress of sliding a cut across the perforation line.
     @State private var cutProgress: CGFloat = 0
@@ -55,20 +64,30 @@ struct BoardingPassView: View {
 
                 // The pass feeds out of the housing's slot, one line at a time.
                 // A small negative top inset tucks the emerging edge under the
-                // housing lip so it reads as coming *through* the slot. Clipping
-                // only lasts while printing so the torn stub can fall freely.
-                Group {
-                    if printed {
-                        passCard
-                            .padding(.horizontal, 28)
-                    } else {
-                        passCard
-                            .padding(.horizontal, 28)
-                            .offset(y: -560 * (1 - printProgress))
-                            .clipped()
+                // housing lip so it reads as coming *through* the slot.
+                //
+                // One view, one identity, for the whole sequence: the paper is
+                // offset up by its own height and masked at the slot while it
+                // prints, and the mask simply opens once it is out. Branching on
+                // `printed` here built a second copy of the pass and crossfaded
+                // the two under the retreating housing, which showed as a ghost
+                // ticket bleeding through the real one (QA/printframes/p12.png).
+                passCard
+                    .padding(.horizontal, 28)
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { passHeight = $0 }
+                    .offset(y: -passHeight * (1 - printProgress))
+                    // Not a frame before the measurement lands: an unmeasured
+                    // pass would sit fully out of the slot for one layout pass.
+                    .opacity(passHeight > 0 ? 1 : 0)
+                    // Flush with the slot on top; generous elsewhere so the
+                    // paper's shadow is never clipped and the torn stub can fall.
+                    .mask(alignment: .top) {
+                        Rectangle()
+                            .padding(.horizontal, -60)
+                            .padding(.bottom, -400)
+                            .padding(.top, printed ? -400 : 0)
                     }
-                }
-                .padding(.top, printed ? 0 : -7)
+                    .padding(.top, -7)
 
                 Spacer()
 
@@ -114,7 +133,7 @@ struct BoardingPassView: View {
             Image(systemName: "airplane")
                 .font(.system(size: 11, weight: .bold))
                 .foregroundStyle(Theme.accent)
-            Text("Airplane Mode on. Nothing interrupts this flight.")
+            Text("Turn on Airplane Mode. Nothing interrupts this flight.")
                 .font(.caption.weight(.medium))
                 .foregroundStyle(.white.opacity(0.75))
         }
@@ -134,7 +153,7 @@ struct BoardingPassView: View {
     /// while printing, and a recessed slot along its bottom lip that the ticket
     /// emerges through. `working` glows the slot's print-head bar.
     private var printerHousing: some View {
-        let working = !printed && printProgress > 0
+        let working = !feedComplete && printProgress > 0
         return ZStack(alignment: .bottom) {
             // Machine body
             RoundedRectangle(cornerRadius: 15, style: .continuous)
@@ -147,13 +166,13 @@ struct BoardingPassView: View {
                     HStack(spacing: 8) {
                         // Print-status light: accent while feeding, calm when done.
                         Circle()
-                            .fill(printed ? Color(hex: "6FCF97") : Theme.accent)
+                            .fill(feedComplete ? Color(hex: "6FCF97") : Theme.accent)
                             .frame(width: 7, height: 7)
-                            .shadow(color: (printed ? Color(hex: "6FCF97") : Theme.accent)
+                            .shadow(color: (feedComplete ? Color(hex: "6FCF97") : Theme.accent)
                                 .opacity(working ? 0.9 : 0.4),
                                     radius: working ? 5 : 2)
                             .opacity(working ? 1 : 0.85)
-                        Text(printed ? "READY" : "PRINTING")
+                        Text(feedComplete ? "READY" : "PRINTING")
                             .font(.system(size: 8, weight: .bold, design: .monospaced))
                             .kerning(1.2)
                             .foregroundStyle(.white.opacity(0.35))
@@ -185,7 +204,7 @@ struct BoardingPassView: View {
                         .frame(height: 3)
                         .blur(radius: 2)
                         .padding(.horizontal, 40)
-                        .animation(.smooth(duration: 0.5), value: printed)
+                        .animation(.smooth(duration: 0.5), value: feedComplete)
                 )
                 .padding(.horizontal, 6)
                 .offset(y: 4)
@@ -204,12 +223,18 @@ struct BoardingPassView: View {
             let schedule = Self.feedSchedule
             CabinAudioEngine.shared.playPrinter(feedSchedule: schedule)
             for (line, gap) in schedule.enumerated() {
-                withAnimation(.spring(duration: 0.13, bounce: 0.2)) {
+                // No bounce: a feed roller only ever turns forward, and any
+                // overshoot here read as the paper sliding back into the slot.
+                withAnimation(.easeOut(duration: 0.12)) {
                     printProgress = CGFloat(line + 1) / CGFloat(schedule.count)
                 }
                 Haptics.softTick()
                 try? await Task.sleep(for: .milliseconds(Int(gap * 1000)))
             }
+            // A beat with the paper fully out and the light green before the
+            // housing withdraws, so the release reads as a step, not a cut.
+            feedComplete = true
+            try? await Task.sleep(for: .milliseconds(260))
             printed = true
         }
     }
