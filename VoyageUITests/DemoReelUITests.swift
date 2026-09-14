@@ -88,17 +88,18 @@ final class DemoReelUITests: XCTestCase {
     ///
     /// Driven by `scripts/record_app_preview.sh`, which starts `simctl
     /// recordVideo` the moment this test writes `QA/preview-ready` (the globe
-    /// has settled) and stops it after the takeoff hold, so no trim is needed
-    /// beyond a scale to 886x1920. Under `-VoyageShortFlights` the takeoff roll
-    /// is about three seconds and the climb is done by eight, so the window
-    /// shows the runway, rotation and climb inside the clip.
+    /// has settled) and stops it after the takeoff hold. Under
+    /// `-VoyageShortFlights` the schedule rolls for 28 s with rotation at
+    /// about 19 s (`FlightPhaseSchedule.make`), and the leg starts 2 to 3 s
+    /// after the tear, so the hold below runs past rotation and the script
+    /// trims the front of the capture to keep the clip inside 30 s.
     ///
     /// Beat sheet from the marker:
     ///   0–1.5s   Home globe
     ///   1.5–3s   Destination picked, route arc drawn
     ///   3–8s     Departure zoom, seat map, seat taken
     ///   8–12s    Pass prints, torn
-    ///   12–29s   Curtain, thirteen-second takeoff roll, rotation and climb
+    ///   12–30s   Curtain, takeoff roll, rotation at about 28 s
     @MainActor
     func testAppPreview() throws {
         let app = XCUIApplication()
@@ -138,12 +139,12 @@ final class DemoReelUITests: XCTestCase {
             NSPredicate(format: "label BEGINSWITH %@", "Take seat")).firstMatch, timeout: 3)
         skipBags(in: app)
 
-        // Tear as soon as the pass is out: the takeoff roll is thirteen
-        // seconds under short flights and rotation has to land inside the clip.
+        // Tear as soon as the pass is out; rotation is about 21 s after the
+        // tap and the hold has to outlast the recording.
         _ = app.buttons["Tear and board"].waitForExistence(timeout: 12)
         pause(0.4)
         _ = tap(app.buttons["Tear and board"], timeout: 4)
-        pause(18.0)
+        pause(26.0)
         try? FileManager.default.removeItem(at: Self.previewMarker)
     }
 

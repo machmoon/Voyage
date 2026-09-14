@@ -182,12 +182,14 @@ Measured, not estimated. `--list` output as of the last run:
 
 | Slot | Filter | Status |
 | --- | --- | --- |
-| 1 | `qa-01-home` | Ready |
-| 2 | `qa-04-boarding-pass` | **Held in config.** Blocked on the Airplane Mode string, PNG deleted |
-| 3 | `qa-08-inflight-cruise` | Ready |
-| 4 | `qa-12-divert-alert` | **Built, but will go stale.** Re-capture after the design patch |
-| 5 | `qa-31-passport-spread` | **Built.** `qa-13-logbook` rejected as a failing-user frame |
+| 1 | `qa-08-inflight-cruise` | Ready (leads: the study window) |
+| 2 | `qa-01-home` | Ready |
+| 3 | `qa-04-boarding-pass` | Ready. The pass now says "Turn on Airplane Mode." so the earlier hold is lifted |
+| 4 | `qa-31-passport-spread` | Ready |
+| 5 | `qa-12-divert-alert` | Ready |
 | 6 | `qa-14-live-activity` | Pending capture. Needs a tour case |
+
+Order changed September 14, 2026 so the study window leads (see AppStore/listing.md).
 
 All six are *capturable in principle* today, and none is blocked by the demo-flag bug. Slots 1
 to 4 are pre-flight or early-flight state; slots 5 and 6 sit on the arrival side, which the demo

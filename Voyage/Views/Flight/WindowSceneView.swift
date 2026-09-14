@@ -33,6 +33,7 @@ struct IllustratedWindowSceneView: View {
     /// the runway until rotation.
     var takeoffRollLength: TimeInterval = FlightSession.takeoffRollDuration
     var climbLength: TimeInterval = FlightSession.climbEndsAt - FlightSession.takeoffRollDuration
+    var landingLength: TimeInterval = FlightSession.landingDuration
 
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -116,7 +117,8 @@ struct IllustratedWindowSceneView: View {
                     time: t,
                     tPhase: reduceMotion ? 0.35 : tPhase,
                     size: size,
-                    rollLength: takeoffRollLength
+                    rollLength: takeoffRollLength,
+                    landingLength: landingLength
                 )
 
                 drawSky(context, scene)
@@ -228,7 +230,7 @@ struct IllustratedWindowSceneView: View {
         guard !isNight else { return false }
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = airport.timeZone
-        let hour = calendar.component(.hour, from: Date())
+        let hour = SettingsStore.shared.sceneHourOverride ?? calendar.component(.hour, from: Date())
         return hour >= 17 && hour < 20 || hour >= 5 && hour < 8
     }
 
@@ -245,6 +247,7 @@ struct IllustratedWindowSceneView: View {
         let tPhase: Double
         let size: CGSize
         var rollLength: TimeInterval = FlightSession.takeoffRollDuration
+        var landingLength: TimeInterval = FlightSession.landingDuration
 
         var onGround: Bool { phase == .takeoffRoll || phase == .landing }
 
@@ -338,7 +341,7 @@ struct IllustratedWindowSceneView: View {
                 return vMax * roll / 2 + vMax * tPhase
             case .landing:
                 let t = tPhase
-                let brake = max(0.5, FlightSession.landingDuration * 0.85)
+                let brake = max(0.5, landingLength * 0.85)
                 // Integrate the linear deceleration.
                 let tc = min(t, brake)
                 var d = vMax * tc - (vMax - 130.0) * tc * tc / (2 * brake)

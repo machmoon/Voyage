@@ -75,19 +75,9 @@ struct InFlightView: View {
     private var isNight: Bool {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = sceneAirport.timeZone
-        let hour = Self.sceneHourOverride ?? calendar.component(.hour, from: Date())
+        let hour = settings.sceneHourOverride ?? calendar.component(.hour, from: Date())
         return hour >= 19 || hour < 6
     }
-
-    /// `-VoyageSceneHour <0-23>` pins the window's time of day for QA and
-    /// marketing captures, which otherwise inherit whatever hour it is at the
-    /// origin airport when the recording runs.
-    private static let sceneHourOverride: Int? = {
-        let args = ProcessInfo.processInfo.arguments
-        guard let i = args.firstIndex(of: "-VoyageSceneHour"), args.indices.contains(i + 1),
-              let hour = Int(args[i + 1]), (0...23).contains(hour) else { return nil }
-        return hour
-    }()
 
     /// Red-eye flights dim the whole cabin, and the crew dims the lights
     /// again for approach and landing.
@@ -142,7 +132,7 @@ struct InFlightView: View {
                 // seconds a card is up they stand down.
                 let crowded = typeSize.isAccessibilitySize && session.serviceCue != nil
 
-                if showInfoPill && !crowded {
+                if showInfoPill && !crowded && !pureMode {
                     flightInfoPill
                         .padding(.top, 20)
                         .transition(.scale(scale: 0.9).combined(with: .opacity))
@@ -152,6 +142,7 @@ struct InFlightView: View {
                     intentionsStrip
                         .padding(.top, 16)
                         .opacity(pureMode ? 0 : 1)
+                        .allowsHitTesting(!pureMode)
                 }
 
                 Spacer(minLength: 24)
@@ -583,6 +574,7 @@ struct InFlightView: View {
             }
         }
         .onTapGesture {
+            guard !pureMode else { return }
             Haptics.tap()
             withAnimation(.snappy) { showInfoPill.toggle() }
         }

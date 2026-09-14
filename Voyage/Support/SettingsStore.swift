@@ -53,6 +53,11 @@ final class SettingsStore {
     }
 
     /// Manually chosen home airport code; nil means "use nearest from location".
+    /// `-VoyageSceneHour <0-23>` pins the window's local hour for QA and
+    /// marketing captures. Read by `InFlightView.isNight` and
+    /// `IllustratedWindowSceneView.goldenHour` so both agree; nil in production.
+    private(set) var sceneHourOverride: Int?
+
     var originOverrideCode: String? {
         didSet { defaults.set(originOverrideCode, forKey: "originOverrideCode") }
     }
@@ -222,6 +227,10 @@ final class SettingsStore {
             // same reason the load-time reconcile above assigns them in pairs.
             windowWorldMode = .real
             realWorldTwinEnabled = true
+        }
+        if let flag = arguments.firstIndex(of: "-VoyageSceneHour"), arguments.indices.contains(flag + 1),
+           let hour = Int(arguments[flag + 1]), (0...23).contains(hour) {
+            sceneHourOverride = hour
         }
         if let flag = arguments.firstIndex(of: "-VoyageHomeAirport"), arguments.indices.contains(flag + 1) {
             let code = arguments[flag + 1]

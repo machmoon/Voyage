@@ -103,6 +103,10 @@ final class FlightSession {
     }
 
     private(set) var serviceCue: CabinServiceCue?
+    /// Whether `finishSession` wrote the entry. False for a sub-minute
+    /// false start, which the diverted screen describes but the logbook
+    /// does not keep.
+    private(set) var loggedToLogbook = false
     private(set) var servicePlanner = CabinServicePlanner()
 
     /// Cues offered and ignored on this leg, in safeeyes' sense: a count, kept
@@ -201,9 +205,9 @@ final class FlightSession {
     /// descent and landing each still get screen time.
     nonisolated static let demoLegDuration: TimeInterval = 60
 
-    /// Ground-roll length the illustrated window's runway kinematics use. Kept
-    /// in sync with `FlightPhaseSchedule.make`'s roll (~34s real / ~13s QA) so a
-    /// real narrow-body takeoff (V1 ~20s, liftoff ~30s) reads at proper length.
+    /// Fallback ground-roll length for callers without a trajectory. The live
+    /// window and airport world take the leg's `FlightPhaseSchedule` instead
+    /// (per-aircraft 32 to 48 s real, 28 s under short flights).
     nonisolated static var takeoffRollDuration: TimeInterval { shortFlightsEnabled ? 13 : 34 }
     /// Compatibility constants for dormant procedural artwork. Live session
     /// boundaries come from the aircraft- and block-time-specific schedule.
@@ -996,7 +1000,8 @@ final class FlightSession {
         // a trip: the diverted screen still shows it, the logbook does not.
         // Tearing a pass and backing out immediately used to leave rows of
         // "DIVERTED · 0m" at the top of the logbook.
-        if completed || entry.focusSeconds >= Self.minimumLoggedFocus {
+        loggedToLogbook = completed || entry.focusSeconds >= Self.minimumLoggedFocus
+        if loggedToLogbook {
             modelContext.insert(entry)
             do {
                 try modelContext.save()

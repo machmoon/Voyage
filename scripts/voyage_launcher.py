@@ -109,7 +109,7 @@ class Launcher(tk.Tk):
         self.pin_hour = tk.BooleanVar(value=False)
         ttk.Checkbutton(window, text="Pin the hour", variable=self.pin_hour).grid(
             row=0, column=0, sticky="w")
-        self.hour = tk.IntVar(value=10)
+        self.hour = tk.StringVar(value="10")
         ttk.Spinbox(window, from_=0, to=23, textvariable=self.hour, width=4).grid(
             row=0, column=1, sticky="w", padx=(8, 0))
         ttk.Label(window, text="0–23 at the origin; 19–5 is night").grid(
@@ -171,7 +171,13 @@ class Launcher(tk.Tk):
         elif self.timing.get() == "demo":
             args.append("-VoyageDemoFlight")
         if self.pin_hour.get():
-            args += ["-VoyageSceneHour", str(self.hour.get())]
+            try:
+                hour = int(self.hour.get())
+            except ValueError:
+                hour = -1
+            if not 0 <= hour <= 23:
+                raise ValueError("hour must be 0-23")
+            args += ["-VoyageSceneHour", str(hour)]
         if self.real_world.get():
             args.append("-VoyageRealWorldTwinEnabled")
         if self.mute.get():
@@ -185,7 +191,10 @@ class Launcher(tk.Tk):
         return args
 
     def _refresh_args(self):
-        self.args_preview.set(" ".join(self.launch_args()))
+        try:
+            self.args_preview.set(" ".join(self.launch_args()))
+        except ValueError as error:
+            self.args_preview.set(f"✗ {error}")
 
     def udid(self):
         index = [f"{n}  ({s.lower()})" for n, _, s in self.devices].index(self.device.get())

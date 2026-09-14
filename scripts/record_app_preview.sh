@@ -15,9 +15,9 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO"
 
 DEVICE="${VOYAGE_SIM_DEVICE:-iPhone 17}"
-SECONDS_TO_RECORD="${SECONDS_TO_RECORD:-32}"
+SECONDS_TO_RECORD="${SECONDS_TO_RECORD:-38}"
 # Seconds cut from the front of the capture; the globe needs less hold than the takeoff.
-TRIM_START="${TRIM_START:-2.5}"
+TRIM_START="${TRIM_START:-8}"
 OUT_DIR="$REPO/AppStore/preview"
 RAW="$OUT_DIR/raw-capture.mp4"
 OUT="$OUT_DIR/voyage-preview.mp4"
@@ -41,6 +41,10 @@ xcrun simctl boot "$UDID" 2>/dev/null || true
 xcrun simctl bootstatus "$UDID" -b >/dev/null
 # The status bar Apple's own previews wear; cleared again at the end.
 xcrun simctl status_bar "$UDID" override --time 9:41 --batteryLevel 100 --batteryState charged --wifiBars 3 --cellularBars 4 --operatorName "" >/dev/null 2>&1 || true
+# Whatever happens below, stop the tour and the recorder and put the status
+# bar back, or the next QA capture on this simulator still says 9:41.
+TOUR_PID=""; REC_PID=""
+trap 'kill $TOUR_PID $REC_PID 2>/dev/null; xcrun simctl status_bar "$UDID" clear >/dev/null 2>&1; rm -f "$MARKER"' EXIT
 
 echo "==> driving the preview tour on $DEVICE"
 xcodebuild -project Voyage.xcodeproj -scheme Voyage \

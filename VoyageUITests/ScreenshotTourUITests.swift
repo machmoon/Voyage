@@ -464,6 +464,11 @@ final class ScreenshotTourUITests: XCTestCase {
         require(app.buttons["Map view"], "the in-flight study view switcher", timeout: 30)
         assertForeground(app, "in flight, before backgrounding")
 
+        // Fly past the first minute first: a diversion inside it is a false
+        // start that the logbook drops ("Not logged"), and the App Store frame
+        // wants the real thing, an "Incomplete" flight with miles kept.
+        settle(65)   // FlightSession.minimumLoggedFocus (60 s) plus margin
+
         // Break the rule for real.
         XCUIDevice.shared.press(.home)
         // 30s grace plus the 0.5s slack the work item adds

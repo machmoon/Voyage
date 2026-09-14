@@ -554,7 +554,7 @@ struct HomeView: View {
                 Text("Surprise me")
                     .font(.caption.weight(.medium))
                     .lineLimit(1)
-                Text("Any runway will do")
+                Text("Random destination")
                     .font(.system(size: 10, weight: .semibold))
                     .lineLimit(1)
                     .opacity(0.65)

@@ -17,10 +17,15 @@ struct DivertedView: View {
         case .missedConnection:
             return "The gate closed before you boarded. The miles you flew getting here are still logged."
         case .diverted:
+            let logged = session.loggedToLogbook
             if session.diversionReason == .voluntary {
-                return "You ended the flight early. Miles from the legs you completed are still logged."
+                return logged
+                    ? "You ended the flight early. Miles from the legs you completed are still logged."
+                    : "You ended the flight in its first minute. Nothing was logged."
             }
-            return "The app was in the background for over 30 seconds, so the flight put down at the nearest field. Your completed miles are still logged."
+            return logged
+                ? "The app was in the background for over 30 seconds, so the flight put down at the nearest field. Your completed miles are still logged."
+                : "The app was in the background for over 30 seconds in the flight's first minute, so nothing was logged."
         }
     }
 
@@ -70,7 +75,7 @@ struct DivertedView: View {
 
     private var statsRow: some View {
         HStack(spacing: 28) {
-            stat("Status", session.logbookSaveFailed ? "Not saved" : "Incomplete")
+            stat("Status", session.logbookSaveFailed ? "Not saved" : (session.loggedToLogbook ? "Incomplete" : "Not logged"))
             stat("Focus time", (session.logEntry?.focusSeconds ?? 0).shortDurationText)
             stat("Miles earned", "\(Int(session.completedMiles).formatted())")
         }
