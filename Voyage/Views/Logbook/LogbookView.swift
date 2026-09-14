@@ -116,7 +116,7 @@ struct LogbookView: View {
                 .foregroundStyle(Theme.accent)
                 .frame(width: 26)
             VStack(alignment: .leading, spacing: 2) {
-                Text("Flight data recorder")
+                Text("Insights")
                     .font(.subheadline.weight(.semibold))
                 Text(recorderCaption)
                     .font(.caption)
@@ -154,7 +154,8 @@ struct LogbookView: View {
                     .voyageFont(38, weight: .semibold)
                     .monospacedDigit()
                 let landings = entries.filter(\.completed)
-                Text("\(rating.current.title) · \(landings.count) landings")
+                let streak = LogbookStats.streakDays(entries)
+                Text("\(rating.current.title) · \(landings.count) landings\(streak >= 2 ? " · \(streak)-day streak" : "")")
                     .font(.subheadline)
                     .opacity(0.72)
             }
@@ -271,13 +272,16 @@ struct LogbookView: View {
 
     private func entryRow(_ entry: LogbookEntry) -> some View {
         HStack(spacing: 14) {
-            // Mini stamp.
+            // Mini stamp for a landing; a plain tile for a flight that
+            // stopped early, since there is no stamp to draw.
             VStack(spacing: 1) {
                 Text(entry.destinationCode)
                     .voyageFont(13, weight: .black, design: .monospaced)
-                Text(entry.completed ? "ADMITTED" : "STOPPED EARLY")
-                    .voyageFont(5.5, weight: .heavy)
-                    .kerning(0.5)
+                if entry.completed {
+                    Text("ADMITTED")
+                        .voyageFont(5.5, weight: .heavy)
+                        .kerning(0.5)
+                }
             }
             .foregroundStyle(entry.completed ? entry.destination.accentColor : .secondary)
             // The mini stamp is a scale drawing, so it is capped rather than
@@ -306,7 +310,7 @@ struct LogbookView: View {
                 }
                 // Date and length. Flight number, seat, bags and miles are
                 // on the receipt and the stamp, not repeated on every row.
-                Text("\(entry.date.formatted(.dateTime.month(.abbreviated).day())) · \(entry.focusSeconds.shortDurationText)")
+                Text("\(entry.date.formatted(.dateTime.month(.abbreviated).day())) · \(entry.focusSeconds.shortDurationText)\(entry.completed ? "" : " · Stopped early")")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

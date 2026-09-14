@@ -197,7 +197,7 @@ final class RecorderScreenshotUITests: XCTestCase {
         XCTAssertTrue(logbook.waitForExistence(timeout: 20))
         logbook.tap()
         XCTAssertTrue(app.buttons["open-recorder"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.staticTexts["Flight data recorder"].exists)
+        XCTAssertTrue(app.staticTexts["Insights"].exists)
         capture(app, named: "recorder-6-logbook-row-light")
     }
 }

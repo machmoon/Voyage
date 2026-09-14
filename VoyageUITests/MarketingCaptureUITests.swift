@@ -181,7 +181,7 @@ final class MarketingCaptureUITests: XCTestCase {
         let logbook = app.buttons["open-logbook"]
         require(logbook, "the Logbook button on home", timeout: 20)
         logbook.tap()
-        require(app.staticTexts["Flight data recorder"], "the recorder row", timeout: 10)
+        require(app.staticTexts["Insights"], "the insights row", timeout: 10)
         settle(2)
         capture(app, "mk-12-logbook")
 

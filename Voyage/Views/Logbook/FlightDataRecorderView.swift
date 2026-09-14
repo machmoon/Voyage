@@ -31,7 +31,7 @@ struct FlightDataRecorderView: View {
             RecorderReadout(report: report)
         }
         .background(Self.backdrop)
-        .navigationTitle("Recorder")
+        .navigationTitle("Insights")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)

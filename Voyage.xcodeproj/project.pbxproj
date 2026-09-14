@@ -169,6 +169,7 @@
 		A8F42234B47120026436CC0E /* crew_landed_toronto.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BBF5EEF22F534CB2D783D7DE /* crew_landed_toronto.m4a */; };
 		A9129418EED5173845FA52B8 /* SFOWindowWorldUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A0FE05364955A8866252542 /* SFOWindowWorldUITests.swift */; };
 		AAA6119396D01CDEBA10A3BC /* captain_layover_san-francisco.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 591C58B45FD8B32DF107C9F0 /* captain_layover_san-francisco.m4a */; };
+		AB3DD460AA7855763742CBBB /* PassportPhotoStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A844250B231FB1AC590FFA5 /* PassportPhotoStore.swift */; };
 		ABDDDC51F599BD794A1D73AD /* FlightReceiptRenderCostTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17645640E6FBB962EE45DBEE /* FlightReceiptRenderCostTests.swift */; };
 		AC82BA8820C268D04D32CBF5 /* RoutePlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = B677A2CF7162DBB0F3C7D092 /* RoutePlanner.swift */; };
 		AFCFB25B5FCD68E7D6A8AF76 /* ScheduleSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AAB53D2E07097E1378EDA77 /* ScheduleSheet.swift */; };
@@ -420,6 +421,7 @@
 		99CA0EDD0DD64CFDE04B6781 /* DemoReelUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoReelUITests.swift; sourceTree = "<group>"; };
 		99DF6468F2274971635705B0 /* DepartureGateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepartureGateTests.swift; sourceTree = "<group>"; };
 		9A165B73007A3BD7DF568A7A /* crew_landed_regina.m4a */ = {isa = PBXFileReference; path = crew_landed_regina.m4a; sourceTree = "<group>"; };
+		9A844250B231FB1AC590FFA5 /* PassportPhotoStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PassportPhotoStore.swift; sourceTree = "<group>"; };
 		9C3EAAF566544849E00467C4 /* crew_descent_raleigh-durham.m4a */ = {isa = PBXFileReference; path = "crew_descent_raleigh-durham.m4a"; sourceTree = "<group>"; };
 		9C6FBB0F4116077FBF34D6A5 /* ScreenshotTourUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotTourUITests.swift; sourceTree = "<group>"; };
 		9D8589DBFE0CCD92E7E178A1 /* FlightDataRecorderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightDataRecorderTests.swift; sourceTree = "<group>"; };
@@ -919,6 +921,7 @@
 				685811A683D09ECDC6325F88 /* Info.plist */,
 				5C88294A662E6C2C66610A47 /* LocationManager.swift */,
 				10566A414E4D9EAE24BC0E96 /* MapWarmer.swift */,
+				9A844250B231FB1AC590FFA5 /* PassportPhotoStore.swift */,
 				CA71C0325864048E6EDDA32D /* RecorderDemoLogbook.swift */,
 				0DF13B0FF6F67EF0797DAFA7 /* SettingsStore.swift */,
 				DB5F0208829F37BC0518AB7B /* Shaders.metal */,
@@ -1287,6 +1290,7 @@
 				0056CD7616753D1EF62C48F1 /* LogbookView.swift in Sources */,
 				1EE78AA8B9FC081A917B453A /* MapWarmer.swift in Sources */,
 				9CA8B5599618A7590FA87C45 /* OnboardingView.swift in Sources */,
+				AB3DD460AA7855763742CBBB /* PassportPhotoStore.swift in Sources */,
 				3573E8F27242AF37FB6A92BF /* PassportView.swift in Sources */,
 				61110BA43DD5F1BD341EFAC2 /* PilotRatings.swift in Sources */,
 				6C4CB85B98BC15BB86423990 /* RealWorldSceneView.swift in Sources */,
@@ -1453,7 +1457,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 8;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1590,7 +1594,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 8;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;

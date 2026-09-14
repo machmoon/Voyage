@@ -1,3 +1,4 @@
+import PhotosUI
 import SwiftData
 import SwiftUI
 
@@ -49,6 +50,11 @@ struct PassportView: View {
     private var collectedCount: Int { records.filter(\.isCollected).count }
     private var tier: FlyerTier { LogbookStats.tier(entries) }
     private var rating: RatingProgress { RatingProgress.evaluate(entries: entries) }
+    private var memberSince: Date? { completedEntries.map(\.date).min() }
+    private var streak: Int { LogbookStats.streakDays(entries) }
+
+    @State private var photo: UIImage? = PassportPhotoStore.load()
+    @State private var photoItem: PhotosPickerItem?
 
     var body: some View {
         ScrollView {
@@ -66,64 +72,131 @@ struct PassportView: View {
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
     }
 
-    // MARK: Biodata page
+    // MARK: Pilot card
 
+    /// The page opens on a card, the way FocusFlight opens its club page on a
+    /// membership card over one thin progress bar with two numbers under it.
+    /// Here the card is the pilot certificate: photo, rating, member since.
     private var passportBook: some View {
-        VStack(spacing: 0) {
-            cover
+        VStack(spacing: 14) {
+            HStack(spacing: 6) {
+                Image(systemName: "airplane")
+                    .font(.caption2.weight(.semibold))
+                Text(memberLine)
+                    .font(.footnote)
+                Spacer()
+                if streak >= 2 {
+                    Text("\(streak)-day streak")
+                        .font(.footnote.weight(.semibold))
+                        .monospacedDigit()
+                }
+            }
+            .foregroundStyle(.secondary)
+
+            pilotCard
+
+            progressLine
         }
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .shadow(color: .black.opacity(0.18), radius: 14, y: 6)
-        // The bio page is a scale drawing of a real document: field columns,
-        // a printed frame, and a machine-readable zone whose two lines are
-        // fixed at 44 characters and cannot reflow. Growing the type shatters
-        // the layout, so it is capped instead, which is what
-        // wordpress-mobile/WordPress-iOS does on its own fixed cards
-        // (Modules/Sources/JetpackStats/Cards/TopListCard.swift) and
-        // signalapp/Signal-iOS on fixed screens
-        // (Signal/Registration/UserInterface/RegistrationPermissionsView.swift).
-        //
-        // A cap is honest, not a fix. The passport still bottoms out at
-        // 6pt to 8pt type, and several labels here shrink further via
-        // minimumScaleFactor(0.6). The accessible answer is a text
-        // alternative for the collection, noted in the critique.
-        //
-        // xLarge rather than large so the page still gains one step for
-        // someone who has nudged text up, instead of being frozen outright.
-        // NOT visually verified at accessibility sizes: needs a look on
-        // device before shipping.
-        .dynamicTypeSize(...DynamicTypeSize.xLarge)
     }
 
-    private var cover: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "globe.americas.fill")
-                .voyageFont(18, weight: .semibold)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("PASSPORT")
-                    .voyageFont(15, weight: .bold, design: .serif)
-                    .kerning(3)
-                Text("VOYAGE AIR")
-                    .voyageFont(9, weight: .semibold)
-                    .kerning(2.4)
-                    .opacity(0.65)
+    private var memberLine: String {
+        guard let memberSince else { return "No flights yet" }
+        let days = max(1, Calendar.current.dateComponents([.day], from: memberSince, to: .now).day ?? 0)
+        return days == 1 ? "First flight today" : "Flying for \(days) days"
+    }
+
+    private var pilotCard: some View {
+        HStack(spacing: 16) {
+            PhotosPicker(selection: $photoItem, matching: .images) {
+                ZStack {
+                    Circle().fill(.white.opacity(0.10))
+                    if let photo {
+                        Image(uiImage: photo)
+                            .resizable()
+                            .scaledToFill()
+                    } else {
+                        Image(systemName: "person.fill")
+                            .font(.system(size: 26))
+                            .foregroundStyle(.white.opacity(0.55))
+                    }
+                }
+                .frame(width: 64, height: 64)
+                .clipShape(Circle())
+                .overlay(Circle().strokeBorder(.white.opacity(0.25), lineWidth: 1))
             }
-            Spacer()
-            Text(rating.current.title.uppercased())
-                .voyageFont(10, weight: .heavy)
-                .kerning(1.4)
-                .padding(.horizontal, 10)
-                .frame(height: 24)
-                .overlay(Capsule().strokeBorder(.white.opacity(0.35), lineWidth: 1))
+            .buttonStyle(.plain)
+            .accessibilityLabel(photo == nil ? "Add a passport photo" : "Change passport photo")
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("VOYAGE AIR")
+                    .font(.caption2.weight(.semibold))
+                    .kerning(1.2)
+                    .foregroundStyle(Theme.passportFoil.opacity(0.7))
+                Text(rating.current.title)
+                    .font(.system(.title2, design: .serif, weight: .semibold))
+                    .foregroundStyle(.white)
+                Text("\(collectedCount) of \(records.count) cities · \(completedEntries.count) landings")
+                    .font(.footnote)
+                    .foregroundStyle(.white.opacity(0.65))
+                    .monospacedDigit()
+            }
+            Spacer(minLength: 0)
         }
-        // Foil on navy board, the way the cover of a real passport is blocked
-        // rather than printed. Voyage blue rather than gold: the foil is the
-        // one piece of color on the cover, so it should be the brand's.
-        .foregroundStyle(Theme.passportFoil)
-        .padding(.horizontal, 18)
-        .padding(.vertical, 14)
-        .frame(maxWidth: .infinity)
-        .background(Theme.passportCover)
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            LinearGradient(colors: [Theme.passportCover, Color(hex: "0E1424")],
+                           startPoint: .topLeading, endPoint: .bottomTrailing),
+            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(.white.opacity(0.08), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.18), radius: 14, y: 6)
+        .onChange(of: photoItem) { _, item in
+            guard let item else { return }
+            Task {
+                if let data = try? await item.loadTransferable(type: Data.self),
+                   let image = UIImage(data: data) {
+                    PassportPhotoStore.save(image)
+                    photo = PassportPhotoStore.load()
+                }
+            }
+        }
+    }
+
+    /// One bar, two numbers: total time on the left, what is left to the
+    /// next rating on the right.
+    @ViewBuilder
+    private var progressLine: some View {
+        let total = LogbookStats.totalFocusSeconds(entries)
+        if let next = rating.next, let open = rating.firstOpenRequirement {
+            VStack(spacing: 8) {
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Theme.passportCover.opacity(0.10))
+                        Capsule().fill(Theme.accent)
+                            .frame(width: max(4, geo.size.width * open.fraction))
+                    }
+                }
+                .frame(height: 4)
+                HStack(alignment: .firstTextBaseline) {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(PilotRatings.hoursText(total))
+                            .font(.headline).monospacedDigit()
+                        Text("Total time").font(.caption).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    VStack(alignment: .trailing, spacing: 1) {
+                        Text(open.remainingText)
+                            .font(.headline).monospacedDigit()
+                        Text("To \(next.title)").font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .padding(.horizontal, 4)
+        }
     }
 
     // MARK: Stamp page

@@ -104,6 +104,7 @@ struct BoardingPassView: View {
                     }
                     .accessibilityLabel("Tear and board")
                     .accessibilityHint("Tears the boarding pass stub and departs")
+                    .transition(.identity)
                 }
 
                 Text(ripped ? "Boarding…" : " ")
@@ -344,18 +345,21 @@ struct BoardingPassView: View {
                 if !ripped {
                     // Dashes ride just above the seam so the full stroke stays on
                     // the paper — the line you see is the line it parts along.
+                    // The whole seam is gone the instant the stub tears off:
+                    // no fade, no notch left behind on the moving body.
                     Path { path in
                         path.move(to: CGPoint(x: 14, y: seamY - 2))
                         path.addLine(to: CGPoint(x: w - 14, y: seamY - 2))
                     }
                     .stroke(Theme.boardingBackdrop,
                             style: StrokeStyle(lineWidth: 3, lineCap: .butt, dash: [9, 6]))
-                }
+                    .transition(.identity)
 
-                // Punched at both ends of the score, centered on the seam: the
-                // body clips the top half, the stub carries the bottom half.
-                notch.position(x: 0, y: seamY)
-                notch.position(x: w, y: seamY)
+                    // Punched at both ends of the score, centered on the seam: the
+                    // body clips the top half, the stub carries the bottom half.
+                    notch.position(x: 0, y: seamY).transition(.identity)
+                    notch.position(x: w, y: seamY).transition(.identity)
+                }
             }
             // Tall, generous hit area so the horizontal slide is easy to catch.
             .contentShape(Rectangle().inset(by: -16))

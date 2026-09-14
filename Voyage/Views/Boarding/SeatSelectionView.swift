@@ -202,7 +202,6 @@ struct SeatSelectionView: View {
     private var cabin: some View {
         VStack(spacing: 0) {
             flightDeck
-            forwardGalley
             ForEach(Array(plan.cabins.enumerated()), id: \.element.id) { index, cabin in
                 bulkhead(cabin.name.uppercased(), isFirst: index == 0)
                 columnHeaders(cabin)
@@ -210,128 +209,32 @@ struct SeatSelectionView: View {
                     seatRow(row, cabin: cabin)
                 }
             }
-            aftLavatories
             Color.clear.frame(height: tailLength)
         }
     }
 
     /// The nose is empty cabin-side, so the flight deck fills it: a windscreen
     /// and the two side windows either side of it.
+    /// The nose is empty cabin-side. The windshield is drawn with the nose
+    /// in `AirframeCanvas`, so this only reserves the space.
     private var flightDeck: some View {
-        Color.clear
-            .frame(height: noseLength)
-            .overlay(alignment: .bottom) {
-                // One windscreen band, curved with the nose, the way the
-                // cockpit reads on an airline seat map.
-                WindscreenBand()
-                    .fill(Theme.seatMapInk.opacity(0.55))
-                    .frame(width: fuselageWidth * 0.46, height: 11)
-                    .padding(.bottom, 12)
-            }
-            .accessibilityHidden(true)
+        Color.clear.frame(height: noseLength).accessibilityHidden(true)
     }
 
-    /// A shallow arc band: thicker in the middle, tapering to the sides.
-    private struct WindscreenBand: Shape {
-        func path(in rect: CGRect) -> Path {
-            var path = Path()
-            path.move(to: CGPoint(x: rect.minX, y: rect.maxY))
-            path.addQuadCurve(to: CGPoint(x: rect.maxX, y: rect.maxY),
-                              control: CGPoint(x: rect.midX, y: rect.minY - rect.height * 0.6))
-            path.addQuadCurve(to: CGPoint(x: rect.minX, y: rect.maxY),
-                              control: CGPoint(x: rect.midX, y: rect.minY + rect.height * 0.5))
-            path.closeSubpath()
-            return path
-        }
-    }
-
-    /// Forward galley and the lavatory across from it, ahead of row 1. Sized
-    /// against the seat pitch so the furniture is in scale with the cabin.
-    private var forwardGalley: some View {
-        HStack(spacing: seatGap) {
-            galleyBox
-                .frame(width: groupWidth)
-            Color.clear.frame(width: aisleWidth)
-            lavatoryBox(accessible: true)
-                .frame(width: groupWidth)
-        }
-        .frame(height: rowPitch * 0.92)
-        .padding(.horizontal, edgeInset)
-        .padding(.bottom, 4)
-        .accessibilityHidden(true)
-    }
-
-    /// The aft pair, either side of the rear aisle, where they sit on a
-    /// single-aisle aircraft.
-    private var aftLavatories: some View {
-        HStack(spacing: seatGap) {
-            lavatoryBox(accessible: false)
-                .frame(width: groupWidth)
-            Color.clear.frame(width: aisleWidth)
-            galleyBox
-                .frame(width: groupWidth)
-        }
-        .frame(height: rowPitch * 0.92)
-        .padding(.horizontal, edgeInset)
-        .padding(.top, 8)
-        .accessibilityHidden(true)
-    }
-
-    /// Galley and lavatory are plain boxes with the icon every airline seat
-    /// map uses (SeatGuru, the carriers' own maps): no cart bays, no door
-    /// swing. The furniture is scenery, not a drawing to be read.
-    private var galleyBox: some View {
-        cabinFurniture(symbol: "fork.knife")
-    }
-
-    private func lavatoryBox(accessible: Bool) -> some View {
-        cabinFurniture(symbol: "toilet.fill")
-    }
-
-    private func cabinFurniture(symbol: String) -> some View {
-        RoundedRectangle(cornerRadius: 6, style: .continuous)
-            .fill(Theme.seatMapInk.opacity(0.06))
-            .overlay {
-                Image(systemName: symbol)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(Theme.seatMapInk.opacity(0.35))
-            }
-    }
-
-    /// Cabins are closed off by a bulkhead and curtain, not a filled grey band.
     /// The curtain folds are what make the divider read as cabin furniture.
     private func bulkhead(_ label: String, isFirst: Bool) -> some View {
-        VStack(spacing: 5) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 2, style: .continuous)
-                    .fill(Theme.seatMapInk.opacity(0.10))
-                    .frame(height: 7)
-                GeometryReader { geo in
-                    // Curtain folds, drawn as a shallow run of pleats.
-                    let pleat: CGFloat = 7
-                    let count = max(1, Int(geo.size.width / pleat))
-                    Path { path in
-                        for index in 0...count {
-                            let x = CGFloat(index) * pleat
-                            path.move(to: CGPoint(x: x, y: 1))
-                            path.addLine(to: CGPoint(x: x, y: 6))
-                        }
-                    }
-                    .stroke(Theme.seatMapFuselage.opacity(0.7), lineWidth: 1)
-                }
-                .frame(height: 7)
-            }
-            Text(label)
-                .font(.system(size: 10, weight: .heavy))
-                .kerning(1.6)
-                .foregroundStyle(Theme.seatMapInk.opacity(0.5))
-                .accessibilityAddTraits(.isHeader)
-        }
-        // Sized to the cabin interior, not the screen: the bulkhead spans the
-        // fuselage and stops at the sidewall.
-        .frame(width: fuselageWidth - edgeInset * 2)
-        .padding(.top, isFirst ? 6 : 18)
-        .padding(.bottom, 2)
+        // A cabin header the way United's seat map labels one: a plain band
+        // with the cabin name, no curtain drawing.
+        Text(label.capitalized)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(Theme.seatMapInk.opacity(0.7))
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 6)
+            .background(Theme.seatMapInk.opacity(0.05), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .accessibilityAddTraits(.isHeader)
+            .frame(width: fuselageWidth - edgeInset * 2)
+            .padding(.top, isFirst ? 2 : 18)
+            .padding(.bottom, 6)
     }
 
     // MARK: Rows
@@ -703,6 +606,7 @@ private struct AirframeCanvas: View {
                           halfBody: halfBody)
             drawFuselage(context: context, size: size, midX: midX,
                          halfBody: halfBody)
+            drawFin(context: context, size: size, midX: midX)
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)
@@ -775,6 +679,17 @@ private struct AirframeCanvas: View {
         }
     }
 
+    // MARK: Fin
+
+    /// The vertical stabiliser seen from above: a short dark spine at the
+    /// very end of the tailcone.
+    private func drawFin(context: GraphicsContext, size: CGSize, midX: CGFloat) {
+        let length = tailLength * 0.55
+        let rect = CGRect(x: midX - 2, y: size.height - length - 4, width: 4, height: length)
+        context.fill(Path(roundedRect: rect, cornerRadius: 2),
+                     with: .color(Theme.seatMapInk.opacity(0.28)))
+    }
+
     // MARK: Fuselage
 
     /// Nose taper, constant-section cabin, tailcone. `noseFullness` moves the
@@ -792,31 +707,54 @@ private struct AirframeCanvas: View {
 
         var path = Path()
         path.move(to: CGPoint(x: bodyLeft, y: noseLength))
-        // Left side of the nose, tip, then right side.
+        // A rounded nose: the sides curve in and meet in a blunt tip, the
+        // way United's seat map draws it, not a point.
         path.addCurve(
             to: CGPoint(x: midX, y: 0),
-            control1: CGPoint(x: bodyLeft, y: noseLength * (1 - fullness * 0.75)),
-            control2: CGPoint(x: midX - halfBody * fullness, y: 0)
+            control1: CGPoint(x: bodyLeft, y: noseLength * (0.35 - fullness * 0.2)),
+            control2: CGPoint(x: midX - halfBody * 0.55, y: 0)
         )
         path.addCurve(
             to: CGPoint(x: bodyRight, y: noseLength),
-            control1: CGPoint(x: midX + halfBody * fullness, y: 0),
-            control2: CGPoint(x: bodyRight, y: noseLength * (1 - fullness * 0.75))
+            control1: CGPoint(x: midX + halfBody * 0.55, y: 0),
+            control2: CGPoint(x: bodyRight, y: noseLength * (0.35 - fullness * 0.2))
         )
         // Constant section down to where the tail starts.
         path.addLine(to: CGPoint(x: bodyRight, y: tailStart))
-        path.addQuadCurve(
-            to: CGPoint(x: midX + tailHalf, y: size.height),
-            control: CGPoint(x: bodyRight, y: size.height - tailLength * 0.28)
+        // Tailcone: a smooth taper to a rounded end.
+        path.addCurve(
+            to: CGPoint(x: midX + tailHalf, y: size.height - 2),
+            control1: CGPoint(x: bodyRight, y: size.height - tailLength * 0.45),
+            control2: CGPoint(x: midX + tailHalf * 1.6, y: size.height - tailLength * 0.12)
         )
-        path.addLine(to: CGPoint(x: midX - tailHalf, y: size.height))
         path.addQuadCurve(
+            to: CGPoint(x: midX - tailHalf, y: size.height - 2),
+            control: CGPoint(x: midX, y: size.height + 2)
+        )
+        path.addCurve(
             to: CGPoint(x: bodyLeft, y: tailStart),
-            control: CGPoint(x: bodyLeft, y: size.height - tailLength * 0.28)
+            control1: CGPoint(x: midX - tailHalf * 1.6, y: size.height - tailLength * 0.12),
+            control2: CGPoint(x: bodyLeft, y: size.height - tailLength * 0.45)
         )
         path.closeSubpath()
 
         context.fill(path, with: .color(Theme.seatMapFuselage))
-        context.stroke(path, with: .color(Theme.seatMapInk.opacity(0.10)), lineWidth: 1)
+
+        // Cockpit windshield: a dark wraparound band near the tip, the one
+        // detail that makes the nose read as the front of an aircraft.
+        let glassY = noseLength * 0.34
+        let glassHalf = halfBody * 0.42
+        var glass = Path()
+        glass.move(to: CGPoint(x: midX - glassHalf, y: glassY + 10))
+        glass.addQuadCurve(to: CGPoint(x: midX + glassHalf, y: glassY + 10),
+                           control: CGPoint(x: midX, y: glassY - 8))
+        glass.addLine(to: CGPoint(x: midX + glassHalf * 0.8, y: glassY + 18))
+        glass.addQuadCurve(to: CGPoint(x: midX - glassHalf * 0.8, y: glassY + 18),
+                           control: CGPoint(x: midX, y: glassY + 4))
+        glass.closeSubpath()
+        context.fill(glass, with: .color(Theme.seatMapInk.opacity(0.75)))
+        // Centre post between the two panes.
+        context.fill(Path(CGRect(x: midX - 0.75, y: glassY + 1, width: 1.5, height: 15)),
+                     with: .color(Theme.seatMapFuselage))
     }
 }
