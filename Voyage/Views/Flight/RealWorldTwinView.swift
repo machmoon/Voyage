@@ -42,22 +42,26 @@ struct RealWorldTwinView<ProceduralFallback: View, ForegroundOverlay: View>: Vie
             proceduralFallback()
 
             if WorldSceneryLayerPolicy.needsMapKit(under: provider) {
+                // While the satellite tiles are still loading, a neutral cover
+                // hides the procedural ("fake") scene — the traveler sees a calm
+                // dark pane (matching the departure curtain) that fades to the
+                // live map, never the illustrated fallback. The cover sits
+                // UNDER the map and stays until the map fails: crossfading the
+                // two at once let the drawn world show through mid-fade for a
+                // few frames (QA/video/tear-raw.mp4, 36.5 s: a green flash
+                // between the dark pane and the satellite). Offline/failed
+                // states drop the cover and reveal the procedural world instead.
+                if mapKitLoadState != .failed {
+                    neutralLoadingCover
+                        .transition(.opacity)
+                }
+
                 MapKitSceneryView(
                     pose: pose,
                     loadStateChanged: mapKitLoadStateDidChange
                 )
                 .opacity(mapKitIsVisible ? 1 : 0)
                 .transition(.opacity)
-
-                // While the satellite tiles are still loading, a neutral cover
-                // hides the procedural ("fake") scene — the traveler sees a calm
-                // dark pane (matching the departure curtain) that fades to the
-                // live map, never the illustrated fallback. Offline/failed
-                // states drop the cover and reveal the procedural world instead.
-                if !mapKitIsVisible {
-                    neutralLoadingCover
-                        .transition(.opacity)
-                }
             }
 
             AttributionProtectedOverlay {

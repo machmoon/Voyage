@@ -159,6 +159,48 @@ final class DemoReelUITests: XCTestCase {
     private static let previewMarker = URL(fileURLWithPath:
         "/Users/patliu/Desktop/Coding/Voyage/QA/preview-ready")
 
+    /// Landing close-up: one nonstop demo leg (60 s), then the arrival flow.
+    /// Record around it with `xcrun simctl io booted recordVideo`; the run is
+    /// under three minutes so the recorder stays reliable.
+    @MainActor
+    func testLandingCloseUp() throws {
+        let app = XCUIApplication()
+        app.launchArguments += [
+            "-AppleLanguages", "(en)",
+            "-AppleLocale", "en_US",
+            "-VoyageHomeAirport", "SFO",
+            "-VoyageDemoFlight",
+        ]
+        app.launch()
+        dismissLocationPromptIfPresent()
+        _ = app.staticTexts["VOYAGE"].waitForExistence(timeout: 15)
+        pause(1.0)
+
+        // The first card is the shortest route from SFO, a nonstop.
+        let cards = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "destination-"))
+        if cards.firstMatch.waitForExistence(timeout: 6) { cards.firstMatch.tap(); pause(1.0) }
+        _ = tap(app.buttons["depart-now"], timeout: 5)
+        pickASeat(in: app)
+        skipBags(in: app)
+        _ = app.buttons["Tear and board"].waitForExistence(timeout: 15)
+        pause(1.0)
+        _ = tap(app.buttons["Tear and board"], timeout: 4)
+
+        let landed = app.staticTexts.matching(
+            NSPredicate(format: "label BEGINSWITH %@", "Landed in")).firstMatch
+        _ = landed.waitForExistence(timeout: 120)
+        pause(4.0)
+        _ = tap(app.buttons["Continue"], timeout: 4)
+        pause(3.0)
+        if !tap(app.buttons["Post to your logbook"], timeout: 4) {
+            _ = tap(app.buttons["Skip for now"], timeout: 2)
+        }
+        pause(4.0)
+        _ = tap(app.buttons["Back to the terminal"], timeout: 4)
+        pause(3.0)
+    }
+
     // MARK: Beats
 
     /// Draws one route, then another, so the globe re-flies the arc on camera.

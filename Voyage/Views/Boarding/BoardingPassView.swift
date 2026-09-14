@@ -477,7 +477,7 @@ struct BoardingPassView: View {
             .gesture(cutGesture())
             // One short slide-and-fade. A long fall leaves the stub hanging
             // half-transparent over the backdrop, which reads as a glitch.
-            .animation(ripped ? .easeIn(duration: 0.28) : nil, value: ripped)
+            .animation(ripped ? .easeIn(duration: 0.55) : nil, value: ripped)
             .accessibilityHidden(ripped)
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("boarding-pass-stub")
@@ -508,9 +508,12 @@ struct BoardingPassView: View {
         Haptics.rip()
         CabinAudioEngine.shared.playRip()
         Task { @MainActor in
-            // Let the stub clear the screen before departing; also gives the rip
-            // one-shot time to finish before depart starts ambience.
-            try? await Task.sleep(for: .milliseconds(430))
+            // Let the stub clear the screen and the torn pass settle before
+            // departing; also gives the rip one-shot time to finish before
+            // depart starts ambience. At 430 ms the stub was gone in three
+            // frames and the curtain cut in before the eye had registered the
+            // tear (QA/video/tear-raw.mp4, 35.0 to 35.6 s).
+            try? await Task.sleep(for: .milliseconds(950))
             onBoarded()
         }
     }

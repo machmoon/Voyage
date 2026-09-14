@@ -156,7 +156,9 @@ struct BoardingFlowView: View {
     /// window actually has a frame — floored by the minimum beat so it never
     /// flashes past, and capped so the app always departs.
     private func beginDeparture() {
-        withAnimation(.easeOut(duration: 0.2)) {
+        // A slow dissolve into the curtain: at 0.2 s the torn pass was gone
+        // in two frames (QA/video/tear-raw.mp4, 35.5 s).
+        withAnimation(.easeInOut(duration: 0.7)) {
             isDeparting = true
         }
 
