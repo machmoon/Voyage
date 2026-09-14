@@ -18,9 +18,16 @@ class ArchiveIconTests(unittest.TestCase):
             extension.mkdir(parents=True)
             base = {'CFBundleShortVersionString': '1.0', 'CFBundleVersion': '4'}
             plist = dict(base, CFBundleIdentifier='com.patrickliu.voyage',
-                         ITSAppUsesNonExemptEncryption=False)
+                         ITSAppUsesNonExemptEncryption=False,
+                         NSSupportsLiveActivities=True)
             plist.update(icon)
             (app / 'Info.plist').write_bytes(plistlib.dumps(plist))
+            # The rest of what check_archive expects of a shippable bundle: the
+            # privacy manifest and every PA clip from Voyage/Resources/PA.
+            (app / 'PrivacyInfo.xcprivacy').write_bytes(plistlib.dumps({}))
+            pa = Path(__file__).resolve().parents[1] / 'Voyage' / 'Resources' / 'PA'
+            for clip in pa.glob('*.m4a') if pa.is_dir() else []:
+                (app / clip.name).write_bytes(b'')
             (extension / 'Info.plist').write_bytes(plistlib.dumps(dict(
                 base, CFBundleIdentifier='com.patrickliu.voyage.widgets')))
             check_release.problems.clear()
@@ -33,6 +40,14 @@ class ArchiveIconTests(unittest.TestCase):
 
     def test_missing_icon_still_blocks_submission(self):
         self.assertTrue(any('CFBundleIconName' in message for message in self.validate_icon({})))
+
+    def test_missing_live_activity_key_blocks_submission(self):
+        # Activity.request throws without NSSupportsLiveActivities and the
+        # controller swallows it, so the check has to catch it before upload.
+        icon = {'CFBundleIcons': {'CFBundlePrimaryIcon': {
+            'CFBundleIconName': 'AppIcon', 'CFBundleIconFiles': ['AppIcon60x60']}},
+            'NSSupportsLiveActivities': False}
+        self.assertTrue(any('NSSupportsLiveActivities' in m for m in self.validate_icon(icon)))
 
     def test_empty_icon_name_still_blocks_submission(self):
         self.assertTrue(self.validate_icon({'CFBundleIcons': {'CFBundlePrimaryIcon': {
