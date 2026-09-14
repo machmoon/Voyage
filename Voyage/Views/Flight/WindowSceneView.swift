@@ -25,6 +25,14 @@ struct IllustratedWindowSceneView: View {
     var phaseProgress: Double = 0
     var aircraft: AircraftProfile = .voyageClassic
     var weatherSnapshot: WeatherSnapshot?
+    /// Length of this leg's takeoff roll and climb from the trajectory's own
+    /// schedule. The statics on `FlightSession` are a fallback only: the
+    /// schedule's roll is per aircraft (32 to 48 s) and 28 s under short
+    /// flights, so a fixed 34 s / 13 s left the runway motion finishing
+    /// while the phase was still `takeoffRoll`, and the plane sat still on
+    /// the runway until rotation.
+    var takeoffRollLength: TimeInterval = FlightSession.takeoffRollDuration
+    var climbLength: TimeInterval = FlightSession.climbEndsAt - FlightSession.takeoffRollDuration
 
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -38,7 +46,9 @@ struct IllustratedWindowSceneView: View {
         ).frame(
             phase: phase,
             legElapsed: legElapsed,
-            altitudeFeet: Int(max(0, altitudeFraction) * 36_000)
+            altitudeFeet: Int(max(0, altitudeFraction) * 36_000),
+            rollDuration: takeoffRollLength,
+            climbSpan: climbLength
         )
         WindowWorldRenderer(
             frame: frame,
@@ -105,7 +115,8 @@ struct IllustratedWindowSceneView: View {
                     golden: goldenHour,
                     time: t,
                     tPhase: reduceMotion ? 0.35 : tPhase,
-                    size: size
+                    size: size,
+                    rollLength: takeoffRollLength
                 )
 
                 drawSky(context, scene)
@@ -233,6 +244,7 @@ struct IllustratedWindowSceneView: View {
         let time: Double
         let tPhase: Double
         let size: CGSize
+        var rollLength: TimeInterval = FlightSession.takeoffRollDuration
 
         var onGround: Bool { phase == .takeoffRoll || phase == .landing }
 
@@ -315,14 +327,14 @@ struct IllustratedWindowSceneView: View {
             let vMax = 920.0
             switch phase {
             case .takeoffRoll:
-                let roll = max(0.5, FlightSession.takeoffRollDuration)
+                let roll = max(0.5, rollLength)
                 let t = tPhase
                 if t < roll { return vMax * t * t / (2 * roll) }
                 return vMax * roll / 2 + vMax * (t - roll)
             case .climb:
                 // Continue from where the takeoff roll left off so the
                 // receding runway doesn't jump at rotation.
-                let roll = max(0.5, FlightSession.takeoffRollDuration)
+                let roll = max(0.5, rollLength)
                 return vMax * roll / 2 + vMax * tPhase
             case .landing:
                 let t = tPhase

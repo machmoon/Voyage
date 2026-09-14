@@ -10,7 +10,7 @@ import XCTest
 /// blank or wrong frame fails the test instead of reaching disk.
 final class CabinServiceScreenshotUITests: XCTestCase {
 
-    private let outputDirectory = "/private/tmp/claude-501/-Users-patliu-Desktop-Coding-Voyage/bde4f64a-2d96-498c-b915-d0d371f1008f/scratchpad/out/screens"
+    private let outputDirectory = "/Users/patliu/Desktop/Coding/Voyage/QA/cabin-service"
 
     override func setUpWithError() throws {
         continueAfterFailure = false
@@ -23,15 +23,17 @@ final class CabinServiceScreenshotUITests: XCTestCase {
         let app = launchIntoCruise()
 
         // Pass 1 is the eye rest, due six seconds into cruise under the
-        // capture flag.
+        // capture flag. Cruise itself starts 180 s after departure under
+        // short flights (FlightPhaseSchedule.make: 28 s roll, climb to 180 s),
+        // so the wait has to cover that, not just the six seconds.
         let eyeRest = app.staticTexts["Something to see out of the right side."]
-        XCTAssertTrue(eyeRest.waitForExistence(timeout: 90),
+        XCTAssertTrue(eyeRest.waitForExistence(timeout: 240),
                       "Expected the eye-rest cue during cruise")
         capture(app, "cabin-1-eye-rest")
 
         // Pass 3 is the stretch. Passes 2 and 3 follow at six second spacing.
         let stretch = app.staticTexts["The seatbelt sign is off."]
-        XCTAssertTrue(stretch.waitForExistence(timeout: 90),
+        XCTAssertTrue(stretch.waitForExistence(timeout: 240),
                       "Expected the stretch cue on the third pass")
         capture(app, "cabin-2-stretch")
 
@@ -48,7 +50,7 @@ final class CabinServiceScreenshotUITests: XCTestCase {
         let app = launchIntoCruise()
 
         let eyeRest = app.staticTexts["Something to see out of the right side."]
-        XCTAssertTrue(eyeRest.waitForExistence(timeout: 90))
+        XCTAssertTrue(eyeRest.waitForExistence(timeout: 240))
 
         // Never touch it. It expires 90 seconds after it appeared.
         let gone = NSPredicate(format: "exists == false")

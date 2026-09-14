@@ -287,14 +287,18 @@ struct AirportWorldSimulation {
     let seat: String
     let weather: WeatherSnapshot?
 
-    func frame(phase: LegPhase, legElapsed: TimeInterval, altitudeFeet: Int) -> AirportWorldFrame {
-        let rollDuration = max(0.1, FlightSession.takeoffRollDuration)
-        let climbSpan = max(0.1, FlightSession.climbEndsAt - FlightSession.takeoffRollDuration)
+    /// `rollDuration` and `climbSpan` come from the leg's phase schedule;
+    /// the static defaults exist for callers without a trajectory.
+    func frame(phase: LegPhase, legElapsed: TimeInterval, altitudeFeet: Int,
+               rollDuration rawRoll: TimeInterval = FlightSession.takeoffRollDuration,
+               climbSpan rawClimb: TimeInterval = FlightSession.climbEndsAt - FlightSession.takeoffRollDuration) -> AirportWorldFrame {
+        let rollDuration = max(0.1, rawRoll)
+        let climbSpan = max(0.1, rawClimb)
         let roll = phase == .takeoffRoll ? min(1, max(0, legElapsed / rollDuration)) : 1
         let climb: Double
         switch phase {
         case .takeoffRoll: climb = 0
-        case .climb: climb = min(1, max(0, (legElapsed - FlightSession.takeoffRollDuration) / climbSpan))
+        case .climb: climb = min(1, max(0, (legElapsed - rollDuration) / climbSpan))
         case .cruise: climb = 1
         case .descent: climb = min(1, max(0.2, Double(altitudeFeet) / 36_000))
         case .landing: climb = 0

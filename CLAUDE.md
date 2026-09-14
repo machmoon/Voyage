@@ -36,7 +36,7 @@ xcodebuild ... test -only-testing:VoyageTests
 xcodebuild ... test -only-testing:VoyageTests/FlightSessionTests/testPhasesProgressWithElapsedTime
 ```
 
-Run in the simulator with compressed flight phases for QA (takeoff ~3s, climb done by ~8s elapsed instead of ~90s):
+Run in the simulator with compressed flight phases for QA (`FlightPhaseSchedule.make` with `shortFlights`: ~28s takeoff roll, cruise from ~180s, instead of a real ~35s roll and ~8 min climb):
 
 ```bash
 xcrun simctl launch booted com.patrickliu.voyage -VoyageShortFlights

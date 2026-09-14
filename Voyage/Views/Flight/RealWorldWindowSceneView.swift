@@ -83,7 +83,9 @@ struct WindowSceneView: View {
                     legElapsed: state.elapsed,
                     phaseElapsed: phaseElapsed(for: state),
                     phaseProgress: state.phaseProgress,
-                    weatherSnapshot: weather
+                    weatherSnapshot: weather,
+                    takeoffRollLength: context.trajectory.schedule.takeoffDuration,
+                    climbLength: context.trajectory.schedule.climbDuration
                 )
             }
         }
