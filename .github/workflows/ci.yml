@@ -63,7 +63,19 @@ jobs:
         # The macos-26 image ships the iOS SDK but not the simulator runtime, so
         # a named destination fails with "iOS 26.0 is not installed" until this
         # runs. StockTicker documents the same failure.
-        run: sudo xcodebuild -downloadPlatform iOS
+        # The download talks to CoreSimulator and sometimes fails with
+        # "Unable to connect to simulator" (exit 70) right after the runner
+        # boots, so retry, and skip when a runtime is already installed.
+        run: |
+          if xcrun simctl list runtimes | grep -q "iOS "; then
+            echo "iOS simulator runtime already installed"; exit 0
+          fi
+          for attempt in 1 2 3; do
+            sudo xcodebuild -downloadPlatform iOS && exit 0
+            echo "downloadPlatform failed (attempt $attempt); retrying in 30s"
+            sleep 30
+          done
+          exit 70
 
       - name: Install Metal toolchain
         # Voyage/Support/Shaders.metal holds the window's atmospheric haze
