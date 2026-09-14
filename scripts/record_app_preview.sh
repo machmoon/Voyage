@@ -15,7 +15,9 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO"
 
 DEVICE="${VOYAGE_SIM_DEVICE:-iPhone 17}"
-SECONDS_TO_RECORD="${SECONDS_TO_RECORD:-29}"
+SECONDS_TO_RECORD="${SECONDS_TO_RECORD:-32}"
+# Seconds cut from the front of the capture; the globe needs less hold than the takeoff.
+TRIM_START="${TRIM_START:-2.5}"
 OUT_DIR="$REPO/AppStore/preview"
 RAW="$OUT_DIR/raw-capture.mp4"
 OUT="$OUT_DIR/voyage-preview.mp4"
@@ -67,8 +69,8 @@ echo "==> scaling to 886x1920 at 30 fps"
 # Simulator captures have no audio track, and App Store Connect rejects a
 # preview without one (asset state FAILED, code MOV_RESAVE_STEREO), so a
 # silent stereo AAC track is muxed in.
-ffmpeg -y -loglevel error -i "$RAW" -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=48000 \
-  -t 30 -vf "scale=886:1920:flags=lanczos,format=yuv420p" -r 30 \
+ffmpeg -y -loglevel error -ss "$TRIM_START" -i "$RAW" -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=48000 \
+  -t 29.5 -vf "scale=886:1920:flags=lanczos,format=yuv420p" -r 30 \
   -c:v libx264 -profile:v high -pix_fmt yuv420p -movflags +faststart \
   -c:a aac -b:a 256k -ac 2 -shortest \
   "$OUT"

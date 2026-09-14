@@ -94,11 +94,11 @@ final class DemoReelUITests: XCTestCase {
     /// shows the runway, rotation and climb inside the clip.
     ///
     /// Beat sheet from the marker:
-    ///   0–2s     Home globe
-    ///   2–4s     Destination picked, route arc drawn
-    ///   4–10s    Departure zoom, seat map, seat taken
-    ///   10–15s   Pass prints, torn
-    ///   15–28s   Curtain, takeoff roll, climb through the window
+    ///   0–1.5s   Home globe
+    ///   1.5–3s   Destination picked, route arc drawn
+    ///   3–8s     Departure zoom, seat map, seat taken
+    ///   8–12s    Pass prints, torn
+    ///   12–29s   Curtain, thirteen-second takeoff roll, rotation and climb
     @MainActor
     func testAppPreview() throws {
         let app = XCUIApplication()
@@ -107,6 +107,7 @@ final class DemoReelUITests: XCTestCase {
             "-AppleLocale", "en_US",
             "-VoyageHomeAirport", "SFO",
             "-VoyageShortFlights",
+            "-VoyageSceneHour", "10",   // a daylight window whatever the wall clock says
         ]
         app.launch()
 
@@ -114,33 +115,35 @@ final class DemoReelUITests: XCTestCase {
         _ = app.staticTexts["VOYAGE"].waitForExistence(timeout: 15)
         pause(3.0)
         try? "ready".write(to: Self.previewMarker, atomically: true, encoding: .utf8)
-        pause(1.8)
+        pause(1.2)
 
         let cards = app.buttons.matching(
             NSPredicate(format: "identifier BEGINSWITH %@", "destination-"))
         if cards.firstMatch.waitForExistence(timeout: 6) {
             cards.firstMatch.tap()
-            pause(1.8)
+            pause(1.4)
         }
         _ = tap(app.buttons["depart-now"], timeout: 5)
 
         // Tighter than `pickASeat`: the reel can linger, a preview cannot.
         _ = app.staticTexts["Choose your seat"].waitForExistence(timeout: 8)
-        pause(0.8)
+        pause(0.4)
         let seat = app.buttons.matching(
             NSPredicate(format: "label MATCHES %@", #"Seat [A-F][0-9]+"#)).firstMatch
         if seat.waitForExistence(timeout: 5) {
             seat.tap()
-            pause(1.2)
+            pause(0.8)
         }
         _ = tap(app.buttons.matching(
             NSPredicate(format: "label BEGINSWITH %@", "Take seat")).firstMatch, timeout: 3)
         skipBags(in: app)
 
+        // Tear as soon as the pass is out: the takeoff roll is thirteen
+        // seconds under short flights and rotation has to land inside the clip.
         _ = app.buttons["Tear and board"].waitForExistence(timeout: 12)
-        pause(0.8)
+        pause(0.4)
         _ = tap(app.buttons["Tear and board"], timeout: 4)
-        pause(11.0)
+        pause(18.0)
         try? FileManager.default.removeItem(at: Self.previewMarker)
     }
 
