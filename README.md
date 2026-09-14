@@ -31,11 +31,11 @@ Voyage borrows that psychological machinery. It is not an airplane placed next t
 
 ## The experience
 
-1. **Book a real route.** Pick a destination from the globe. Directional block times, carriers, flight numbers, schedules, and popular connections come from the bundled route catalog.
+1. **Book a real route.** Pick a destination from the globe, or tap the die for a surprise. Directional block times, carriers, flight numbers, schedules, and popular connections come from the bundled route catalog.
 2. **Choose your seat.** Aircraft and seat selection affect the passenger-camera geometry, window side, and wing view.
 3. **Check your intentions.** Pack up to three tasks as baggage and claim the ones you complete after landing.
 4. **Tear to depart.** The boarding pass is a physical commitment ritual, not a decorative confirmation screen.
-5. **Focus through the flight.** Takeoff, climb, cruise, descent, and landing drive the window, map, weather, altitude, cabin lighting, announcements, haptics, and procedural audio.
+5. **Focus through the flight.** Takeoff, climb, cruise, descent, and landing drive the window, map, weather, altitude, cabin lighting, announcements, haptics, and procedural audio. Double-tap for pure mode: only the window and the clock.
 6. **Do not abandon the aircraft.** Backgrounding starts a 30-second grace period. Missing the deadline diverts the flight.
 7. **Land and remember it.** Completed flights earn miles, extend streaks, produce passport stamps, preserve completed intentions, and can be replayed from the logbook.
 8. **Optional system hooks.** Location permission sets your nearest airport as the origin on the globe. Flight Focus ties into iOS Focus mode: add the filter once, then grant Focus access when you board for an airplane-mode-style session.
