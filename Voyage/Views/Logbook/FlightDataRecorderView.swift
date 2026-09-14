@@ -75,10 +75,8 @@ struct RecorderReadout: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("FLIGHT DATA RECORDER")
-                .font(.system(.title3, design: .default, weight: .black))
-                .kerning(2.6)
-                .foregroundStyle(.white)
+            // The navigation title already says "Recorder"; a second,
+            // louder title would only repeat it.
             Text(headerSubtitle)
                 .font(.footnote)
                 .foregroundStyle(.white.opacity(0.6))
@@ -90,8 +88,8 @@ struct RecorderReadout: View {
 
     private var headerSubtitle: String {
         let flights = report.flightsAnalyzed
-        guard flights > 0 else { return "Your logbook is empty. Nothing leaves this device." }
-        return "Reading \(pluralized(flights, "recorded flight")) from your logbook. Nothing leaves this device."
+        guard flights > 0 else { return "Your logbook is empty. Stays on this phone." }
+        return "From \(pluralized(flights, "flight")) in your logbook. Stays on this phone."
     }
 
     // MARK: States before there is anything to say
@@ -164,24 +162,9 @@ struct FindingCard: View {
 
     var body: some View {
         InstrumentCard {
-            VStack(alignment: .leading, spacing: 13) {
-                HStack(spacing: 8) {
-                    FieldLabel(finding.kind.label)
-                        .foregroundStyle(Theme.accent)
-                    if finding.mode == .informative {
-                        Text("INFORMATIONAL")
-                            .font(.system(.caption2, design: .default, weight: .heavy))
-                            .kerning(1)
-                            .foregroundStyle(.white.opacity(0.5))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2.5)
-                            .overlay(Capsule().strokeBorder(.white.opacity(0.22), lineWidth: 1))
-                    }
-                    Spacer(minLength: 0)
-                }
-
+            VStack(alignment: .leading, spacing: 12) {
                 Text(finding.headline)
-                    .font(.title3.weight(.semibold))
+                    .font(.headline)
                     .foregroundStyle(.white)
                     .fixedSize(horizontal: false, vertical: true)
 
@@ -196,21 +179,10 @@ struct FindingCard: View {
                     }
                 }
                 .padding(.top, 2)
-
-                HStack {
-                    Text(scaleCaption)
-                    Spacer()
-                    Text("\(finding.support) flights")
-                }
-                .font(.system(.caption2, design: .monospaced, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.38))
             }
         }
     }
 
-    private var scaleCaption: String {
-        finding.mode == .informative ? "SHARE  0% TO 100%" : "ARRIVAL RATE  0% TO 100%"
-    }
 }
 
 /// One group: its label, its point estimate, and the confidence interval
@@ -256,9 +228,8 @@ private struct EvidenceRow: View {
     }
 
     private var label: some View {
-        Text(evidence.label.uppercased())
-            .font(.system(.caption2, design: .monospaced, weight: .bold))
-            .kerning(0.4)
+        Text(evidence.label)
+            .font(.caption.weight(.medium))
             .foregroundStyle(evidence.isSubject ? .white : .white.opacity(0.6))
             .lineLimit(dynamicTypeSize.isAccessibilitySize ? 3 : 1)
             .minimumScaleFactor(0.7)
@@ -266,7 +237,8 @@ private struct EvidenceRow: View {
 
     private var count: some View {
         Text(evidence.countText)
-            .font(.system(.caption, design: .monospaced, weight: .bold))
+            .font(.caption.weight(.semibold))
+            .monospacedDigit()
             .foregroundStyle(evidence.isSubject ? .white : .white.opacity(0.6))
             .lineLimit(1)
     }
@@ -277,22 +249,18 @@ private struct EvidenceRow: View {
     /// reading a single number.
     private var bar: some View {
         GeometryReader { geo in
+            // Fill equals the rate, so "0 of 6" is empty and "38 of 38" is
+            // full. A band-and-tick drawing read as a slider and its length
+            // did not match the fraction printed beside it.
             let width = geo.size.width
-            let lower = evidence.interval.lower
-            let upper = evidence.interval.upper
             ZStack(alignment: .leading) {
                 Capsule()
                     .fill(.white.opacity(0.10))
-                    .frame(height: barHeight / 2)
-                Capsule()
-                    .fill(tint.opacity(0.30))
-                    .frame(width: max(2, width * (upper - lower)), height: barHeight / 2)
-                    .offset(x: width * lower)
                 Capsule()
                     .fill(tint)
-                    .frame(width: 2.5, height: barHeight)
-                    .offset(x: min(width - 2.5, width * evidence.interval.rate))
+                    .frame(width: max(evidence.interval.rate > 0 ? 4 : 0, width * evidence.interval.rate))
             }
+            .frame(height: barHeight / 2)
             .frame(maxHeight: .infinity)
         }
         .frame(height: barHeight)

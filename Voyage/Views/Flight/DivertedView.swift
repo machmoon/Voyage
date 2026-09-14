@@ -24,7 +24,7 @@ struct DivertedView: View {
                     : "You ended the flight in its first minute. Nothing was logged."
             }
             return logged
-                ? "The app was in the background for over 30 seconds, so the flight put down at the nearest field. Your completed miles are still logged."
+                ? "The app was in the background for over 30 seconds, so the flight stopped. Your completed miles are still logged."
                 : "The app was in the background for over 30 seconds in the flight's first minute, so nothing was logged."
         }
     }
@@ -41,7 +41,7 @@ struct DivertedView: View {
                     .foregroundStyle(.white.opacity(0.35))
                     .padding(.bottom, 24)
 
-                Text(kind == .diverted ? "Flight diverted" : "Connection missed")
+                Text(kind == .diverted ? "Stopped early" : "Connection missed")
                     .font(.title.bold())
                     .foregroundStyle(.white)
 

@@ -48,23 +48,16 @@ struct PassportView: View {
 
     private var collectedCount: Int { records.filter(\.isCollected).count }
     private var tier: FlyerTier { LogbookStats.tier(entries) }
-    private var memberSince: Date? { completedEntries.map(\.date).min() }
-
-    /// A stable document number, so the passport a traveler saw yesterday is
-    /// the same one today.
-    private var passportNumber: String {
-        var hash: UInt64 = 1469598103934665603
-        for byte in (memberSince.map { "\($0.timeIntervalSince1970)" } ?? "unissued").utf8 {
-            hash = (hash ^ UInt64(byte)) &* 1099511628211
-        }
-        return String(format: "VY%07d", hash % 10_000_000)
-    }
+    private var rating: RatingProgress { RatingProgress.evaluate(entries: entries) }
 
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
                 passportBook
                 stampPage
+                if !endorsedEntries.isEmpty {
+                    endorsementsPage
+                }
             }
             .padding(.horizontal, 20)
             .padding(.top, 14)
@@ -78,7 +71,6 @@ struct PassportView: View {
     private var passportBook: some View {
         VStack(spacing: 0) {
             cover
-            dataPage
         }
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .shadow(color: .black.opacity(0.18), radius: 14, y: 6)
@@ -117,7 +109,7 @@ struct PassportView: View {
                     .opacity(0.65)
             }
             Spacer()
-            Text(tier.rawValue.uppercased())
+            Text(rating.current.title.uppercased())
                 .voyageFont(10, weight: .heavy)
                 .kerning(1.4)
                 .padding(.horizontal, 10)
@@ -134,88 +126,6 @@ struct PassportView: View {
         .background(Theme.passportCover)
     }
 
-    private var dataPage: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top, spacing: 14) {
-                portrait
-
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack(alignment: .top, spacing: 14) {
-                        field("Type", "P")
-                        field("Code", "VOY")
-                        field("Passport No", passportNumber)
-                    }
-                    field("Surname", "FOCUS")
-                    field("Given names", "DEEP WORK")
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-
-            HStack(alignment: .top, spacing: 14) {
-                field("Nationality", "VOYAGE AIR")
-                field("Issued", memberSince.map(Self.stampDate) ?? "—")
-                field("Stamps", "\(collectedCount) OF \(records.count)")
-            }
-
-            machineReadableZone
-        }
-        .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.passportPaper)
-    }
-
-    /// The portrait window. A globe stands in for a photograph.
-    private var portrait: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 4, style: .continuous)
-                .fill(Theme.passportCover.opacity(0.06))
-            RoundedRectangle(cornerRadius: 4, style: .continuous)
-                .strokeBorder(Theme.passportCover.opacity(0.22), lineWidth: 1)
-            Image(systemName: "globe.americas.fill")
-                .voyageFont(30, weight: .light)
-                .foregroundStyle(Theme.passportCover.opacity(0.35))
-        }
-        .frame(width: 62, height: 80)
-    }
-
-    private func field(_ label: String, _ value: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(label.uppercased())
-                .voyageFont(7, weight: .semibold)
-                .kerning(0.9)
-                .foregroundStyle(Theme.passportCover.opacity(0.45))
-            Text(value)
-                .voyageFont(12, weight: .semibold, design: .monospaced)
-                .foregroundStyle(Theme.passportCover)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-        }
-        .fixedSize(horizontal: false, vertical: true)
-    }
-
-    /// The two OCR lines across the foot of every biodata page. Chevrons are
-    /// the real filler character.
-    private var machineReadableZone: some View {
-        let name = "P<VOYFOCUS<<DEEP<WORK".padding(toLength: 36, withPad: "<", startingAt: 0)
-        let document = "\(passportNumber)<\(tier.rawValue.uppercased())"
-            .padding(toLength: 36, withPad: "<", startingAt: 0)
-        return VStack(alignment: .leading, spacing: 3) {
-            Rectangle()
-                .fill(Theme.passportCover.opacity(0.12))
-                .frame(height: 1)
-                .padding(.bottom, 5)
-            ForEach([name, document], id: \.self) { line in
-                Text(line)
-                    .voyageFont(11, weight: .medium, design: .monospaced)
-                    .kerning(0.5)
-                    .foregroundStyle(Theme.passportCover.opacity(0.72))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
-            }
-        }
-        .accessibilityHidden(true)
-    }
-
     // MARK: Stamp page
 
     private var stampPage: some View {
@@ -227,11 +137,16 @@ struct PassportView: View {
                     .voyageFont(15, weight: .bold, design: .serif)
                     .foregroundStyle(Theme.passportCover)
                 Spacer()
-                Text("MOST RECENT FIRST")
-                    .voyageFont(8, weight: .semibold)
-                    .kerning(1)
-                    .foregroundStyle(Theme.passportCover.opacity(0.4))
-                    .layoutPriority(-1)
+                // One earned count in the header, the way Habitica's
+                // achievement sections carry a single earned-only chip
+                // (HabitRPG/habitica-ios, AchievementHeaderView).
+                Text("\(collectedCount) of \(records.count)")
+                    .voyageFont(11, weight: .semibold)
+                    .monospacedDigit()
+                    .foregroundStyle(Theme.passportCover)
+                    .padding(.horizontal, 9)
+                    .frame(height: 22)
+                    .background(Theme.passportCover.opacity(0.08), in: Capsule())
             }
 
             LazyVGrid(
@@ -289,25 +204,23 @@ struct PassportView: View {
             .accessibilityLabel(accessibilityLabel)
         }
 
+        /// One silhouette for every unstamped city: a faint die with the
+        /// code, nothing else. Habitica renders every locked achievement
+        /// with the same single asset (`achievement-unearned2x`,
+        /// HabitRPG/habitica-ios AchievementIconView), which is what keeps a
+        /// grid reading as a collection instead of a to-do list.
         private var unstamped: some View {
-            VStack(spacing: 6) {
-                Image(systemName: "airplane.departure")
-                    .voyageFont(16, weight: .light)
+            ZStack {
+                Circle()
+                    .strokeBorder(Theme.passportCover.opacity(0.14), lineWidth: 1.5)
+                Circle()
+                    .strokeBorder(Theme.passportCover.opacity(0.10), lineWidth: 1)
+                    .padding(6)
                 Text(record.airport.code)
-                    .voyageFont(13, weight: .bold, design: .monospaced)
-                Text("NOT YET VISITED")
-                    .voyageFont(7, weight: .semibold)
-                    .kerning(0.6)
+                    .voyageFont(15, weight: .bold, design: .monospaced)
+                    .foregroundStyle(Theme.passportCover.opacity(0.22))
             }
-            .foregroundStyle(Theme.passportCover.opacity(0.25))
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background {
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .strokeBorder(
-                        Theme.passportCover.opacity(0.16),
-                        style: StrokeStyle(lineWidth: 1, dash: [4, 4])
-                    )
-            }
+            .frame(width: 104, height: 104)
         }
 
         private var accessibilityLabel: String {
@@ -318,6 +231,50 @@ struct PassportView: View {
                 + "\(record.visits) visit\(record.visits == 1 ? "" : "s"), last "
                 + lastVisit.formatted(date: .abbreviated, time: .omitted)
         }
+    }
+
+    // MARK: Endorsements
+
+    /// Landings that raised the rating, most recent first. `entries` is
+    /// already sorted by date descending.
+    private var endorsedEntries: [LogbookEntry] {
+        entries.filter { $0.endorsement != nil }
+    }
+
+    /// The endorsements page follows a real logbook: one dated line per
+    /// sign-off, printed under the stamps rather than as a card of its own.
+    private var endorsementsPage: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Endorsements")
+                .voyageFont(15, weight: .bold, design: .serif)
+                .foregroundStyle(Theme.passportCover)
+            ForEach(endorsedEntries) { entry in
+                if let rating = entry.endorsement {
+                    HStack(spacing: 10) {
+                        Text(PilotRatings.endorsementLine(for: rating, on: entry.date))
+                            .voyageFont(11, weight: .semibold, design: .monospaced)
+                            .foregroundStyle(Theme.passportInk)
+                        Spacer()
+                        Text("\(entry.originCode) to \(entry.destinationCode)")
+                            .voyageFont(9, weight: .semibold)
+                            .kerning(0.6)
+                            .foregroundStyle(Theme.passportCover.opacity(0.45))
+                    }
+                    .accessibilityElement(children: .combine)
+                }
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Theme.passportPaper)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .strokeBorder(Theme.passportCover.opacity(0.10), lineWidth: 1)
+                }
+        )
+        .shadow(color: .black.opacity(0.10), radius: 10, y: 4)
     }
 
     private static func stampDate(_ date: Date) -> String {

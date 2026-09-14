@@ -401,7 +401,7 @@ final class FlightDataRecorderTests: XCTestCase {
         XCTAssertFalse(finding.detail.contains("0 ran out"), finding.detail)
         XCTAssertFalse(finding.detail.contains(", 0 "), finding.detail)
         XCTAssertEqual(finding.evidence.count, 2)
-        XCTAssertTrue(finding.headline.hasPrefix("Most of your diversions"), finding.headline)
+        XCTAssertTrue(finding.headline.hasPrefix("Most of your early stops"), finding.headline)
     }
 
     /// With no dominant cause the headline stops claiming one.
@@ -412,7 +412,7 @@ final class FlightDataRecorderTests: XCTestCase {
         let report = FlightDataRecorder.report(corpus: FlightCorpus(flights: flights, calendar: newYork))
 
         let finding = try XCTUnwrap(report.findings.first { $0.kind == .interruption })
-        XCTAssertEqual(finding.headline, "Your diversions split fairly evenly between causes.")
+        XCTAssertEqual(finding.headline, "Your early stops split fairly evenly between causes.")
     }
 
     /// Diversions written by a build that recorded no cause cannot be

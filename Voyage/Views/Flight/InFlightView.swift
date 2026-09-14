@@ -696,7 +696,7 @@ struct InFlightView: View {
             HStack(spacing: 8) {
                 ForEach(session.intentions, id: \.self) { intention in
                     HStack(spacing: 5) {
-                        Image(systemName: "suitcase.fill")
+                        Image(systemName: "tag.fill")
                             .font(.system(size: 8))
                         Text(intention)
                             .font(.system(size: 11, weight: .medium))

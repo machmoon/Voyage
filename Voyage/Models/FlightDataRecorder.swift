@@ -372,7 +372,7 @@ struct DepartureTimeDetector: FindingDetector {
         return Finding(
             kind: kind,
             mode: .comparative,
-            headline: "Your flights \(best.band.phrase) reach the gate more often.",
+            headline: "Flights \(best.band.phrase) land more often.",
             detail: "\(best.subject.successes) of \(best.subject.trials) landed, against \(best.rest.successes) of \(best.rest.trials) at every other hour.",
             evidence: evidence,
             support: flights.count,
@@ -411,8 +411,8 @@ struct BlockTimeDetector: FindingDetector {
             return Finding(
                 kind: kind,
                 mode: .comparative,
-                headline: "Past \(split.shortDurationText), fewer of your flights reach the gate.",
-                detail: "Under \(split.shortDurationText) you land \(shortInterval.successes) of \(shortInterval.trials). At \(split.shortDurationText) and longer, \(longInterval.successes) of \(longInterval.trials).",
+                headline: "Flights longer than \(split.shortDurationText) land less often.",
+                detail: "Under \(split.shortDurationText): \(shortInterval.successes) of \(shortInterval.trials) landed. \(split.shortDurationText) and longer: \(longInterval.successes) of \(longInterval.trials). Book the shorter route when the work is hard.",
                 evidence: evidence,
                 support: flights.count,
                 separation: gap
@@ -459,7 +459,7 @@ struct WeekPatternDetector: FindingDetector {
         Finding(
             kind: kind,
             mode: .comparative,
-            headline: "\(subject.name) carry more of your completed flights.",
+            headline: "\(subject.name) land more often than \(other.name.lowercased()).",
             detail: "\(subject.name.lowercased()): \(subject.interval.successes) of \(subject.interval.trials) landed. \(other.name.lowercased()): \(other.interval.successes) of \(other.interval.trials).",
             evidence: [
                 FindingEvidence(label: subject.name, interval: subject.interval, isSubject: true),
@@ -516,11 +516,11 @@ struct BagDetector: FindingDetector {
         return Finding(
             kind: kind,
             mode: .comparative,
-            headline: "\(worst.display) comes off the carousel less than your other bags.",
-            detail: "Claimed on \(worst.subject.successes) of \(worst.subject.trials) landed \(agreeing(worst.subject.trials, "flight")). Every other bag: \(worst.rest.successes) of \(worst.rest.trials).",
+            headline: "\(worst.display) is the bag you finish least.",
+            detail: "Finished on \(worst.subject.successes) of \(worst.subject.trials) landed \(agreeing(worst.subject.trials, "flight")). Everything else: \(worst.rest.successes) of \(worst.rest.trials). Pack it first next time, on a short flight.",
             evidence: [
                 FindingEvidence(label: worst.display, interval: worst.subject, isSubject: true),
-                FindingEvidence(label: "Every other bag", interval: worst.rest, isSubject: false),
+                FindingEvidence(label: "Everything else", interval: worst.rest, isSubject: false),
             ],
             support: landed.count,
             separation: worst.gap
@@ -568,8 +568,8 @@ struct InterruptionDetector: FindingDetector {
         // The headline only claims a dominant cause when there is one.
         let largest = max(interrupted, max(leftEarly, missed))
         let headline = Double(largest) / Double(total) >= 0.6
-            ? "Most of your diversions happen the same way."
-            : "Your diversions split fairly evenly between causes."
+            ? "Most of your early stops happen the same way."
+            : "Your early stops split fairly evenly between causes."
 
         return Finding(
             kind: kind,
@@ -693,9 +693,27 @@ enum FlightDataRecorder {
                 return (order.firstIndex(of: lhs.kind) ?? 0) < (order.firstIndex(of: rhs.kind) ?? 0)
             }
 
+        // Two detectors can cut the corpus along the same seam (every evening
+        // flight is also every short flight, say). Then both report the same
+        // counts and the reader sees one insight printed twice. Keep the
+        // first, which the sort above already ranked higher.
+        // The seam is the subject group against everything else, so two
+        // findings match when their subject counts and their pooled
+        // remainder counts are equal, however the remainder is bucketed.
+        var seen: [[Int]] = []
+        let distinct = findings.filter { finding in
+            let subject = finding.evidence.filter(\.isSubject)
+            let rest = finding.evidence.filter { !$0.isSubject }
+            let key = [subject.map(\.interval.successes).reduce(0, +), subject.map(\.interval.trials).reduce(0, +),
+                       rest.map(\.interval.successes).reduce(0, +), rest.map(\.interval.trials).reduce(0, +)]
+            if finding.mode == .comparative, seen.contains(key) { return false }
+            seen.append(key)
+            return true
+        }
+
         return FlightDataReport(
             flightsAnalyzed: corpus.count,
-            findings: findings,
+            findings: distinct,
             flightsUntilReporting: 0
         )
     }

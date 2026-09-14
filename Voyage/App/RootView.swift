@@ -80,14 +80,14 @@ struct RootView: View {
             if done { recoverInterruptedFlight() }
         }
         .preferredColorScheme(session?.stage == .inFlight ? .dark : nil)
-        .alert("Flight diverted", isPresented: Binding(
+        .alert("Stopped early", isPresented: Binding(
             get: { recoveredFlight != nil },
             set: { if !$0 { recoveredFlight = nil } }
         )) {
             Button("OK") { recoveredFlight = nil }
         } message: {
             if let recoveredFlight {
-                Text("Voyage was closed during \(recoveredFlight.originCode) to \(recoveredFlight.destinationCode). The flight is in your logbook as diverted with \(recoveredFlight.focusSeconds.shortDurationText) of focus time.")
+                Text("Voyage was closed during \(recoveredFlight.originCode) to \(recoveredFlight.destinationCode). The flight is in your logbook as stopped early with \(recoveredFlight.focusSeconds.shortDurationText) of focus time.")
             }
         }
     }

@@ -97,11 +97,35 @@ struct SeatSelectionView: View {
             .animation(.snappy(duration: 0.28), value: selected)
         }
         .background(Theme.seatMapBackground.ignoresSafeArea())
+        .onAppear { preselectRememberedSeat() }
         .onChange(of: session.aircraft) { _, _ in
             // Letters and rows differ between aircraft, so a held seat may not
             // exist on the new one.
             withAnimation(.snappy(duration: 0.25)) { selected = nil }
+            preselectRememberedSeat()
         }
+    }
+
+    /// Same seat as last time. The remembered seat is only offered when it
+    /// was taken on this aircraft and is still open: a seat that is taken
+    /// or in a cabin the traveler cannot book leaves the map unselected,
+    /// so nothing here changes the "Take seat" contract of the button.
+    private func preselectRememberedSeat() {
+        guard selected == nil,
+              let remembered = SettingsStore.shared.lastSeat(on: session.aircraft),
+              isAvailable(remembered) else { return }
+        selected = remembered
+    }
+
+    /// True when `seatID` exists on this cabin plan, is not taken, and is
+    /// in a cabin the traveler can book.
+    private func isAvailable(_ seatID: String) -> Bool {
+        guard let row = Int(seatID.filter(\.isNumber)) else { return false }
+        let letter = seatID.filter(\.isLetter)
+        guard let cabin = plan.cabins.first(where: { $0.rows.contains(row) }),
+              (cabin.left + cabin.right).contains(letter),
+              !(cabin.isPremium && !session.isPremiumCabin) else { return false }
+        return !isTaken(seatID)
     }
 
     // MARK: Header / legend
@@ -197,20 +221,28 @@ struct SeatSelectionView: View {
         Color.clear
             .frame(height: noseLength)
             .overlay(alignment: .bottom) {
-                HStack(spacing: 4) {
-                    cockpitGlass(width: 12, height: 9)
-                    cockpitGlass(width: 30, height: 12)
-                    cockpitGlass(width: 12, height: 9)
-                }
-                .padding(.bottom, 10)
+                // One windscreen band, curved with the nose, the way the
+                // cockpit reads on an airline seat map.
+                WindscreenBand()
+                    .fill(Theme.seatMapInk.opacity(0.55))
+                    .frame(width: fuselageWidth * 0.46, height: 11)
+                    .padding(.bottom, 12)
             }
             .accessibilityHidden(true)
     }
 
-    private func cockpitGlass(width: CGFloat, height: CGFloat) -> some View {
-        RoundedRectangle(cornerRadius: 3, style: .continuous)
-            .fill(Theme.seatMapInk.opacity(0.8))
-            .frame(width: width, height: height)
+    /// A shallow arc band: thicker in the middle, tapering to the sides.
+    private struct WindscreenBand: Shape {
+        func path(in rect: CGRect) -> Path {
+            var path = Path()
+            path.move(to: CGPoint(x: rect.minX, y: rect.maxY))
+            path.addQuadCurve(to: CGPoint(x: rect.maxX, y: rect.maxY),
+                              control: CGPoint(x: rect.midX, y: rect.minY - rect.height * 0.6))
+            path.addQuadCurve(to: CGPoint(x: rect.minX, y: rect.maxY),
+                              control: CGPoint(x: rect.midX, y: rect.minY + rect.height * 0.5))
+            path.closeSubpath()
+            return path
+        }
     }
 
     /// Forward galley and the lavatory across from it, ahead of row 1. Sized
@@ -245,67 +277,24 @@ struct SeatSelectionView: View {
         .accessibilityHidden(true)
     }
 
-    /// A galley reads as its cart bays: a run of vertical dividers, not a
-    /// blank box with an icon dropped in the middle.
+    /// Galley and lavatory are plain boxes with the icon every airline seat
+    /// map uses (SeatGuru, the carriers' own maps): no cart bays, no door
+    /// swing. The furniture is scenery, not a drawing to be read.
     private var galleyBox: some View {
-        RoundedRectangle(cornerRadius: 5, style: .continuous)
-            .fill(Theme.seatMapInk.opacity(0.05))
-            .overlay {
-                GeometryReader { geo in
-                    let bays = 4
-                    let step = geo.size.width / CGFloat(bays)
-                    Path { path in
-                        for index in 1..<bays {
-                            let x = step * CGFloat(index)
-                            path.move(to: CGPoint(x: x, y: 5))
-                            path.addLine(to: CGPoint(x: x, y: geo.size.height - 5))
-                        }
-                    }
-                    .stroke(Theme.seatMapInk.opacity(0.16), lineWidth: 1)
-                }
-            }
-            .overlay(alignment: .topLeading) {
-                Image(systemName: "cup.and.saucer.fill")
-                    .font(.system(size: 9))
-                    .foregroundStyle(Theme.seatMapInk.opacity(0.35))
-                    .padding(4)
-            }
-            .overlay {
-                RoundedRectangle(cornerRadius: 5, style: .continuous)
-                    .strokeBorder(Theme.seatMapInk.opacity(0.12), lineWidth: 1)
-            }
+        cabinFurniture(symbol: "fork.knife")
     }
 
-    /// A lavatory reads as its door: the swept arc is the convention every
-    /// cabin layout drawing uses.
     private func lavatoryBox(accessible: Bool) -> some View {
-        RoundedRectangle(cornerRadius: 5, style: .continuous)
-            .fill(Theme.seatMapInk.opacity(0.05))
+        cabinFurniture(symbol: "toilet.fill")
+    }
+
+    private func cabinFurniture(symbol: String) -> some View {
+        RoundedRectangle(cornerRadius: 6, style: .continuous)
+            .fill(Theme.seatMapInk.opacity(0.06))
             .overlay {
-                GeometryReader { geo in
-                    // Door swing: a quarter arc struck from the hinge corner.
-                    let radius = min(geo.size.width, geo.size.height) * 0.62
-                    Path { path in
-                        path.move(to: CGPoint(x: 0, y: geo.size.height))
-                        path.addArc(
-                            center: CGPoint(x: 0, y: geo.size.height),
-                            radius: radius,
-                            startAngle: .degrees(-90),
-                            endAngle: .degrees(0),
-                            clockwise: false
-                        )
-                    }
-                    .stroke(Theme.seatMapInk.opacity(0.18), lineWidth: 1)
-                }
-            }
-            .overlay {
-                Image(systemName: accessible ? "figure.roll" : "figure.stand")
-                    .font(.system(size: 11))
-                    .foregroundStyle(Theme.seatMapInk.opacity(0.38))
-            }
-            .overlay {
-                RoundedRectangle(cornerRadius: 5, style: .continuous)
-                    .strokeBorder(Theme.seatMapInk.opacity(0.12), lineWidth: 1)
+                Image(systemName: symbol)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Theme.seatMapInk.opacity(0.35))
             }
     }
 
@@ -591,12 +580,15 @@ struct SeatSelectionView: View {
                 Text(cabinClass)
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(Theme.seatMapInk)
-                Text("\(session.currentLeg.flightNumber) · \(session.aircraft.name)")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(Theme.seatMapInk.opacity(0.6))
-                Text(seatPerk(for: id))
-                    .font(.system(size: 12))
-                    .foregroundStyle(Theme.seatMapInk.opacity(0.5))
+                // The aircraft is named in the header and the flight on the
+                // pass. The perk line is dropped when it only repeats the
+                // cabin name.
+                let perk = seatPerk(for: id)
+                if perk.lowercased() != cabinClass.lowercased() {
+                    Text(perk)
+                        .font(.system(size: 12))
+                        .foregroundStyle(Theme.seatMapInk.opacity(0.6))
+                }
             }
             Spacer(minLength: 0)
         }
@@ -624,37 +616,11 @@ struct SeatSelectionView: View {
 
     // MARK: Selection summary
 
+    /// One control. The floating callout above already names the seat, the
+    /// cabin and the flight, so nothing is repeated here.
     private var selectionCard: some View {
         VStack(spacing: 14) {
-            HStack(alignment: .top) {
-                selectionField("Cabin Class", cabinClass)
-                Spacer()
-                selectionField("Selected Seat", selected ?? "—", centered: true)
-                Spacer()
-                selectionField("Flight No", session.currentLeg.flightNumber, trailing: true)
-            }
-
-            Divider()
-
             HStack {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("Focus block")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(Theme.seatMapInk.opacity(0.5))
-                    Text(session.itinerary.totalFocusDuration.shortDurationText)
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundStyle(Theme.seatMapInk)
-                        .contentTransition(.numericText())
-                    Text("Uninterrupted study time")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(Theme.seatMapInk.opacity(0.35))
-                }
-                // At accessibility sizes this column yields to the button: a
-                // caption can wrap, "Continue" must not become "Conti…"
-                // (QA/e2e-ax-04-seat-selected.png).
-                .lineLimit(2)
-                .minimumScaleFactor(0.8)
-                Spacer(minLength: 12)
                 Button {
                     // Skip assigns the first open seat; otherwise take the
                     // chosen one. Either way, always advances.
@@ -668,15 +634,13 @@ struct SeatSelectionView: View {
                             .lineLimit(1)
                         Image(systemName: "arrow.right")
                     }
-                        .fixedSize()
                         .font(.subheadline.bold())
                         .foregroundStyle(.white)
-                        .padding(.horizontal, 18)
+                        .frame(maxWidth: .infinity)
                         .frame(height: 52)
                         .background(Theme.accent, in: Capsule())
                 }
                 .accessibilityLabel(selected.map { "Take seat \($0)" } ?? "Skip seat selection")
-                .layoutPriority(1)
             }
         }
         .padding(20)
@@ -689,20 +653,6 @@ struct SeatSelectionView: View {
                 .ignoresSafeArea(edges: .bottom)
         )
         .animation(.snappy(duration: 0.25), value: selected)
-    }
-
-    private func selectionField(_ label: String, _ value: String,
-                                centered: Bool = false, trailing: Bool = false) -> some View {
-        let alignment: HorizontalAlignment = trailing ? .trailing : (centered ? .center : .leading)
-        return VStack(alignment: alignment, spacing: 3) {
-            Text(label)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(Theme.seatMapInk.opacity(0.5))
-            Text(value)
-                .font(.system(size: 15, weight: .bold))
-                .foregroundStyle(Theme.seatMapInk)
-                .contentTransition(.numericText())
-        }
     }
 }
 
@@ -724,9 +674,8 @@ private struct WingAnchorKey: PreferenceKey {
 ///
 /// Everything is driven off the aircraft's own `CabinPlan` geometry, so the
 /// narrowbodies get a modestly swept wing with big nacelles and the supersonic
-/// gets a long, highly swept delta and a spike nose. The wing is drawn out past
-/// both edges of the canvas on purpose: it is cut by the screen rather than
-/// stopping in a stub, which is how a real seat map reads at this zoom.
+/// gets a long, highly swept delta and a spike nose. The wing ends inside the
+/// canvas with a raked tip, so the aircraft reads whole rather than cropped.
 private struct AirframeCanvas: View {
     let plan: CabinPlan
     let fuselageWidth: CGFloat
@@ -741,8 +690,8 @@ private struct AirframeCanvas: View {
             let halfBody = fuselageWidth / 2
             let bodyLeft = midX - halfBody
             let bodyRight = midX + halfBody
-            // Run the planform past the canvas so the edge does the cutting.
-            let bleed: CGFloat = 48
+            // Inset the wingtips from the canvas edge so both wings are whole.
+            let bleed: CGFloat = -10
 
             // Wing box centre: fall back to a sensible spot before the first
             // layout pass reports where the exit rows landed.
@@ -777,10 +726,13 @@ private struct AirframeCanvas: View {
         for side in [-1.0, 1.0] {
             let root = side < 0 ? bodyLeft : bodyRight
             let tip = side < 0 ? -bleed : size.width + bleed
+            // The tip is raked: the trailing edge meets the leading edge a
+            // little inboard, so the wing ends in a point, not a square.
+            let rake = (tip - root) * 0.06
             var path = Path()
             path.move(to: CGPoint(x: root, y: rootLead))
             path.addLine(to: CGPoint(x: tip, y: tipLead))
-            path.addLine(to: CGPoint(x: tip, y: tipLead + tipChord))
+            path.addLine(to: CGPoint(x: tip - rake, y: tipLead + tipChord))
             path.addLine(to: CGPoint(x: root, y: rootLead + rootChord))
             path.closeSubpath()
             context.fill(path, with: .color(Theme.seatMapWing))

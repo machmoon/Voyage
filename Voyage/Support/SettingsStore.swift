@@ -138,6 +138,29 @@ final class SettingsStore {
         didSet { defaults.set(hasCompletedOnboarding, forKey: "hasCompletedOnboarding") }
     }
 
+    /// The seat the traveler departed in last time, and the aircraft it was
+    /// on. Written at departure, read as the seat map's default when the
+    /// aircraft matches, the way `CheckBagView` prefills recent bags. Nil
+    /// until the first departure.
+    var lastSeat: String? {
+        didSet { defaults.set(lastSeat, forKey: "lastSeat") }
+    }
+
+    var lastSeatAircraftRaw: String? {
+        didSet { defaults.set(lastSeatAircraftRaw, forKey: "lastSeatAircraft") }
+    }
+
+    /// The remembered seat, if it was taken on `aircraft`.
+    func lastSeat(on aircraft: AircraftProfile) -> String? {
+        guard lastSeatAircraftRaw == aircraft.rawValue else { return nil }
+        return lastSeat
+    }
+
+    func rememberSeat(_ seat: String, on aircraft: AircraftProfile) {
+        lastSeat = seat
+        lastSeatAircraftRaw = aircraft.rawValue
+    }
+
     var homeAirport: Airport {
         Airport.byCode(originOverrideCode ?? resolvedOriginCode)
     }
@@ -178,6 +201,8 @@ final class SettingsStore {
         flightFocusRemindersEnabled = defaults.object(forKey: "flightFocusRemindersEnabled") as? Bool ?? true
         cabinServiceEnabled = defaults.object(forKey: "cabinServiceEnabled") as? Bool ?? true
         hasCompletedOnboarding = defaults.bool(forKey: "hasCompletedOnboarding")
+        lastSeat = defaults.string(forKey: "lastSeat")
+        lastSeatAircraftRaw = defaults.string(forKey: "lastSeatAircraft")
         realWorldTwinEnabled = defaults.object(forKey: "realWorldTwinEnabled") as? Bool
             ?? defaults.object(forKey: "realSceneryEnabled") as? Bool
             ?? false

@@ -59,7 +59,7 @@ final class CabinServiceScreenshotUITests: XCTestCase {
 
         // The flight is still flying, which is the whole point: ignoring a
         // cue is not a diversion and not a failure.
-        XCTAssertFalse(app.staticTexts["Flight diverted"].exists)
+        XCTAssertFalse(app.staticTexts["Stopped early"].exists)
         XCTAssertTrue(app.otherElements["in-flight-screen"].exists
                       || app.buttons["Window view"].exists
                       || app.buttons["Map view"].exists,

@@ -3,6 +3,7 @@ import os
 import UIKit
 import StoreKit
 import MapKit
+import SwiftData
 
 /// The peak-end payoff after touchdown: a typographic welcome, baggage
 /// claim for your checked intentions, and a passport stamp into the logbook.
@@ -319,6 +320,10 @@ private struct StampView: View {
     /// them keeps the stamp moment clean instead of stacking a form under it.
     @State private var stamped = false
     @State private var revealed = false
+    /// The rating this landing completed, read back off the saved entry
+    /// after baggage claim. Printed under the cachet on its own beat.
+    @State private var endorsement: PilotRating?
+    @State private var endorsed = false
     @State private var shareCaption = ""
     @State private var receiptPNG: Data?
 
@@ -445,6 +450,7 @@ private struct StampView: View {
     /// Beat 1: press the stamp (haptic + thunk). Beat 2: after it settles, bring
     /// up the receipt and share controls.
     private func runStampSequence() {
+        endorsement = recordEndorsementIfEarned()
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(700))
             // Reduce Motion drops the travel and the overshoot, not the payoff:
@@ -462,12 +468,48 @@ private struct StampView: View {
             if ProcessInfo.processInfo.arguments.contains("-VoyageDebugStampHold") { return }
             #endif
 
+            if endorsement != nil {
+                // The endorsement is a second press on the same page, so it
+                // gets the stamp beat and not a new step.
+                try? await Task.sleep(for: .milliseconds(650))
+                withAnimation(reduceMotion ? .easeOut(duration: 0.25)
+                                           : .spring(duration: 0.3, bounce: 0.3)) {
+                    endorsed = true
+                }
+                Haptics.stamp()
+            }
+
             try? await Task.sleep(for: .milliseconds(950))
             withAnimation(.smooth(duration: 0.45)) {
                 revealed = true
             }
             await askForReviewIfEarned()
         }
+    }
+
+    /// Whether the landing that was just saved raised the rating. Reads the
+    /// logbook as stored, after baggage claim, rather than the session's own
+    /// intentions: the entry is the fact, and an entry the session failed to
+    /// save cannot earn anything. Writes the endorsement onto that entry.
+    private func recordEndorsementIfEarned() -> PilotRating? {
+        guard let entry = session.logEntry, entry.completed else { return nil }
+        if let existing = entry.endorsement { return existing }
+        let entries = (try? modelContext.fetch(FetchDescriptor<LogbookEntry>())) ?? []
+        guard entries.contains(where: { $0 === entry }) else { return nil }
+        let before = RatingProgress.evaluate(entries: entries.filter { $0 !== entry }).current
+        let after = RatingProgress.evaluate(entries: entries).current
+        guard after > before else { return nil }
+        entry.endorsement = after
+        do { try modelContext.save() } catch {
+            Logger(subsystem: "com.patrickliu.voyage", category: "arrival")
+                .error("Endorsement save failed: \(error.localizedDescription, privacy: .public)")
+        }
+        return after
+    }
+
+    private var endorsementText: String? {
+        guard let endorsement, let entry = session.logEntry else { return nil }
+        return PilotRatings.endorsementLine(for: endorsement, on: entry.date)
     }
 
     /// The stamp is the high point of the whole session, which is the only
@@ -592,11 +634,25 @@ private struct StampView: View {
                 .rotationEffect(.degrees(stamped || reduceMotion ? 0 : -5))
                 .opacity(stamped ? 1 : 0)
                 .offset(y: -18)
+
+                // The endorsement line, printed under the cachet the way an
+                // instructor's endorsement sits under a logbook entry.
+                if let endorsementText {
+                    Text(endorsementText)
+                        .font(.system(size: 8.5, weight: .heavy, design: .monospaced))
+                        .kerning(0.8)
+                        .foregroundStyle(cachetInk)
+                        .rotationEffect(.degrees(-2))
+                        .scaleEffect(endorsed || reduceMotion ? 1 : 1.2)
+                        .opacity(endorsed ? 0.9 : 0)
+                        .offset(y: 50)
+                }
             }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(
             "Passport page. Entry stamp: admitted at \(city.city), \(city.code), \(stampDateText), \(Int(session.completedMiles).formatted()) miles."
+            + (endorsementText.map { " \($0)." } ?? "")
         )
     }
 

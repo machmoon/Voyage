@@ -7,6 +7,7 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @State private var settings = SettingsStore.shared
+    @Query private var entries: [LogbookEntry]
     @State private var hasSeededData = false
     @State private var isWritingFeedback = false
 
@@ -179,7 +180,7 @@ struct SettingsView: View {
 
                 Section {
                     LabeledContent("Grace period", value: "30 seconds")
-                    LabeledContent("Penalty", value: "Flight diverted")
+                    LabeledContent("Penalty", value: "Stopped early")
                 } header: {
                     Text("Strict mode")
                 } footer: {
@@ -215,6 +216,14 @@ struct SettingsView: View {
                     Text("Help")
                 } footer: {
                     Text("The briefing walks through how a Voyage flight works, the same way it did on first launch. A note opens GitHub in your browser so you can post it publicly under your own account.")
+                }
+
+                Section {
+                    LogbookExportButtons(entries: entries)
+                } header: {
+                    Text("Logbook")
+                } footer: {
+                    Text("One Markdown file: a debrief prompt, a 90-day summary, the recorder's findings, and the last 20 flights. Read it before you paste it anywhere.")
                 }
 
                 // Seeded demo history is a development affordance, not a

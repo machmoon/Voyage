@@ -34,6 +34,41 @@ final class FlyerTierTests: XCTestCase {
         XCTAssertEqual(LogbookStats.tier(entries), .member)
     }
 
+    func testTierNeverDecreasesForMilesPlatinumWithZeroHours() throws {
+        // A traveler who reached Platinum by miles before ratings existed
+        // keeps it, even with no focus time on the rows at all.
+        let entries = (0..<4).map { index in
+            LogbookEntry(
+                date: Date(timeIntervalSince1970: 1_700_000_000 + Double(index) * 86_400),
+                originCode: "BOS",
+                destinationCode: "JFK",
+                flightNumber: "VOY 100",
+                seat: "C10",
+                miles: 10_000,
+                focusSeconds: 0,
+                completed: true
+            )
+        }
+        XCTAssertEqual(RatingProgress.evaluate(entries: entries).current, .solo)
+        XCTAssertEqual(LogbookStats.tier(entries), .platinum)
+    }
+
+    func testRatingRaisesTierWithoutMiles() throws {
+        let entries = (0..<3).map { _ in makeEntry(miles: 0, completed: true) }
+        XCTAssertEqual(FlyerTier.tier(forMiles: LogbookStats.totalMiles(entries)), .member)
+        XCTAssertEqual(LogbookStats.tier(entries), .silver)
+    }
+
+    func testStreakUsesInjectedNow() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let day = calendar.startOfDay(for: Date(timeIntervalSince1970: 1_700_000_000))
+        let entries = [makeEntry(miles: 10, completed: true, date: day)]
+        XCTAssertEqual(LogbookStats.streakDays(entries, calendar: calendar, now: day), 1)
+        let later = calendar.date(byAdding: .day, value: 5, to: day)!
+        XCTAssertEqual(LogbookStats.streakDays(entries, calendar: calendar, now: later), 0)
+    }
+
     func testStreakCountsConsecutiveCompletedDays() throws {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!

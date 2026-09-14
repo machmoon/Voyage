@@ -527,6 +527,11 @@ final class FlightSession {
         guard stage == .preflight else { return }
         freezeVisualPlanIfNeeded()
         departedAt = clock.now
+        // Remember the seat once the pass is torn, not when it was picked:
+        // a seat chosen and then abandoned at the gate is not a preference.
+        if seat != "—" {
+            SettingsStore.shared.rememberSeat(seat, on: aircraft)
+        }
         // Which timing the leg is really flying under. Reading this from the
         // simulator log is how a stale app instance without launch arguments
         // was caught driving a recording (`log show --info --predicate

@@ -99,7 +99,9 @@ struct HomeView: View {
             scheduler.pruneExpired()
             recenter(animated: false)
             applyPendingShortcutDeparture()
+            refreshRatingLine()
         }
+        .onChange(of: logbookKey) { refreshRatingLine() }
         .onChange(of: settings.originOverrideCode) {
             selectedDestination = nil
             recenter(animated: true)
@@ -245,7 +247,7 @@ struct HomeView: View {
                         // A chosen origin is not a location fix, so it does not
                         // get the location glyph either.
                         glyph: settings.originIsFromLocation ? "location.fill" : "airplane.departure",
-                        trailing: lifetimeMiles > 0 ? "\(lifetimeMiles.formatted()) mi" : nil,
+                        trailing: ratingLine,
                         showsChevron: false
                     )
                 }
@@ -306,8 +308,22 @@ struct HomeView: View {
         .minimumScaleFactor(0.75)
     }
 
-    private var lifetimeMiles: Int {
-        Int(LogbookStats.totalMiles(entries))
+    /// "Student pilot · 12h 40m of 40h toward Private". Computed once per
+    /// change of the logbook, not per body evaluation: the rating folds
+    /// every entry, and Home redraws on every clock tick.
+    @State private var ratingLine: String?
+
+    private struct LogbookKey: Equatable {
+        let count: Int
+        let lastDate: Date?
+    }
+
+    private var logbookKey: LogbookKey {
+        LogbookKey(count: entries.count, lastDate: entries.map(\.date).max())
+    }
+
+    private func refreshRatingLine() {
+        ratingLine = entries.isEmpty ? nil : RatingProgress.evaluate(entries: entries).summaryLine
     }
 
     private var headerActions: some View {

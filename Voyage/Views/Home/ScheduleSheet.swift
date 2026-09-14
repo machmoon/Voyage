@@ -40,12 +40,13 @@ struct ScheduleSheet: View {
                 }
                 .font(.subheadline.weight(.semibold))
 
-                Label("Typical departures, not live airport status", systemImage: "clock")
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 7)
-                    .background(Color(.secondarySystemGroupedBackground), in: Capsule())
+                // Block time and routing are the same for every departure of
+                // a pair, so they are said once here, not on every row.
+                if let first = options.first {
+                    Text("\(first.itinerary.totalFocusDuration.shortDurationText) · \(first.itinerary.connection.map { "1 stop · \($0.code)" } ?? "Nonstop")")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 20)
@@ -76,42 +77,28 @@ struct ScheduleSheet: View {
 
     private func departureRow(_ option: DepartureOption) -> some View {
         let isSelected = option.id == selectedID
-        let itinerary = option.itinerary
 
         return Button {
             Haptics.tap()
             withAnimation(.snappy(duration: 0.2)) { selectedID = option.id }
         } label: {
             HStack(alignment: .center, spacing: 12) {
-                Text(option.carrier.rawValue)
-                    .font(.system(size: 11, weight: .heavy, design: .monospaced))
-                    .foregroundStyle(isSelected ? .white : Theme.accent)
-                    .frame(width: 42, height: 42)
-                    .background(
-                        isSelected ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(Theme.accent.opacity(0.12)),
-                        in: RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    )
-
                 VStack(alignment: .leading, spacing: 4) {
                     Text(timeRangeText(option))
-                        .font(.system(size: 16, weight: .bold))
+                        .font(.body.weight(.semibold))
                         .foregroundStyle(.primary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.82)
-                    Text("\(dayLabel(option)) · \(option.flightNumber)")
+                    Text(dayLabel(option))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
                 Spacer()
-                VStack(alignment: .trailing, spacing: 3) {
-                    Text(itinerary.totalFocusDuration.shortDurationText + " focus")
-                        .font(.system(size: 14, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(.primary)
-                        .lineLimit(1)
-                    Text(itinerary.connection.map { "1 stop · \($0.code)" } ?? "Nonstop")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(Theme.accent)
                 }
             }
             .padding(.horizontal, 16)
@@ -148,12 +135,6 @@ struct ScheduleSheet: View {
 
     private var footer: some View {
         VStack(spacing: 12) {
-            Text("We’ll remind you 10 minutes before boarding opens")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 24)
-
             Button {
                 if let selected {
                     onSchedule(selected)
@@ -161,7 +142,7 @@ struct ScheduleSheet: View {
                     dismiss()
                 }
             } label: {
-                Text(selected.map { "Schedule \($0.flightNumber) · \($0.departure.formatted(date: .omitted, time: .shortened))" }
+                Text(selected.map { "Schedule \($0.departure.formatted(date: .omitted, time: .shortened))" }
                      ?? "Select a departure")
                     .font(.headline)
                     .foregroundStyle(.white)

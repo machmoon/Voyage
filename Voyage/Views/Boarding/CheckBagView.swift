@@ -49,7 +49,7 @@ struct CheckBagView: View {
                         Text("Check a bag")
                             .font(.title2.bold())
                             .foregroundStyle(Theme.seatMapInk)
-                        Text("Pack up to three things you want done on this flight. Claim the ones you finish when you land.")
+                        Text("Up to three things to finish on this flight.")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
@@ -69,6 +69,10 @@ struct CheckBagView: View {
                         recentBagsRow
                             .padding(.top, 14)
                     }
+
+                    focusNote
+                        .padding(.horizontal, 20)
+                        .padding(.top, 14)
                 }
             }
             .scrollBounceBehavior(.basedOnSize)
@@ -87,8 +91,6 @@ struct CheckBagView: View {
             Spacer(minLength: 0)
 
             VStack(spacing: 10) {
-                focusNote
-
                 Button {
                     session.intentions = items
                         .map { $0.trimmingCharacters(in: .whitespaces) }
@@ -158,21 +160,65 @@ struct CheckBagView: View {
         .accessibilityLabel("Recent bags")
     }
 
+    /// One paper luggage label per bag, the pre-thermal kind with an eyelet
+    /// and a ruled line you write on. Modelled on the SFO Museum's c. 1965
+    /// paper destination tag (collection.sfomuseum.org/objects/1511928635):
+    /// carrier mark and destination in the head, blank rule below. The
+    /// thermal IATA strip was rejected: its proportion is one enormous
+    /// airport code, and three lines of a student's own words have nowhere
+    /// to sit on it.
     private func bagField(_ index: Int) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: "tag.fill")
-                .font(.caption)
-                .foregroundStyle(items[index].isEmpty ? Theme.seatMapInk.opacity(0.3) : Theme.accent)
-            TextField("Bag \(index + 1), e.g. Review chapter 4", text: $items[index])
-                .focused($focusedIndex, equals: index)
-                .submitLabel(index < 2 ? .next : .done)
-                .onSubmit {
-                    focusedIndex = index < 2 ? index + 1 : nil
+        let filled = !items[index].trimmingCharacters(in: .whitespaces).isEmpty
+        return HStack(spacing: 0) {
+            // Eyelet and the string through it.
+            ZStack {
+                Circle()
+                    .strokeBorder(Theme.seatMapInk.opacity(0.25), lineWidth: 1.5)
+                    .frame(width: 14, height: 14)
+                Circle()
+                    .fill(Color(.systemGroupedBackground))
+                    .frame(width: 7, height: 7)
+            }
+            .frame(width: 34)
+            Rectangle()
+                .fill(Theme.seatMapInk.opacity(0.12))
+                .frame(width: 1)
+                .padding(.vertical, 8)
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Text("VOYAGE AIR")
+                    Text("·")
+                    Text(session.itinerary.destination.code)
+                    Spacer()
+                    Text("BAG \(index + 1)")
                 }
+                .font(.system(size: 8, weight: .semibold))
+                .kerning(1)
+                .foregroundStyle(Theme.seatMapInk.opacity(0.4))
+                TextField("Bag \(index + 1), e.g. Review chapter 4", text: $items[index])
+                    .font(.body)
+                    .focused($focusedIndex, equals: index)
+                    .submitLabel(index < 2 ? .next : .done)
+                    .onSubmit {
+                        focusedIndex = index < 2 ? index + 1 : nil
+                    }
+                Rectangle()
+                    .fill(filled ? Theme.accent.opacity(0.7) : Theme.seatMapInk.opacity(0.18))
+                    .frame(height: 1)
+            }
+            .padding(.leading, 12)
+            .padding(.trailing, 14)
+            .padding(.vertical, 11)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
-        .background(Theme.cardBackground,
-                    in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .background(
+            Theme.passportPaper,
+            in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .strokeBorder(Theme.seatMapInk.opacity(0.10), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.06), radius: 4, y: 2)
     }
 }

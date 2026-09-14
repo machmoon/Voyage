@@ -1,0 +1,111 @@
+{
+  "_comment": "Eight-slot feature story for the 1.2 page. Same schema as screenshots.json (fastlane frameit's Framefile.json shape). Sources are the mk-* captures from VoyageUITests/MarketingCaptureUITests.swift. Build with: python3 scripts/make_app_store_screenshots.py --config AppStore/screenshots-1.2.json --out AppStore/screenshots-1.2",
+  "output_size": [
+    1320,
+    2868
+  ],
+  "default": {
+    "background": "#0B1020",
+    "padding": 96,
+    "corner_radius": 64,
+    "keyword": {
+      "color": "#4E8CFF",
+      "font_size": 34,
+      "tracking": 6,
+      "uppercase": true,
+      "text": ""
+    },
+    "title": {
+      "color": "#FFFFFF",
+      "font_size": 84,
+      "line_spacing": 12
+    },
+    "subtitle": {
+      "color": "#9AA5BD",
+      "font_size": 44,
+      "line_spacing": 8
+    }
+  },
+  "data": [
+    {
+      "slot": 1,
+      "filter": "mk-08-window-cruise",
+      "title": {
+        "text": "Study for the length\nof a flight."
+      },
+      "subtitle": {
+        "text": "Pick a route. Look up when you land."
+      }
+    },
+    {
+      "slot": 2,
+      "filter": "mk-03-departure-board",
+      "title": {
+        "text": "Real flight times."
+      },
+      "subtitle": {
+        "text": "San Francisco to Los Angeles is 1h 25m.\nTo Seattle, 2h 05m."
+      }
+    },
+    {
+      "slot": 3,
+      "filter": "mk-04-seat-map",
+      "title": {
+        "text": "Choose your seat."
+      },
+      "subtitle": {
+        "text": "Window seats watch the wing."
+      }
+    },
+    {
+      "slot": 4,
+      "filter": "mk-06-boarding-pass",
+      "title": {
+        "text": "Pack what you will finish.\nThen tear."
+      },
+      "subtitle": {
+        "text": "Two bags is two things\nyou get done this flight."
+      }
+    },
+    {
+      "slot": 5,
+      "filter": "mk-11-map-follow",
+      "title": {
+        "text": "See where you are\nin the session."
+      },
+      "subtitle": {
+        "text": "The plane moves as you work."
+      }
+    },
+    {
+      "slot": 6,
+      "filter": "mk-13-recorder",
+      "title": {
+        "text": "It notices what you finish,\nand when."
+      },
+      "subtitle": {
+        "text": "Counted from your own flights.\nStays on your phone."
+      }
+    },
+    {
+      "slot": 7,
+      "filter": "mk-12-logbook",
+      "title": {
+        "text": "Study hours count\ntoward a rating."
+      },
+      "subtitle": {
+        "text": "Three landings to solo.\nForty hours to private pilot."
+      }
+    },
+    {
+      "slot": 8,
+      "filter": "qa-31-passport-spread",
+      "title": {
+        "text": "Land. Get stamped."
+      },
+      "subtitle": {
+        "text": "One stamp for every flight you finish."
+      }
+    }
+  ]
+}

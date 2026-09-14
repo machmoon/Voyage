@@ -92,24 +92,21 @@ struct BoardingPassView: View {
                 Spacer()
 
                 if printed && !ripped {
-                    airplaneModeReminder
-                        .padding(.bottom, 14)
-
                     Button {
                         rip()
                     } label: {
                         Text("Tear & board")
-                            .font(.footnote.weight(.semibold))
-                            .foregroundStyle(.white.opacity(0.9))
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
-                            .background(.white.opacity(0.12), in: Capsule())
+                            .font(.headline)
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 28)
+                            .frame(height: 52)
+                            .background(Theme.accent, in: Capsule())
                     }
                     .accessibilityLabel("Tear and board")
                     .accessibilityHint("Tears the boarding pass stub and departs")
                 }
 
-                Text(ripped ? "Boarding…" : "Slide across the tear line to board")
+                Text(ripped ? "Boarding…" : " ")
                     .font(.footnote.weight(.medium))
                     .foregroundStyle(.white.opacity(printed ? 0.65 : 0))
                     .padding(.top, 14)
@@ -124,23 +121,6 @@ struct BoardingPassView: View {
             guard printed, !ripped else { return }
             rip()
         }
-    }
-
-    /// iOS can't flip Airplane Mode for you — this keeps the ritual visible
-    /// right where you commit, instead of on a page of its own.
-    private var airplaneModeReminder: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "airplane")
-                .font(.system(size: 11, weight: .bold))
-                .foregroundStyle(Theme.accent)
-            Text("Turn on Airplane Mode. Nothing interrupts this flight.")
-                .font(.caption.weight(.medium))
-                .foregroundStyle(.white.opacity(0.75))
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .background(.white.opacity(0.07), in: Capsule())
-        .transition(.opacity)
     }
 
     /// Gaps between line feeds — irregular, like a real gate printer that
@@ -322,14 +302,11 @@ struct BoardingPassView: View {
             // size "FOCUSED FLYER" ends 2pt before "MAIN" starts; at
             // accessibilityLarge they render as the single word
             // "FOCUSED FLYERMAIN" (QA/e2e-ax-06-boarding-pass.png).
+            // Only fields the session actually holds. A passenger name, a
+            // gate and a boarding call would be invented, and an invented
+            // field is the kind of detail that reads as a prop.
             HStack(spacing: 12) {
-                passField("Passenger", "FOCUSED FLYER")
                 passField("Class", cabinClass)
-                passField("Gate", gate)
-            }
-
-            HStack(spacing: 12) {
-                passField("Board", "NOW")
                 passField("Focus", session.itinerary.totalFocusDuration.shortDurationText)
                 passField("Bags", session.intentions.isEmpty ? "—" : "\(session.intentions.count)")
             }

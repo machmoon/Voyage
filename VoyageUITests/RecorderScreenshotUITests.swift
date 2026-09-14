@@ -65,7 +65,7 @@ final class RecorderScreenshotUITests: XCTestCase {
         XCTAssertTrue(recorder.waitForExistence(timeout: 10), "Logbook never showed the recorder row")
         recorder.tap()
 
-        XCTAssertTrue(app.staticTexts["FLIGHT DATA RECORDER"].waitForExistence(timeout: 10),
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@ OR label BEGINSWITH %@", "From ", "Your logbook is empty")).firstMatch.waitForExistence(timeout: 10),
                       "The recorder screen never appeared")
     }
 
@@ -147,10 +147,10 @@ final class RecorderScreenshotUITests: XCTestCase {
         openRecorder(in: app)
 
         XCTAssertTrue(app.staticTexts.containing(NSPredicate(
-            format: "label BEGINSWITH %@", "Reading 57 recorded flights")).firstMatch.exists,
+            format: "label BEGINSWITH %@", "From 57 flights")).firstMatch.exists,
             "The demo logbook did not reach the screen")
         XCTAssertTrue(app.staticTexts.containing(NSPredicate(
-            format: "label CONTAINS %@", "reach the gate")).firstMatch.exists,
+            format: "label CONTAINS %@", "land more often")).firstMatch.exists,
             "Expected at least one comparative finding")
         capture(app, named: "recorder-2-findings-top")
 
@@ -170,12 +170,12 @@ final class RecorderScreenshotUITests: XCTestCase {
     func testCaptureEvidenceRowsCloseUp() throws {
         let app = launch(demoLogbook: true)
         openRecorder(in: app)
-        XCTAssertTrue(scroll(app, until: "reach the gate more often"),
+        XCTAssertTrue(scroll(app, until: "land more often"),
                       "Expected the departure-time finding")
         XCTAssertTrue(app.staticTexts["38/44"].exists, "Expected the 44-flight group")
         XCTAssertTrue(app.staticTexts["1/7"].exists, "Expected the 7-flight group")
 
-        let rect = cardRect(in: app, from: "DEPARTURE TIME", to: "21 TO 05")
+        let rect = cardRect(in: app, from: "Flights between 5pm and 9pm land more often.", to: "21 to 05")
         XCTAssertNotNil(rect, "Could not locate the departure-time card")
         capture(app, named: "recorder-4-evidence-bands", cropping: rect)
     }

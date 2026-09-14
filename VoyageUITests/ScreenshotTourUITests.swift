@@ -476,7 +476,7 @@ final class ScreenshotTourUITests: XCTestCase {
         settle(36)
         app.activate()
 
-        require(app.staticTexts["Flight diverted"],
+        require(app.staticTexts["Stopped early"],
                 "the diversion screen after the grace period expired", timeout: 25)
         assertForeground(app, "diverted")
 

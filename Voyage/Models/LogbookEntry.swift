@@ -71,6 +71,17 @@ final class LogbookEntry {
     /// was recorded, which decodes as `.unknown`.
     var outcomeRaw: String = ""
 
+    /// Raw `PilotRating` of the endorsement this landing earned, when it
+    /// raised the rating. `nil` on every other row, including rows written
+    /// before ratings existed.
+    var endorsementRaw: String?
+
+    /// The rating this landing completed, if any.
+    var endorsement: PilotRating? {
+        get { endorsementRaw.flatMap(PilotRating.init(rawValue:)) }
+        set { endorsementRaw = newValue?.rawValue }
+    }
+
     /// How the flight ended. Falls back to `completed` for legacy rows so
     /// arrivals still read as arrivals; only the *cause* of a non-arrival
     /// is unrecoverable, and that reads as `.unknown`.
@@ -215,8 +226,19 @@ enum LogbookStats {
         entries.reduce(0) { $0 + $1.miles }
     }
 
+    /// The higher of the miles tier and the tier the pilot rating unlocks
+    /// (Solo is Silver, Solo cross-country is Gold, Private is Platinum).
+    /// Both stay, permanently: dropping miles would demote a traveler who
+    /// reached Platinum by miles before ratings existed.
     static func tier(_ entries: [LogbookEntry]) -> FlyerTier {
-        FlyerTier.tier(forMiles: totalMiles(entries))
+        let byMiles = FlyerTier.tier(forMiles: totalMiles(entries))
+        let byRating = RatingProgress.evaluate(entries: entries).current.cosmeticTier
+        return max(byMiles, byRating)
+    }
+
+    /// Focus time of landed flights, the "total time" column of the ratings.
+    static func totalFocusSeconds(_ entries: [LogbookEntry]) -> TimeInterval {
+        entries.filter(\.completed).reduce(0) { $0 + $1.focusSeconds }
     }
 
     /// Completed flights in one local calendar week, oldest first, ready for
@@ -265,10 +287,13 @@ enum LogbookStats {
     }
 
     /// Consecutive-day streak of completed flights ending today or yesterday.
-    static func streakDays(_ entries: [LogbookEntry], calendar: Calendar = .current) -> Int {
+    /// `now` is injected so a test can pin the day it is asked about.
+    static func streakDays(_ entries: [LogbookEntry],
+                           calendar: Calendar = .current,
+                           now: Date = .now) -> Int {
         let days = Set(entries.filter(\.completed).map { calendar.startOfDay(for: $0.date) })
         guard !days.isEmpty else { return 0 }
-        var cursor = calendar.startOfDay(for: .now)
+        var cursor = calendar.startOfDay(for: now)
         if !days.contains(cursor) {
             guard let yesterday = calendar.date(byAdding: .day, value: -1, to: cursor),
                   days.contains(yesterday) else { return 0 }

@@ -110,6 +110,8 @@ final class LogbookMigrationTests: XCTestCase {
             XCTAssertNil(entry.arrivalCorridorID)
             XCTAssertNil(entry.environmentSnapshotData)
             XCTAssertNil(entry.trajectorySamplesData)
+            XCTAssertNil(entry.endorsementRaw)
+            XCTAssertNil(entry.endorsement)
             XCTAssertEqual(entry.aircraft, .voyageClassic)
             XCTAssertTrue(entry.routeSamples.isEmpty)
             XCTAssertTrue(entry.environmentSnapshots.isEmpty)
@@ -158,6 +160,7 @@ final class LogbookMigrationTests: XCTestCase {
                 ),
             ])
             entry.trajectorySamplesData = try JSONEncoder().encode([trajectory])
+            entry.endorsement = .solo
             try migratedContext.save()
         }
 
@@ -182,6 +185,8 @@ final class LogbookMigrationTests: XCTestCase {
             XCTAssertEqual(entry.environmentSnapshots.count, 1)
             XCTAssertEqual(entry.trajectoryLegSamples.count, 1)
             XCTAssertEqual(entry.trajectoryLegSamples.first?.count, 2)
+            XCTAssertEqual(entry.endorsementRaw, "solo")
+            XCTAssertEqual(entry.endorsement, .solo)
         }
     }
 }

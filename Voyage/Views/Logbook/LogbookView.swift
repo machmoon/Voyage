@@ -22,7 +22,7 @@ struct LogbookView: View {
     @State private var replaySelection: ReplaySelection?
 
     private var tier: FlyerTier { LogbookStats.tier(entries) }
-    private var totalMiles: Double { LogbookStats.totalMiles(entries) }
+    private var rating: RatingProgress { RatingProgress.evaluate(entries: entries) }
     private var weekEntries: [LogbookEntry] { LogbookStats.completedFlights(entries) }
 
     var body: some View {
@@ -52,6 +52,14 @@ struct LogbookView: View {
             .toolbarBackground(Color(.systemGroupedBackground), for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Menu {
+                        LogbookExportButtons(entries: entries)
+                    } label: {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                    .accessibilityLabel("Export logbook")
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
                 }
@@ -134,45 +142,40 @@ struct LogbookView: View {
 
     private var statusCard: some View {
         VStack(spacing: 16) {
-            HStack {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(tier.rawValue.uppercased())
-                        .voyageFont(20, weight: .black)
-                        .kerning(2)
-                    Text(tier.perkDescription)
-                        .font(.caption)
-                        .opacity(0.75)
-                }
-                Spacer()
-                Image(systemName: "airplane.circle.fill")
-                    .voyageFont(34)
-                    .opacity(0.9)
+            // The rating card. One rating at a time, one row per requirement,
+            // the way MyFlightbook lays out a rating
+            // (MyFlightbook.Web/Areas/mvc/Views/Training/_ratingsProgressList.cshtml):
+            // a check for AchieveOnce items, a progress bar with the
+            // ProgressDisplay text for Count and Time items.
+            // One number, one line under it. Hours is the number a student
+            // pilot watches; the rating, landings and airports are its caption.
+            VStack(alignment: .leading, spacing: 4) {
+                Text(PilotRatings.hoursText(LogbookStats.totalFocusSeconds(entries)))
+                    .voyageFont(38, weight: .semibold)
+                    .monospacedDigit()
+                let landings = entries.filter(\.completed)
+                Text("\(rating.current.title) · \(landings.count) landings")
+                    .font(.subheadline)
+                    .opacity(0.72)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
-            HStack(spacing: 0) {
-                statusStat("\(Int(totalMiles).formatted())", "lifetime miles")
-                statusStat("\(entries.filter(\.completed).count)", "flights flown")
-                statusStat("\(LogbookStats.streakDays(entries))", "day streak")
-            }
-
-            if let next = tier.next {
-                VStack(spacing: 5) {
-                    GeometryReader { geo in
-                        ZStack(alignment: .leading) {
-                            Capsule().fill(.white.opacity(0.12))
-                            Capsule()
-                                .fill(Theme.accent)
-                                .frame(width: geo.size.width * tierProgress(to: next))
-                        }
+            // Only what is still open. A met requirement is already
+            // implied by the rating name, and a list of checks is clutter.
+            let openRequirements = rating.nextRequirements.filter { !$0.isSatisfied }
+            if !openRequirements.isEmpty, let next = rating.next {
+                VStack(spacing: 10) {
+                    Text("Toward \(next.title)")
+                        .font(.caption.weight(.semibold))
+                        .opacity(0.72)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    ForEach(openRequirements) { requirement in
+                        requirementRow(requirement)
                     }
-                    .frame(height: 5)
-                    Text("\(Int(max(0, next.threshold - totalMiles)).formatted()) mi to \(next.rawValue)")
-                        .voyageFont(10, weight: .semibold)
-                        .opacity(0.75)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
                 }
             }
 
+            if !weekEntries.isEmpty {
             Button {
                 Haptics.tap()
                 replaySelection = ReplaySelection(entries: weekEntries, title: "This Week")
@@ -208,39 +211,60 @@ struct LogbookView: View {
             }
             .buttonStyle(.plain)
             .disabled(weekEntries.isEmpty)
-            .accessibilityLabel(weekEntries.isEmpty
-                                ? "No flights to replay this week"
-                                : "Replay \(weekEntries.count) flights from this week")
+            .accessibilityLabel("Replay \(weekEntries.count) flights from this week")
+            }
         }
         .foregroundStyle(.white)
         .padding(20)
-        .background(
-            LinearGradient(colors: [Theme.surfaceSubtle, Theme.surfaceDark],
-                           startPoint: .topLeading, endPoint: .bottomTrailing),
-            in: RoundedRectangle(cornerRadius: 20, style: .continuous)
-        )
+        .background(Theme.surfaceDark, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .strokeBorder(.white.opacity(0.08), lineWidth: 1)
         )
     }
 
-    private func tierProgress(to next: FlyerTier) -> Double {
-        let span = next.threshold - tier.threshold
-        guard span > 0 else { return 0 }
-        return min(1, max(0, (totalMiles - tier.threshold) / span))
-    }
-
-    private func statusStat(_ value: String, _ label: String) -> some View {
-        VStack(spacing: 2) {
-            Text(value)
-                .voyageFont(18, weight: .bold, design: .monospaced)
-            Text(label.uppercased())
-                .voyageFont(8, weight: .bold)
-                .kerning(0.8)
-                .opacity(0.65)
+    /// One checklist line: title and progress text over a bar while a
+    /// requirement is open, and a check once it is met. A met count row
+    /// collapses to the check too, so "44 of 10 landings" never shows, the
+    /// way MyFlightbook's ratings progress list marks completed items.
+    private func requirementRow(_ requirement: RatingRequirement) -> some View {
+        let showsCheck = requirement.kind == .achieveOnce || requirement.isSatisfied
+        return VStack(spacing: 5) {
+            HStack(spacing: 8) {
+                if showsCheck {
+                    Image(systemName: requirement.isSatisfied ? "checkmark.circle.fill" : "circle")
+                        .voyageFont(12, weight: .semibold)
+                        .foregroundStyle(requirement.isSatisfied ? Theme.accent : .white.opacity(0.4))
+                }
+                Text(requirement.title)
+                    .font(.subheadline)
+                    .opacity(requirement.isSatisfied ? 0.6 : 0.9)
+                Spacer(minLength: 8)
+                if !showsCheck {
+                    Text(requirement.progressText)
+                        .font(.caption)
+                        .monospacedDigit()
+                        .opacity(0.75)
+                }
+            }
+            if !showsCheck {
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(.white.opacity(0.12))
+                        Capsule()
+                            .fill(Theme.accent)
+                            .frame(width: geo.size.width * requirement.fraction)
+                    }
+                }
+                .frame(height: 5)
+            }
         }
-        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+            showsCheck
+                ? "\(requirement.title), \(requirement.isSatisfied ? "done" : "not yet")"
+                : "\(requirement.title), \(requirement.progressText)"
+        )
     }
 
     // MARK: Entry row
@@ -251,7 +275,7 @@ struct LogbookView: View {
             VStack(spacing: 1) {
                 Text(entry.destinationCode)
                     .voyageFont(13, weight: .black, design: .monospaced)
-                Text(entry.completed ? "ADMITTED" : "DIVERTED")
+                Text(entry.completed ? "ADMITTED" : "STOPPED EARLY")
                     .voyageFont(5.5, weight: .heavy)
                     .kerning(0.5)
             }
@@ -280,48 +304,32 @@ struct LogbookView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-                Text("\(entry.date.formatted(date: .abbreviated, time: .shortened)) · \(entry.flightNumber) · seat \(entry.seat)")
+                // Date and length. Flight number, seat, bags and miles are
+                // on the receipt and the stamp, not repeated on every row.
+                Text("\(entry.date.formatted(.dateTime.month(.abbreviated).day())) · \(entry.focusSeconds.shortDurationText)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                if !entry.intentions.isEmpty {
-                    let done = zip(entry.intentions, entry.intentionsCompleted).filter { $1 }.count
-                    Text("\(done)/\(entry.intentions.count) bags claimed")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                }
             }
 
             Spacer()
 
             if entry.completed {
-                Button {
-                    Haptics.tap()
-                    replaySelection = ReplaySelection(entries: [entry], title: "Flight \(entry.flightNumber)")
-                } label: {
-                    Image(systemName: "play.fill")
-                        .voyageFont(12, weight: .bold)
-                        .foregroundStyle(.white)
-                        .frame(width: 30, height: 30)
-                        .background(Theme.accent, in: Circle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Replay flight to \(entry.destinationCode)")
-            }
-
-            if entry.completed {
                 LogbookShareButton(entry: entry)
-            }
-
-            VStack(alignment: .trailing, spacing: 3) {
-                Text("+\(Int(entry.miles).formatted()) mi")
-                    .voyageFont(13, weight: .bold, design: .monospaced)
-                    .foregroundStyle(entry.completed ? .primary : .secondary)
-                Text(entry.focusSeconds.shortDurationText)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
             }
         }
         .padding(.vertical, 4)
+        // The row itself replays the flight. One control per row, the
+        // share glyph, instead of two.
+        .contentShape(Rectangle())
+        .onTapGesture {
+            guard entry.completed else { return }
+            Haptics.tap()
+            replaySelection = ReplaySelection(entries: [entry], title: "Flight \(entry.flightNumber)")
+        }
+        .accessibilityAction(named: "Replay") {
+            guard entry.completed else { return }
+            replaySelection = ReplaySelection(entries: [entry], title: "Flight \(entry.flightNumber)")
+        }
     }
 }
 
