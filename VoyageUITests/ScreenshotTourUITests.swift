@@ -152,6 +152,15 @@ final class ScreenshotTourUITests: XCTestCase {
         settle(4)
         capture(app, "qa-08-inflight-cruise")
 
+        // Pure mode: a double tap fades the chrome to the window and the
+        // clock; another brings it back. InFlightView.swift, `pureMode`.
+        app.doubleTap()
+        settle(1)
+        XCTAssertFalse(app.buttons["Map view"].isHittable, "pure mode hides the study view switcher")
+        capture(app, "qa-08b-pure-mode")
+        app.doubleTap()
+        settle(1)
+
         // Second study view: live flight-path map, both styles and both cameras.
         let mapToggle = app.buttons["Map view"]
         require(mapToggle, "the study view switcher", timeout: 8)
