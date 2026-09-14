@@ -245,16 +245,19 @@ final class DemoReelUITests: XCTestCase {
         pause(6.0)
         _ = tap(app.buttons["Window view"], timeout: 3)
 
-        let landed = app.staticTexts.matching(
-            NSPredicate(format: "label BEGINSWITH %@", "Landed in")).firstMatch
-        _ = landed.waitForExistence(timeout: 120)
+        // ArrivalFlowView greets with "Welcome to" over the city name.
+        let welcome = app.staticTexts["Welcome to"]
+        XCTAssertTrue(welcome.waitForExistence(timeout: 120), "the demo leg should land inside two minutes")
         pause(3.0)
-        _ = tap(app.buttons["Continue"], timeout: 4)
-        pause(2.0)
-        if !tap(app.buttons["Post to your logbook"], timeout: 4) {
+        _ = tap(app.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH %@", "Continue")).firstMatch, timeout: 4)
+        pause(2.5)   // passport control, the stamp lands
+        if !tap(app.buttons["Post to your logbook"], timeout: 6) {
             _ = tap(app.buttons["Skip for now"], timeout: 2)
         }
         pause(2.0)
+        _ = tap(app.buttons["Back to the terminal"], timeout: 4)
+        pause(1.5)
         tourReplay(in: app)
         pause(2.0)
     }
