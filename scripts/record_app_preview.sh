@@ -64,10 +64,13 @@ wait "$REC_PID" || true
 wait "$TOUR_PID" || echo "    (tour reported a failure after the recording; the clip is still usable — check $OUT_DIR/tour.log)"
 
 echo "==> scaling to 886x1920 at 30 fps"
-# Simulator captures have no audio track; App Store Connect accepts silent previews.
-ffmpeg -y -loglevel error -i "$RAW" \
+# Simulator captures have no audio track, and App Store Connect rejects a
+# preview without one (asset state FAILED, code MOV_RESAVE_STEREO), so a
+# silent stereo AAC track is muxed in.
+ffmpeg -y -loglevel error -i "$RAW" -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=48000 \
   -t 30 -vf "scale=886:1920:flags=lanczos,format=yuv420p" -r 30 \
-  -c:v libx264 -profile:v high -pix_fmt yuv420p -movflags +faststart -an \
+  -c:v libx264 -profile:v high -pix_fmt yuv420p -movflags +faststart \
+  -c:a aac -b:a 256k -ac 2 -shortest \
   "$OUT"
 rm -f "$RAW" "$MARKER"
 xcrun simctl status_bar "$UDID" clear >/dev/null 2>&1 || true
