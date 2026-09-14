@@ -292,6 +292,8 @@ struct BoardingPassView: View {
                     Text(session.itinerary.origin.city)
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                 }
                 Spacer()
                 VStack(spacing: 3) {
@@ -311,6 +313,8 @@ struct BoardingPassView: View {
                     Text(session.itinerary.destination.city)
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                 }
             }
 

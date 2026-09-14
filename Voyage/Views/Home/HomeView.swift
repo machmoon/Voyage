@@ -262,13 +262,27 @@ struct HomeView: View {
     /// The origin line under the VOYAGE mark. One shape for all three origin
     /// states so they keep the same rhythm and only the glyph and the trailing
     /// item change.
+    /// At accessibility text sizes the line does not fit beside the Logbook
+    /// pill even scaled, so the trailing miles are dropped before the city is
+    /// truncated (QA/e2e-ax-01-home.png: "San Fra… · 1,475 mi").
     private func originLine(glyph: String,
                             trailing: String?,
                             showsChevron: Bool) -> some View {
+        ViewThatFits(in: .horizontal) {
+            originLineContent(glyph: glyph, trailing: trailing, showsChevron: showsChevron)
+            originLineContent(glyph: glyph, trailing: nil, showsChevron: showsChevron)
+            originLineContent(glyph: glyph, trailing: nil, showsChevron: showsChevron, codeOnly: true)
+        }
+    }
+
+    private func originLineContent(glyph: String,
+                                   trailing: String?,
+                                   showsChevron: Bool,
+                                   codeOnly: Bool = false) -> some View {
         HStack(spacing: 6) {
             Image(systemName: glyph)
                 .font(.system(size: 9))
-            Text("\(origin.city) · \(origin.code)")
+            Text(codeOnly ? origin.code : "\(origin.city) · \(origin.code)")
                 .font(.caption.weight(.medium))
 
             if let trailing {

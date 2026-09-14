@@ -336,7 +336,10 @@ struct FieldLabel: View {
             .kerning(1.4)
             .foregroundStyle(.secondary)
             .lineLimit(1)
-            .minimumScaleFactor(0.65)
+            // "PASSENGER" in a third of a pass at accessibility sizes needs
+            // more than 0.65 (QA/e2e-ax-06-boarding-pass.png: "PASSEN…").
+            .allowsTightening(true)
+            .minimumScaleFactor(0.5)
     }
 }
 
