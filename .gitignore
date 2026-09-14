@@ -67,3 +67,6 @@ __pycache__/
 # App preview captures (scripts/record_app_preview.sh); demo media lives in machmoon/Voyage-QA
 AppStore/preview/
 QA/preview-ready
+
+# Screen recordings for animation review (large; not committed)
+QA/video/

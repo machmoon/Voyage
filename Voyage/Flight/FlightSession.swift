@@ -527,6 +527,11 @@ final class FlightSession {
         guard stage == .preflight else { return }
         freezeVisualPlanIfNeeded()
         departedAt = clock.now
+        // Which timing the leg is really flying under. Reading this from the
+        // simulator log is how a stale app instance without launch arguments
+        // was caught driving a recording (`log show --info --predicate
+        // 'subsystem == "com.patrickliu.voyage"'`).
+        Self.logger.info("departing: leg \(self.legDuration, privacy: .public)s short=\(Self.shortFlightsEnabled, privacy: .public) demo=\(Self.demoFlightEnabled, privacy: .public)")
         startTimer()
         startLeg()
         writeInFlightRecord()

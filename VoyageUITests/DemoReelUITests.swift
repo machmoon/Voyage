@@ -201,6 +201,64 @@ final class DemoReelUITests: XCTestCase {
         pause(3.0)
     }
 
+    /// Website demo source: globe, fast seat, skip bags, print and tear, the
+    /// window (held), the route map, landing, and the trip replay. One nonstop
+    /// demo leg, about 2.5 minutes real time; the site cut is sped to 20 s.
+    @MainActor
+    func testWebsiteDemo() throws {
+        let app = XCUIApplication()
+        app.launchArguments += [
+            "-AppleLanguages", "(en)",
+            "-AppleLocale", "en_US",
+            "-VoyageHomeAirport", "SFO",
+            "-VoyageDemoFlight",
+            "-VoyageSceneHour", "10",
+        ]
+        app.launch()
+        dismissLocationPromptIfPresent()
+        _ = app.staticTexts["VOYAGE"].waitForExistence(timeout: 15)
+        pause(4.0)   // globe settles; the cut opens here
+
+        let cards = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "destination-"))
+        if cards.firstMatch.waitForExistence(timeout: 6) { cards.firstMatch.tap(); pause(2.0) }
+        _ = tap(app.buttons["depart-now"], timeout: 5)
+
+        _ = app.staticTexts["Choose your seat"].waitForExistence(timeout: 8)
+        pause(0.6)
+        let seat = app.buttons.matching(
+            NSPredicate(format: "label MATCHES %@", #"Seat [A-F][0-9]+"#)).firstMatch
+        if seat.waitForExistence(timeout: 5) { seat.tap(); pause(0.6) }
+        _ = tap(app.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH %@", "Take seat")).firstMatch, timeout: 3)
+        skipBags(in: app)
+
+        _ = app.buttons["Tear and board"].waitForExistence(timeout: 15)
+        pause(1.0)
+        _ = tap(app.buttons["Tear and board"], timeout: 4)
+
+        // Window first and longest, then the route.
+        let mapToggle = app.buttons["Map view"]
+        _ = mapToggle.waitForExistence(timeout: 20)
+        pause(14.0)
+        mapToggle.tap()
+        pause(6.0)
+        _ = tap(app.buttons["Window view"], timeout: 3)
+
+        let landed = app.staticTexts.matching(
+            NSPredicate(format: "label BEGINSWITH %@", "Landed in")).firstMatch
+        _ = landed.waitForExistence(timeout: 120)
+        pause(3.0)
+        _ = tap(app.buttons["Continue"], timeout: 4)
+        pause(2.0)
+        if !tap(app.buttons["Post to your logbook"], timeout: 4) {
+            _ = tap(app.buttons["Skip for now"], timeout: 2)
+        }
+        pause(2.0)
+        tourReplay(in: app)
+        pause(2.0)
+    }
+
     // MARK: Beats
 
     /// Draws one route, then another, so the globe re-flies the arc on camera.
