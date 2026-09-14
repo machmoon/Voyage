@@ -440,6 +440,7 @@ struct HomeView: View {
                     ForEach(destinations) { airport in
                         destinationCard(airport)
                     }
+                    surpriseCard
                 }
                 .padding(.horizontal, 20)
             }
@@ -532,6 +533,39 @@ struct HomeView: View {
         .buttonStyle(.plain)
         .foregroundStyle(isSelected ? .black : .white)
         .accessibilityIdentifier("destination-\(airport.code)")
+    }
+
+    /// "Surprise me": a die at the end of the rail picks a destination for a
+    /// traveler who does not care where they go, and rolls again on each tap.
+    /// The die-for-random idiom is Wikipedia's (wikipedia-ios, the Random
+    /// tab, Wikipedia/Code/FirstRandomViewController.swift, and the dice button
+    /// which reshuffles on every press).
+    private var surpriseCard: some View {
+        Button {
+            let others = destinations.filter { $0 != selectedDestination }
+            guard let pick = others.randomElement() else { return }
+            Haptics.tap()
+            withAnimation(.snappy) { selectedDestination = pick }
+        } label: {
+            VStack(alignment: .leading, spacing: 6) {
+                Image(systemName: "dice")
+                    .font(.system(size: 20, weight: .heavy))
+                Text("Surprise me")
+                    .font(.caption.weight(.medium))
+                    .lineLimit(1)
+                Text("Any runway will do")
+                    .font(.system(size: 10, weight: .semibold))
+                    .lineLimit(1)
+                    .opacity(0.65)
+            }
+            .padding(12)
+            .frame(width: 132, alignment: .leading)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.white)
+        .accessibilityIdentifier("destination-random")
+        .accessibilityLabel("Surprise me: pick a random destination")
     }
 
     /// Pill buttons matching the app's capsule language: quiet glass for

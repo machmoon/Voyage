@@ -7,6 +7,37 @@ final class VoyageSmokeUITests: XCTestCase {
         continueAfterFailure = false
     }
 
+    /// The die at the end of the rail books a route by itself.
+    @MainActor
+    func testSurpriseMePicksADestination() throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["-AppleLanguages", "(en)", "-AppleLocale", "en_US", "-VoyageSkipOnboarding"]
+        app.launch()
+        dismissLocationPromptIfPresent()
+        XCTAssertTrue(app.staticTexts["VOYAGE"].waitForExistence(timeout: 10))
+
+        // The die sits at the far end of the rail, so scroll it in first.
+        let rail = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "destination-")).firstMatch
+        XCTAssertTrue(rail.waitForExistence(timeout: 8))
+        let die = app.buttons["destination-random"]
+        // `isHittable` throws for an off-screen element, so test the frame.
+        func onScreen() -> Bool { die.exists && app.frame.contains(die.frame) }
+        var swipes = 0
+        let scroller = app.scrollViews.firstMatch
+        while !onScreen() && swipes < 6 {
+            // Drag by coordinate: a swipe on a card that is itself half off
+            // screen is refused ("unable to perform Swipe").
+            let start = scroller.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5))
+            start.press(forDuration: 0.05, thenDragTo: scroller.coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.5)))
+            swipes += 1
+        }
+        XCTAssertTrue(onScreen(), "the Surprise me card should be reachable")
+        die.tap()
+        XCTAssertTrue(app.buttons["depart-now"].waitForExistence(timeout: 5),
+                      "a random pick should arm the depart buttons")
+    }
+
     @MainActor
     func testBookingThroughBoardingPass() throws {
         let app = XCUIApplication()
