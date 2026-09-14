@@ -63,3 +63,7 @@ worker/.wrangler/
 
 # Python bytecode
 __pycache__/
+
+# App preview captures (scripts/record_app_preview.sh); demo media lives in machmoon/Voyage-QA
+AppStore/preview/
+QA/preview-ready

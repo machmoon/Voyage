@@ -84,6 +84,71 @@ final class DemoReelUITests: XCTestCase {
         pause(6.0)
     }
 
+    /// The App Store preview: one booking, paced for a 15 to 30 second clip.
+    ///
+    /// Driven by `scripts/record_app_preview.sh`, which starts `simctl
+    /// recordVideo` the moment this test writes `QA/preview-ready` (the globe
+    /// has settled) and stops it after the takeoff hold, so no trim is needed
+    /// beyond a scale to 886x1920. Under `-VoyageShortFlights` the takeoff roll
+    /// is about three seconds and the climb is done by eight, so the window
+    /// shows the runway, rotation and climb inside the clip.
+    ///
+    /// Beat sheet from the marker:
+    ///   0–2s     Home globe
+    ///   2–4s     Destination picked, route arc drawn
+    ///   4–10s    Departure zoom, seat map, seat taken
+    ///   10–15s   Pass prints, torn
+    ///   15–28s   Curtain, takeoff roll, climb through the window
+    @MainActor
+    func testAppPreview() throws {
+        let app = XCUIApplication()
+        app.launchArguments += [
+            "-AppleLanguages", "(en)",
+            "-AppleLocale", "en_US",
+            "-VoyageHomeAirport", "SFO",
+            "-VoyageShortFlights",
+        ]
+        app.launch()
+
+        dismissLocationPromptIfPresent()
+        _ = app.staticTexts["VOYAGE"].waitForExistence(timeout: 15)
+        pause(3.0)
+        try? "ready".write(to: Self.previewMarker, atomically: true, encoding: .utf8)
+        pause(1.8)
+
+        let cards = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "destination-"))
+        if cards.firstMatch.waitForExistence(timeout: 6) {
+            cards.firstMatch.tap()
+            pause(1.8)
+        }
+        _ = tap(app.buttons["depart-now"], timeout: 5)
+
+        // Tighter than `pickASeat`: the reel can linger, a preview cannot.
+        _ = app.staticTexts["Choose your seat"].waitForExistence(timeout: 8)
+        pause(0.8)
+        let seat = app.buttons.matching(
+            NSPredicate(format: "label MATCHES %@", #"Seat [A-F][0-9]+"#)).firstMatch
+        if seat.waitForExistence(timeout: 5) {
+            seat.tap()
+            pause(1.2)
+        }
+        _ = tap(app.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH %@", "Take seat")).firstMatch, timeout: 3)
+        skipBags(in: app)
+
+        _ = app.buttons["Tear and board"].waitForExistence(timeout: 12)
+        pause(0.8)
+        _ = tap(app.buttons["Tear and board"], timeout: 4)
+        pause(11.0)
+        try? FileManager.default.removeItem(at: Self.previewMarker)
+    }
+
+    /// Host path, the same way `ScreenshotTourUITests.qaDirectory` reaches the
+    /// repo from inside the simulator.
+    private static let previewMarker = URL(fileURLWithPath:
+        "/Users/patliu/Desktop/Coding/Voyage/QA/preview-ready")
+
     // MARK: Beats
 
     /// Draws one route, then another, so the globe re-flies the arc on camera.
