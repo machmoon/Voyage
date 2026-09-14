@@ -31,7 +31,9 @@ final class RecorderScreenshotUITests: XCTestCase {
                         style: String? = nil) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments += ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
-        if demoLogbook { app.launchArguments.append("-VoyageRecorderDemo") }
+        // Either a seeded demo logbook or a guaranteed-empty one; never the
+        // simulator's real store, which other tours fill with flights.
+        app.launchArguments.append(demoLogbook ? "-VoyageRecorderDemo" : "-VoyageEmptyLogbook")
         if let contentSize {
             app.launchArguments += ["-UIPreferredContentSizeCategoryName", contentSize]
         }

@@ -197,6 +197,7 @@ final class SettingsStore {
             "-VoyageRealWorldTwinEnabled",
             "-VoyageHomeAirport",
             "-VoyageRecorderDemo",
+            "-VoyageEmptyLogbook",
             "-VoyageDemoFlight"
         ]
         if arguments.contains(where: onboardingSkipFlags.contains) {

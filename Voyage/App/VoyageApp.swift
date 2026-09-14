@@ -33,6 +33,13 @@ struct VoyageApp: App {
         if RecorderDemoLogbook.isEnabled, let demo = try? RecorderDemoLogbook.makeContainer() {
             return demo
         }
+        // `-VoyageEmptyLogbook`: a fresh in-memory logbook, for captures of
+        // first-launch states on a simulator whose real store has history.
+        if ProcessInfo.processInfo.arguments.contains("-VoyageEmptyLogbook"),
+           let empty = try? ModelContainer(for: LogbookEntry.self,
+                                           configurations: ModelConfiguration(isStoredInMemoryOnly: true)) {
+            return empty
+        }
         do {
             let support = URL.applicationSupportDirectory.appending(path: "Voyage", directoryHint: .isDirectory)
             try FileManager.default.createDirectory(at: support, withIntermediateDirectories: true)
