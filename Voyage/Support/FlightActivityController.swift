@@ -1,6 +1,7 @@
 import Foundation
 #if canImport(ActivityKit)
 import ActivityKit
+import os
 #endif
 
 /// Thin ActivityKit wrapper so `FlightSession` stays clean and unit tests
@@ -25,6 +26,7 @@ import ActivityKit
 ///    does not.
 @MainActor
 final class FlightActivityController {
+    private static let logger = Logger(subsystem: "com.patrickliu.voyage", category: "live-activity")
     static let shared = FlightActivityController()
     private init() {}
 
@@ -85,10 +87,19 @@ final class FlightActivityController {
             )
             // Built here rather than at call time so the first frame the
             // traveller sees reflects the flight now, not 300 ms ago.
-            guard let requested = try? Activity.request(
-                attributes: attributes,
-                content: self.content(for: session)
-            ) else { return }
+            let requested: Activity<FlightActivityAttributes>
+            do {
+                requested = try Activity.request(
+                    attributes: attributes,
+                    content: self.content(for: session)
+                )
+            } catch {
+                // A missing NSSupportsLiveActivities key or a user who turned
+                // Live Activities off both land here. Say which, or the lock
+                // screen stays empty with no trace of why.
+                Self.logger.error("Live Activity request failed: \(error.localizedDescription, privacy: .public)")
+                return
+            }
 
             guard token == self.generation else {
                 // The session ended while the daemon was answering. Nothing is

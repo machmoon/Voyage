@@ -1,4 +1,5 @@
 import MetalKit
+import os
 import SwiftUI
 
 /// Metal-backed passenger-window renderer. It renders the bundled airport world
@@ -54,7 +55,14 @@ struct AirportWorldMetalView: UIViewRepresentable {
             descriptor.vertexFunction = vertex
             descriptor.fragmentFunction = fragment
             descriptor.colorAttachments[0].pixelFormat = view.colorPixelFormat
-            pipeline = try? device.makeRenderPipelineState(descriptor: descriptor)
+            do {
+                pipeline = try device.makeRenderPipelineState(descriptor: descriptor)
+            } catch {
+                // Without a pipeline `draw` returns early every frame and the
+                // window is a blank pane. Log it; the caller cannot see it.
+                Logger(subsystem: "com.patrickliu.voyage", category: "airport-world")
+                    .fault("Airport world pipeline failed: \(error.localizedDescription, privacy: .public)")
+            }
             commandQueue = device.makeCommandQueue()
             view.delegate = self
         }

@@ -235,7 +235,20 @@ struct InFlightView: View {
         }
     }
 
+    /// Full "Window / Map / Exit" labels when the width allows, icons only when
+    /// it does not: a connecting flight's LEG badge, or a large text size, used
+    /// to squeeze the labels until they wrapped mid-word ("Wi n", "Exi t";
+    /// QA/e2e-lay-02-leg1-inflight.png). `ViewThatFits` is the SwiftUI way to
+    /// pick the first variant that fits rather than measuring by hand.
     private var topBar: some View {
+        ViewThatFits(in: .horizontal) {
+            topBarContent(iconOnly: false)
+            topBarContent(iconOnly: true)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func topBarContent(iconOnly: Bool) -> some View {
         HStack(spacing: 2) {
             if session.itinerary.isConnection {
                 Text("LEG \(session.legIndex + 1)/\(session.itinerary.legs.count)")
@@ -249,7 +262,7 @@ struct InFlightView: View {
             }
 
             ForEach(StudyView.allCases, id: \.self) { view in
-                studyViewButton(view)
+                studyViewButton(view, iconOnly: iconOnly)
             }
 
             // Which world the window looks out at. It lives here rather than
@@ -289,7 +302,9 @@ struct InFlightView: View {
                 showExitConfirm = true
             } label: {
                 Label("Exit", systemImage: "rectangle.portrait.and.arrow.right")
+                    .labelStyle(iconOnly ? AnyLabelStyle(.iconOnly) : AnyLabelStyle(.titleAndIcon))
                     .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .lineLimit(1)
                     .foregroundStyle(.white.opacity(0.72))
                     .padding(.horizontal, 9)
                     .frame(height: 36)
@@ -305,7 +320,7 @@ struct InFlightView: View {
                 .strokeBorder(.white.opacity(0.12), lineWidth: 1)
         }
         .shadow(color: .black.opacity(0.22), radius: 12, y: 5)
-        .frame(maxWidth: .infinity)
+        .fixedSize(horizontal: true, vertical: false)
     }
 
     /// Swaps the window between streamed satellite and the drawn sky. The icon
@@ -350,14 +365,16 @@ struct InFlightView: View {
             .transition(.opacity)
     }
 
-    private func studyViewButton(_ view: StudyView) -> some View {
+    private func studyViewButton(_ view: StudyView, iconOnly: Bool = false) -> some View {
         let isOn = studyView == view
         return Button {
             Haptics.tap()
             selectStudyView(view)
         } label: {
             Label(view.rawValue, systemImage: view == .window ? "airplane" : "map")
+                .labelStyle(iconOnly ? AnyLabelStyle(.iconOnly) : AnyLabelStyle(.titleAndIcon))
                 .font(.system(size: 11, weight: .bold, design: .rounded))
+                .lineLimit(1)
                 .foregroundStyle(isOn ? .black : .white.opacity(0.62))
                 .padding(.horizontal, 10)
                 .frame(height: 36)
@@ -680,4 +697,15 @@ struct InFlightView: View {
             .padding(.horizontal, 24)
         }
     }
+}
+
+
+/// Type-erased label style so a `Label` can switch between `.iconOnly` and
+/// `.titleAndIcon` from a Bool without duplicating the view.
+private struct AnyLabelStyle: LabelStyle {
+    private let make: (Configuration) -> AnyView
+    init<S: LabelStyle>(_ style: S) {
+        make = { AnyView(style.makeBody(configuration: $0)) }
+    }
+    func makeBody(configuration: Configuration) -> some View { make(configuration) }
 }

@@ -72,6 +72,9 @@ struct CheckBagView: View {
                 }
             }
             .scrollBounceBehavior(.basedOnSize)
+            // The last field used to sit half under the footer at large text
+            // sizes (QA/e2e-ax-05-checkbag.png); this keeps a gap above it.
+            .contentMargins(.bottom, 16, for: .scrollContent)
 
             Spacer(minLength: 0)
 

@@ -649,7 +649,12 @@ struct SeatSelectionView: View {
                         .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(Theme.seatMapInk.opacity(0.35))
                 }
-                Spacer()
+                // At accessibility sizes this column yields to the button: a
+                // caption can wrap, "Continue" must not become "Conti…"
+                // (QA/e2e-ax-04-seat-selected.png).
+                .lineLimit(2)
+                .minimumScaleFactor(0.8)
+                Spacer(minLength: 12)
                 Button {
                     // Skip assigns the first open seat; otherwise take the
                     // chosen one. Either way, always advances.
@@ -660,8 +665,10 @@ struct SeatSelectionView: View {
                 } label: {
                     HStack(spacing: 8) {
                         Text(selected == nil ? "Skip" : "Continue")
+                            .lineLimit(1)
                         Image(systemName: "arrow.right")
                     }
+                        .fixedSize()
                         .font(.subheadline.bold())
                         .foregroundStyle(.white)
                         .padding(.horizontal, 18)
@@ -669,6 +676,7 @@ struct SeatSelectionView: View {
                         .background(Theme.accent, in: Capsule())
                 }
                 .accessibilityLabel(selected.map { "Take seat \($0)" } ?? "Skip seat selection")
+                .layoutPriority(1)
             }
         }
         .padding(20)

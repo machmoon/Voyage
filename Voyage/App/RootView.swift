@@ -63,6 +63,10 @@ struct RootView: View {
                 Task { await FocusIntegration.shared.refresh() }
             }
         }
+        // A first run finishes onboarding before anything else is said.
+        .onChange(of: settings.hasCompletedOnboarding) { _, done in
+            if done { recoverInterruptedFlight() }
+        }
         .preferredColorScheme(session?.stage == .inFlight ? .dark : nil)
         .alert("Flight diverted", isPresented: Binding(
             get: { recoveredFlight != nil },
@@ -76,11 +80,15 @@ struct RootView: View {
         }
     }
 
-    /// QA launches and the unit-test host are exempt: a run killed mid-flight
-    /// must not put an alert over the next run's first tap.
+    /// Waits for onboarding, and QA launches and the unit-test host are
+    /// exempt: a tour killed mid-flight left a record that put a "Flight
+    /// diverted" alert over the next tour's onboarding page and its Settings
+    /// button (QA/e2e-01-onboarding-page1.png, E05 settings sweep). Any
+    /// `-Voyage…` argument marks a QA launch; production never passes one.
     private func recoverInterruptedFlight() {
         guard session == nil, recoveredFlight == nil,
-              !FlightSession.shortFlightsEnabled,
+              settings.hasCompletedOnboarding,
+              !ProcessInfo.processInfo.arguments.contains(where: { $0.hasPrefix("-Voyage") }),
               ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil
         else { return }
         recoveredFlight = InterruptedFlightRecovery.recover(into: modelContext)

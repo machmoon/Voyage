@@ -130,7 +130,7 @@ final class CabinServiceScreenshotUITests: XCTestCase {
         XCTAssertTrue(takeSeat.waitForExistence(timeout: 20))
         takeSeat.tap()
 
-        let skip = app.buttons["Travel light — skip"]
+        let skip = app.buttons["Skip for now"]   // CheckBagView.swift, until something is packed
         XCTAssertTrue(skip.waitForExistence(timeout: 20))
         skip.tap()
 

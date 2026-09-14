@@ -218,11 +218,20 @@ struct FlightMapView: View {
 
     // MARK: Controls
 
+    /// Side by side normally; stacked at large text sizes, where the two
+    /// capsules used to share one row and wrap their labels mid-word
+    /// ("Rout e", "Satellit e"; QA/e2e-ax-08-inflight-map.png).
     private var controls: some View {
-        HStack(spacing: 8) {
-            picker(selection: $cameraMode, options: CameraMode.allCases, id: \.rawValue)
-            Spacer()
-            picker(selection: $style, options: Style.allCases, id: \.rawValue)
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 8) {
+                picker(selection: $cameraMode, options: CameraMode.allCases, id: \.rawValue)
+                Spacer()
+                picker(selection: $style, options: Style.allCases, id: \.rawValue)
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                picker(selection: $cameraMode, options: CameraMode.allCases, id: \.rawValue)
+                picker(selection: $style, options: Style.allCases, id: \.rawValue)
+            }
         }
         .padding(.horizontal, 12)
         .padding(.bottom, 12)
@@ -242,6 +251,8 @@ struct FlightMapView: View {
                 } label: {
                     Text(option[keyPath: id])
                         .voyageFont(11, weight: .bold)
+                        .lineLimit(1)
+                        .fixedSize()
                         .foregroundStyle(isOn ? .black : .white.opacity(0.85))
                         .padding(.horizontal, 10)
                         .padding(.vertical, 6)
