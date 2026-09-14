@@ -63,6 +63,15 @@ final class InterruptedFlightRecoveryTests: XCTestCase {
         XCTAssertNil(InterruptedFlightRecovery.pending(defaults: defaults), "Recovery is one-shot")
     }
 
+    func testAFlightKilledInsideItsFirstMinuteIsNotLogged() throws {
+        InterruptedFlightRecovery.save(record(), defaults: defaults)
+        let soon = clock.now.addingTimeInterval(40)
+        XCTAssertNil(InterruptedFlightRecovery.recover(into: context, now: soon, defaults: defaults),
+                     "A false start has nothing worth a logbook row or an alert")
+        XCTAssertEqual(try context.fetchCount(FetchDescriptor<LogbookEntry>()), 0)
+        XCTAssertNil(InterruptedFlightRecovery.pending(defaults: defaults), "The record is still cleared")
+    }
+
     func testFocusIsCappedAtTheLegLength() throws {
         InterruptedFlightRecovery.save(record(legDuration: 600), defaults: defaults)
         let muchLater = clock.now.addingTimeInterval(3 * 24 * 3_600)

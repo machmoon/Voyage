@@ -233,6 +233,28 @@ final class FlightSessionTests: XCTestCase {
         XCTAssertEqual(session.stage, .diverted)
     }
 
+    /// Diverting inside the first minute shows the diverted screen but keeps
+    /// the logbook clean; after a minute the flight is real and is kept.
+    func testSubMinuteDiversionIsShownButNotLogged() throws {
+        let session = makeSession(duration: 300)
+        session.departFirstLeg()
+        clock.advance(by: 20)
+        session.tick()
+        session.abandonFlight()
+        XCTAssertEqual(session.stage, .diverted)
+        XCTAssertNotNil(session.logEntry, "The diverted screen still has an entry to describe")
+        XCTAssertEqual(try context.fetchCount(FetchDescriptor<LogbookEntry>()), 0)
+    }
+
+    func testDiversionAfterAMinuteIsLogged() throws {
+        let session = makeSession(duration: 300)
+        session.departFirstLeg()
+        clock.advance(by: FlightSession.minimumLoggedFocus + 5)
+        session.tick()
+        session.abandonFlight()
+        XCTAssertEqual(try context.fetchCount(FetchDescriptor<LogbookEntry>()), 1)
+    }
+
     func testAbandonFlightDiverts() {
         let session = makeSession(duration: 300)
         session.departFirstLeg()
