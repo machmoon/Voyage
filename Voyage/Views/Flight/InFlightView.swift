@@ -13,6 +13,13 @@ struct InFlightView: View {
 
     @State private var studyView: StudyView = .window
     @State private var showInfoPill = false
+    /// Pure mode: only the window and the clock. Double tap toggles it, the
+    /// way VLC toggles player chrome on a tap (vlc-ios,
+    /// Sources/Playback/Player/VideoPlayer-iOS/VideoPlayerViewController.swift,
+    /// `setControlsHidden`): the chrome fades to zero opacity rather than
+    /// leaving the hierarchy, and it never hides while VoiceOver is running.
+    @State private var pureMode = false
+    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
     @State private var showExitConfirm = false
     @State private var settings = SettingsStore.shared
     @State private var windowSceneArmed = false
@@ -144,6 +151,7 @@ struct InFlightView: View {
                 if !session.intentions.isEmpty && !crowded {
                     intentionsStrip
                         .padding(.top, 16)
+                        .opacity(pureMode ? 0 : 1)
                 }
 
                 Spacer(minLength: 24)
@@ -157,10 +165,22 @@ struct InFlightView: View {
                 topBar
                     .padding(.horizontal, 20)
                     .padding(.top, 6)
+                    .opacity(pureMode ? 0 : 1)
+                    .allowsHitTesting(!pureMode)
                 Spacer(minLength: 0)
             }
             .zIndex(2)
         }
+        .contentShape(Rectangle())
+        .onTapGesture(count: 2) {
+            guard !voiceOver else { return }
+            Haptics.tap()
+            withAnimation(.smooth(duration: 0.35)) {
+                pureMode.toggle()
+                if pureMode { showInfoPill = false }
+            }
+        }
+        .animation(.smooth(duration: 0.35), value: pureMode)
         .statusBarHidden()
         .confirmationDialog("Leave this flight?", isPresented: $showExitConfirm, titleVisibility: .visible) {
             Button("Divert and end the session", role: .destructive) {
@@ -545,6 +565,7 @@ struct InFlightView: View {
             Text(phaseCaption)
                 .font(.caption)
                 .foregroundStyle(.white.opacity(0.4))
+                .opacity(pureMode ? 0 : 1)
 
             // The countdown is tappable — say so.
             Image(systemName: showInfoPill ? "chevron.compact.up" : "chevron.compact.down")
@@ -552,6 +573,7 @@ struct InFlightView: View {
                 .foregroundStyle(.white.opacity(0.3))
                 .padding(.top, 2)
                 .accessibilityHidden(true)
+                .opacity(pureMode ? 0 : 1)
 
             if session.legIndex == 0, let via = session.itinerary.connection {
                 Text("\(session.totalRemaining.shortDurationText) total · lounge break at \(via.code)")
