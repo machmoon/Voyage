@@ -325,6 +325,7 @@ struct HomeView: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Open logbook")
+            .accessibilityIdentifier("open-logbook")
 
             Button {
                 Haptics.tap()
