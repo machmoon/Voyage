@@ -15,9 +15,9 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO"
 
 DEVICE="${VOYAGE_SIM_DEVICE:-iPhone 17}"
-SECONDS_TO_RECORD="${SECONDS_TO_RECORD:-38}"
+SECONDS_TO_RECORD="${SECONDS_TO_RECORD:-32}"
 # Seconds cut from the front of the capture; the globe needs less hold than the takeoff.
-TRIM_START="${TRIM_START:-8}"
+TRIM_START="${TRIM_START:-2.5}"
 OUT_DIR="$REPO/AppStore/preview"
 RAW="$OUT_DIR/raw-capture.mp4"
 OUT="$OUT_DIR/voyage-preview.mp4"

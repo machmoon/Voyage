@@ -91,15 +91,17 @@ final class DemoReelUITests: XCTestCase {
     /// has settled) and stops it after the takeoff hold. Under
     /// `-VoyageShortFlights` the schedule rolls for 28 s with rotation at
     /// about 19 s (`FlightPhaseSchedule.make`), and the leg starts 2 to 3 s
-    /// after the tear, so the hold below runs past rotation and the script
-    /// trims the front of the capture to keep the clip inside 30 s.
+    /// after the tear. Booking takes about 10 s of the 30 s cap, so the clip
+    /// ends on the takeoff roll; rotation does not fit alongside the globe
+    /// opening, and the globe is the stronger first frame. The hold below
+    /// simply outlasts the recording.
     ///
     /// Beat sheet from the marker:
     ///   0–1.5s   Home globe
     ///   1.5–3s   Destination picked, route arc drawn
     ///   3–8s     Departure zoom, seat map, seat taken
     ///   8–12s    Pass prints, torn
-    ///   12–30s   Curtain, takeoff roll, rotation at about 28 s
+    ///   12–30s   Curtain and takeoff roll (rotation lands after the cap)
     @MainActor
     func testAppPreview() throws {
         let app = XCUIApplication()
@@ -109,6 +111,10 @@ final class DemoReelUITests: XCTestCase {
             "-VoyageHomeAirport", "SFO",
             "-VoyageShortFlights",
             "-VoyageSceneHour", "10",   // a daylight window whatever the wall clock says
+            // The drawn world, whatever the simulator's persisted setting is;
+            // the satellite twin can be left on by the settings tour.
+            "-windowWorldMode", "illustrated",
+            "-realWorldTwinEnabled", "<false/>",
         ]
         app.launch()
 
