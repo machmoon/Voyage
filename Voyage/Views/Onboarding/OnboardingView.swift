@@ -368,7 +368,7 @@ private struct OnboardingCard<Route: View>: View {
 
     private var openSourceLink: some View {
         Link(destination: URL(string: "https://github.com/machmoon/Voyage")!) {
-            Text("Open source, MIT licensed")
+            Text("For students, by students. Open source on GitHub.")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(Theme.accent)
                 .frame(maxWidth: .infinity, alignment: .leading)

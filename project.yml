@@ -16,9 +16,9 @@ settings:
   base:
     SWIFT_VERSION: "5.0"
     MARKETING_VERSION: "1.2"
-    # App Store Connect: 1.1 (4) is live. The 1.1.1 update ships as build 6 (build 5 was replaced before review).
+    # App Store Connect: 1.1 (4) is live. 1.2 ships as build 9 (build 8 was withdrawn from review for the tear fix, study coach, seat map and launch flyover).
     # Increment this shared app/widget build number for each upload.
-    CURRENT_PROJECT_VERSION: "8"
+    CURRENT_PROJECT_VERSION: "9"
     GENERATE_INFOPLIST_FILE: false
 targets:
   Voyage:

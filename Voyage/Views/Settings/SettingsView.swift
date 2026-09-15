@@ -266,6 +266,9 @@ struct SettingsView: View {
                     LabeledContent("Cabin voice", value: "AI voice by ElevenLabs")
                     Link("Voyage Terms of Use", destination: URL(string: "https://github.com/machmoon/Voyage/blob/main/TERMS.md")!)
                     Link("Voyage Privacy Notice", destination: URL(string: "https://github.com/machmoon/Voyage/blob/main/PRIVACY.md")!)
+                    Link("Source code on GitHub", destination: URL(string: "https://github.com/machmoon/Voyage")!)
+                } footer: {
+                    Text("For students, by students. Voyage is free and open source.")
                 }
             }
             .tint(Theme.accent)

@@ -29,7 +29,7 @@ A window seat for study time
 
 ## Promotional text — 170 characters maximum
 
-Voyage is a completely free study timer that turns your focus sessions into flights. It is open source and built by a student who loves flying.
+For students, by students. Voyage is a free, open-source study timer that turns your focus sessions into flights.
 
 ## Description — 4,000 characters maximum
 
