@@ -43,6 +43,9 @@ final class SeatMapTourUITests: XCTestCase {
             cabin.swipeUp(velocity: .slow)
             sleep(1)
             save("qa-seatmap-\(slug)-wing")
+            if aircraft == "Voyage Classic" {
+                try assertWingDoesNotStealTouches(app: app, cabin: cabin)
+            }
 
             // Aft wing root, where the trailing edge passes the rows behind
             // the exits.
@@ -59,6 +62,26 @@ final class SeatMapTourUITests: XCTestCase {
             for _ in 0..<5 { cabin.swipeDown(velocity: .fast) }
             sleep(1)
         }
+    }
+
+    /// The wing is drawn behind the window seats and far past the screen
+    /// edge. A window seat beside it must still take the tap, and a sideways
+    /// swipe must not move the cabin.
+    private func assertWingDoesNotStealTouches(app: XCUIApplication, cabin: XCUIElement) throws {
+        let windowSeat = app.buttons
+            .matching(NSPredicate(format: "label MATCHES %@", #"Seat [AF]1[0-9]"#))
+            .allElementsBoundByIndex
+            .first { $0.isHittable }
+        let seat = try XCTUnwrap(windowSeat, "Expected an open window seat near the wing")
+        let before = seat.frame
+        cabin.swipeLeft()
+        sleep(1)
+        XCTAssertEqual(seat.frame.minX, before.minX, accuracy: 0.5, "The cabin scrolled sideways")
+
+        seat.tap()
+        let takeSeat = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Take seat")).firstMatch
+        XCTAssertTrue(takeSeat.waitForExistence(timeout: 3), "The window seat beside the wing did not take the tap")
+        save("qa-seatmap-wing-seat-selected")
     }
 
     private func select(aircraft: String, in app: XCUIApplication) throws {

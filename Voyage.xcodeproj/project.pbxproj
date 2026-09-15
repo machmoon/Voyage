@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		0056CD7616753D1EF62C48F1 /* LogbookView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CB577FFDB00B9AA668840E0 /* LogbookView.swift */; };
+		014CF177E3C33A45ADC19DC1 /* AirframePlanformTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9977BAFAC3A281EC2716084E /* AirframePlanformTests.swift */; };
 		01AD52851A5FFD096583EFC8 /* FlightDataRecorderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D8589DBFE0CCD92E7E178A1 /* FlightDataRecorderTests.swift */; };
 		02E9D9B7CB5F8E8BA71D7A05 /* FlightDataRecorderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70B261169A7B09AB85EFC180 /* FlightDataRecorderView.swift */; };
 		030DD63140B5946357F54EDC /* captain_descent_raleigh-durham.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 654D54193C21CA54CA1A4136 /* captain_descent_raleigh-durham.m4a */; };
@@ -427,6 +428,7 @@
 		98A39FC9F4E02536EFECAF1D /* FlightDataRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightDataRecorder.swift; sourceTree = "<group>"; };
 		98D80A40384AA0FD2BE7D690 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		9968ED4F95A2D37CDE0A2494 /* FlightSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightSessionTests.swift; sourceTree = "<group>"; };
+		9977BAFAC3A281EC2716084E /* AirframePlanformTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirframePlanformTests.swift; sourceTree = "<group>"; };
 		99CA0EDD0DD64CFDE04B6781 /* DemoReelUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoReelUITests.swift; sourceTree = "<group>"; };
 		99DF6468F2274971635705B0 /* DepartureGateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepartureGateTests.swift; sourceTree = "<group>"; };
 		9A165B73007A3BD7DF568A7A /* crew_landed_regina.m4a */ = {isa = PBXFileReference; path = crew_landed_regina.m4a; sourceTree = "<group>"; };
@@ -568,6 +570,7 @@
 			isa = PBXGroup;
 			children = (
 				B95FC7EE99A7EB1A1CB608F3 /* ActivityStaleDateTests.swift */,
+				9977BAFAC3A281EC2716084E /* AirframePlanformTests.swift */,
 				134BB3C9048429012FAC668C /* AppFeedbackTests.swift */,
 				F37A505088E516C1A54894CB /* CabinServiceTests.swift */,
 				99DF6468F2274971635705B0 /* DepartureGateTests.swift */,
@@ -1217,6 +1220,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				81C5D1238C2C9F4684C5BD34 /* ActivityStaleDateTests.swift in Sources */,
+				014CF177E3C33A45ADC19DC1 /* AirframePlanformTests.swift in Sources */,
 				4F56F7320D0D62850DBE977B /* AppFeedbackTests.swift in Sources */,
 				3DF6CE077C067D93E8038D94 /* CabinServiceTests.swift in Sources */,
 				E00864ADDEA25BDE9F8D8353 /* DepartureGateTests.swift in Sources */,
