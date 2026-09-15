@@ -23,6 +23,11 @@ struct BoardingPassView: View {
     /// 0→1 progress of sliding a cut across the perforation line.
     @State private var cutProgress: CGFloat = 0
     @State private var lastCutStep = 0
+    /// The cut runs from whichever edge the finger starts toward: a slide to
+    /// the right parts the seam from the left notch, a slide to the left from
+    /// the right one. The stub hinges on the side still attached.
+    @State private var cutFromTrailing = false
+    @State private var passWidth: CGFloat = 0
 
     private var leg: FlightLeg { session.itinerary.legs[0] }
 
@@ -75,6 +80,7 @@ struct BoardingPassView: View {
                 passCard
                     .padding(.horizontal, 28)
                     .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { passHeight = $0 }
+                    .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { passWidth = $0 }
                     .offset(y: -passHeight * (1 - printProgress))
                     // Not a frame before the measurement lands: an unmeasured
                     // pass would sit fully out of the slot for one layout pass.
@@ -84,14 +90,21 @@ struct BoardingPassView: View {
                     .mask(alignment: .top) {
                         Rectangle()
                             .padding(.horizontal, -60)
-                            .padding(.bottom, -400)
+                            .padding(.bottom, -700)
                             .padding(.top, printed ? -400 : 0)
                     }
                     .padding(.top, -7)
+                    // Above the button and hint below it, so the falling stub
+                    // passes over them rather than under their text.
+                    .zIndex(1)
 
                 Spacer()
 
-                if printed && !ripped {
+                // Always in the layout once printed, faded rather than removed:
+                // removing the button on rip let the spacers rebalance and the
+                // whole pass jumped 26pt in the frame the stub let go
+                // (QA/video/tear-2026-09-15).
+                if printed {
                     Button {
                         rip()
                     } label: {
@@ -104,15 +117,22 @@ struct BoardingPassView: View {
                     }
                     .accessibilityLabel("Tear and board")
                     .accessibilityHint("Tears the boarding pass stub and departs")
-                    .transition(.identity)
+                    .opacity(ripped ? 0 : 1)
+                    .allowsHitTesting(!ripped)
+                    .accessibilityHidden(ripped)
+                    .animation(.easeOut(duration: 0.2), value: ripped)
+                    .transition(.opacity)
                 }
 
-                Text(ripped ? "Boarding…" : " ")
+                Text("Or slide along the dotted line.")
                     .font(.footnote.weight(.medium))
-                    .foregroundStyle(.white.opacity(printed ? 0.65 : 0))
+                    .foregroundStyle(.white.opacity(printed && !ripped && cutProgress == 0 ? 0.55 : 0))
                     .padding(.top, 14)
                     .padding(.bottom, 24)
-                    .animation(.smooth(duration: 0.4), value: printed)
+                    .animation(.smooth(duration: 0.3), value: printed)
+                    .animation(.smooth(duration: 0.2), value: ripped)
+                    .animation(.smooth(duration: 0.2), value: cutProgress == 0)
+                    .accessibilityHidden(true)
             }
             .animation(.smooth(duration: 0.5), value: printed)
         }
@@ -343,17 +363,26 @@ struct BoardingPassView: View {
             let seamY = geo.size.height
             ZStack(alignment: .topLeading) {
                 if !ripped {
+                    let cutX = w * min(1, cutProgress)
                     // Dashes ride just above the seam so the full stroke stays on
                     // the paper — the line you see is the line it parts along.
                     // The whole seam is gone the instant the stub tears off:
-                    // no fade, no notch left behind on the moving body.
-                    Path { path in
-                        path.move(to: CGPoint(x: 14, y: seamY - 2))
-                        path.addLine(to: CGPoint(x: w - 14, y: seamY - 2))
+                    // no fade, no notch left behind on the moving body. Dashes
+                    // behind the fingertip are gone too: that stretch is cut.
+                    // The uncut stretch only, with the dash phase pinned to the
+                    // full line so the remaining dashes stay put as it shortens.
+                    let start = cutFromTrailing ? 14 : max(14, cutX)
+                    let end = cutFromTrailing ? min(w - 14, w - cutX) : w - 14
+                    if end > start {
+                        Path { path in
+                            path.move(to: CGPoint(x: start, y: seamY - 2))
+                            path.addLine(to: CGPoint(x: end, y: seamY - 2))
+                        }
+                        .stroke(Theme.boardingBackdrop,
+                                style: StrokeStyle(lineWidth: 3, lineCap: .butt, dash: [9, 6],
+                                                   dashPhase: start - 14))
+                        .transition(.identity)
                     }
-                    .stroke(Theme.boardingBackdrop,
-                            style: StrokeStyle(lineWidth: 3, lineCap: .butt, dash: [9, 6]))
-                    .transition(.identity)
 
                     // Punched at both ends of the score, centered on the seam: the
                     // body clips the top half, the stub carries the bottom half.
@@ -376,8 +405,9 @@ struct BoardingPassView: View {
             .frame(width: 20, height: 20)
     }
 
-    /// Comfortable swipe distance to run the cut fully across.
-    private let cutSpan: CGFloat = 230
+    /// Swipe distance to run the cut fully across: most of the pass's width,
+    /// so the opening in the seam stays under the fingertip.
+    private var cutSpan: CGFloat { max(200, passWidth * 0.82) }
 
     /// Swipe sideways — anywhere along the perforation *or* across the stub tab
     /// below it — to run the cut: the seam parts as you go, ratcheting one
@@ -388,7 +418,9 @@ struct BoardingPassView: View {
                 guard printed, !ripped else { return }
                 // Sideways travel parts the paper; ignore a mostly-vertical drag.
                 guard abs(value.translation.width) > abs(value.translation.height) * 0.6 else { return }
-                let p = max(0, value.translation.width) / cutSpan
+                if cutProgress == 0 { cutFromTrailing = value.translation.width < 0 }
+                let travel = cutFromTrailing ? -value.translation.width : value.translation.width
+                let p = max(0, travel) / cutSpan
                 // Monotonic: a wiggle can't un-cut what you've already parted.
                 cutProgress = max(cutProgress, min(1, p))
                 let step = Int(cutProgress / 0.09)
@@ -415,8 +447,13 @@ struct BoardingPassView: View {
         // As the cut runs across, the stub loosens a touch; the real motion is
         // the fly-off on rip. It never tracks the finger vertically.
         let progress = min(1, max(0, cutProgress))
-        let dragY = ripped ? 300 : progress * 5
-        let angle = ripped ? 3.0 : Double(progress * 1.4)
+        // The cut side drops away from the seam while the uncut side holds it,
+        // so the stub swings on the attached corner and a wedge of backdrop
+        // opens behind the finger.
+        let hinge: UnitPoint = cutFromTrailing ? .topLeading : .topTrailing
+        let sign: Double = cutFromTrailing ? -1 : 1
+        let dragY = ripped ? 420 : progress * 3
+        let angle = sign * (ripped ? 9.0 : Double(progress * 4.5))
         let curl = ripped ? 18.0 : Double(progress * 6)
 
         return stubContent
@@ -452,13 +489,15 @@ struct BoardingPassView: View {
             .contentShape(Rectangle())
             .rotation3DEffect(.degrees(curl), axis: (x: 1, y: 0, z: 0),
                               anchor: .top, perspective: 0.55)
+            .rotationEffect(.degrees(angle), anchor: hinge)
             .offset(y: dragY)
-            .rotationEffect(.degrees(angle), anchor: .topLeading)
+            .animation(ripped ? .easeIn(duration: 0.6) : nil, value: ripped)
+            // Opaque for the fall, gone only once it is well clear of the
+            // pass. Fading during the fall showed the stub as grey paper
+            // against the navy backdrop.
             .opacity(ripped ? 0 : 1)
+            .animation(ripped ? .easeIn(duration: 0.15).delay(0.45) : nil, value: ripped)
             .gesture(cutGesture())
-            // One short slide-and-fade. A long fall leaves the stub hanging
-            // half-transparent over the backdrop, which reads as a glitch.
-            .animation(ripped ? .easeIn(duration: 0.55) : nil, value: ripped)
             .accessibilityHidden(ripped)
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("boarding-pass-stub")
@@ -494,7 +533,7 @@ struct BoardingPassView: View {
             // depart starts ambience. At 430 ms the stub was gone in three
             // frames and the curtain cut in before the eye had registered the
             // tear (QA/video/tear-raw.mp4, 35.0 to 35.6 s).
-            try? await Task.sleep(for: .milliseconds(950))
+            try? await Task.sleep(for: .milliseconds(800))
             onBoarded()
         }
     }

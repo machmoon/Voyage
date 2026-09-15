@@ -13,6 +13,9 @@ struct BoardingFlowView: View {
 
     @State private var step: Step = .seat
     @State private var isDeparting = false
+    /// The torn pass has faded off. Sequenced ahead of `isDeparting` so the
+    /// curtain never crossfades over a half-transparent ticket.
+    @State private var boardingHidden = false
     @State private var settings = SettingsStore.shared
 
     private var isCabinStep: Bool { step == .seat }
@@ -34,12 +37,17 @@ struct BoardingFlowView: View {
             .ignoresSafeArea()
             .animation(.smooth(duration: 0.35), value: step)
 
-            if !isDeparting {
-                VStack(spacing: 0) {
-                    topBar
-                    content
-                }
+            // Kept in the tree and faded under the curtain. Removing it with a
+            // transition let SwiftUI draw the outgoing view behind the step
+            // backdrop, so the torn pass, back button and step dots vanished
+            // in one frame before the curtain had faded in.
+            VStack(spacing: 0) {
+                topBar
+                content
             }
+            .opacity(boardingHidden ? 0 : 1)
+            .allowsHitTesting(!boardingHidden)
+            .accessibilityHidden(boardingHidden)
 
             if isDeparting {
                 DepartureCurtainOverlay(
@@ -158,7 +166,13 @@ struct BoardingFlowView: View {
     private func beginDeparture() {
         // A slow dissolve into the curtain: at 0.2 s the torn pass was gone
         // in two frames (QA/video/tear-raw.mp4, 35.5 s).
-        withAnimation(.easeInOut(duration: 0.7)) {
+        // Pass out, then curtain in, over the same navy backdrop. Together
+        // they crossfaded, and "Cleared for departure" printed across a grey,
+        // half-faded ticket.
+        withAnimation(.easeOut(duration: 0.3)) {
+            boardingHidden = true
+        }
+        withAnimation(.easeInOut(duration: 0.6).delay(0.3)) {
             isDeparting = true
         }
 

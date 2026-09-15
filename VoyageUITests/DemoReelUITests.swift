@@ -84,6 +84,36 @@ final class DemoReelUITests: XCTestCase {
         pause(6.0)
     }
 
+    /// The same close-up, torn by sliding a finger across the stub instead of
+    /// the button, so the cut's own frames can be reviewed.
+    @MainActor
+    func testTearSlideCloseUp() throws {
+        let app = XCUIApplication()
+        app.launchArguments += [
+            "-AppleLanguages", "(en)",
+            "-AppleLocale", "en_US",
+            "-VoyageDemoFlight",
+        ]
+        app.launch()
+
+        dismissLocationPromptIfPresent()
+        _ = app.staticTexts["VOYAGE"].waitForExistence(timeout: 15)
+        pause(1.0)
+
+        bookAFlight(in: app)
+        pickASeat(in: app)
+        skipBags(in: app)
+
+        _ = app.buttons["Tear and board"].waitForExistence(timeout: 15)
+        pause(3.0)
+        let stub = app.otherElements["boarding-pass-stub"]
+        _ = stub.waitForExistence(timeout: 4)
+        let start = stub.coordinate(withNormalizedOffset: CGVector(dx: 0.08, dy: 0.3))
+        let end = stub.coordinate(withNormalizedOffset: CGVector(dx: 0.96, dy: 0.32))
+        start.press(forDuration: 0.05, thenDragTo: end, withVelocity: 120, thenHoldForDuration: 0.1)
+        pause(6.0)
+    }
+
     /// The App Store preview: one booking, paced for a 15 to 30 second clip.
     ///
     /// Driven by `scripts/record_app_preview.sh`, which starts `simctl
