@@ -267,18 +267,22 @@ final class DemoReelUITests: XCTestCase {
         if cards.firstMatch.waitForExistence(timeout: 6) { cards.firstMatch.tap(); pause(2.0) }
         _ = tap(app.buttons["depart-now"], timeout: 5)
 
+        // Same seat and tear as `testAppPreview`: glide from the nose to the
+        // wing, take C7 and continue by coordinate (seat-map element lookups
+        // cost a second each), then tear by sliding along the perforation.
         _ = app.staticTexts["Choose your seat"].waitForExistence(timeout: 8)
-        pause(0.6)
-        let seat = app.buttons.matching(
-            NSPredicate(format: "label MATCHES %@", #"Seat [A-F][0-9]+"#)).firstMatch
-        if seat.waitForExistence(timeout: 5) { seat.tap(); pause(0.6) }
-        _ = tap(app.buttons.matching(
-            NSPredicate(format: "label BEGINSWITH %@", "Take seat")).firstMatch, timeout: 3)
+        pause(1.2)
+        app.swipeUp(velocity: .slow)
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.41, dy: 0.39)).tap()
+        pause(1.0)
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.908)).tap()
         skipBags(in: app)
 
         _ = app.buttons["Tear and board"].waitForExistence(timeout: 15)
         pause(1.0)
-        _ = tap(app.buttons["Tear and board"], timeout: 4)
+        let cutStart = app.coordinate(withNormalizedOffset: CGVector(dx: 0.08, dy: 0.615))
+        let cutEnd = app.coordinate(withNormalizedOffset: CGVector(dx: 0.97, dy: 0.62))
+        cutStart.press(forDuration: 0.05, thenDragTo: cutEnd, withVelocity: 140, thenHoldForDuration: 0.1)
 
         // Window first and longest, then the route.
         let mapToggle = app.buttons["Map view"]
