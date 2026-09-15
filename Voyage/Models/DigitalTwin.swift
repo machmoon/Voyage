@@ -67,11 +67,7 @@ enum AircraftProfile: String, CaseIterable, Codable, Identifiable {
                     .init(name: "Main Cabin", rows: Array(12...22), left: CabinPlan.tripleLeft,
                           right: CabinPlan.tripleRight, isPremium: false)
                 ],
-                exitRows: [11, 12],
-                noseFullness: 0.34,
-                wingSpan: 0.62,
-                wingSweep: 0.30,
-                engineSize: 0.16
+                exitRows: [11, 12]
             )
         case .airbusA320neo:
             return CabinPlan(
@@ -83,13 +79,7 @@ enum AircraftProfile: String, CaseIterable, Codable, Identifiable {
                     .init(name: "Main Cabin", rows: Array(11...20), left: CabinPlan.tripleLeft,
                           right: CabinPlan.tripleRight, isPremium: false)
                 ],
-                exitRows: [10, 11],
-                // Blunter nose and the oversized nacelles that give the neo its
-                // silhouette.
-                noseFullness: 0.62,
-                wingSpan: 0.58,
-                wingSweep: 0.26,
-                engineSize: 0.21
+                exitRows: [10, 11]
             )
         case .voyageClassic:
             return CabinPlan(
@@ -104,11 +94,7 @@ enum AircraftProfile: String, CaseIterable, Codable, Identifiable {
                     .init(name: "Main Cabin", rows: Array(11...24), left: CabinPlan.tripleLeft,
                           right: CabinPlan.tripleRight, isPremium: false)
                 ],
-                exitRows: [10, 11],
-                noseFullness: 0.5,
-                wingSpan: 0.5,
-                wingSweep: 0.22,
-                engineSize: 0.14
+                exitRows: [10, 11]
             )
         case .boomOverture:
             return CabinPlan(
@@ -123,20 +109,14 @@ enum AircraftProfile: String, CaseIterable, Codable, Identifiable {
                     .init(name: "Main Cabin", rows: Array(5...32), left: CabinPlan.singleLeft,
                           right: CabinPlan.singleRight, isPremium: false)
                 ],
-                exitRows: [16, 17],
-                // A supersonic nose is a spike, not a dome, and the delta runs
-                // most of the fuselage length with almost no separate wing root.
-                noseFullness: 0.05,
-                wingSpan: 0.95,
-                wingSweep: 0.85,
-                engineSize: 0.12
+                exitRows: [16, 17]
             )
         }
     }
 }
 
 /// A top-down cabin plan: which rows exist, what they are called, where the
-/// wing box sits, and how the airframe around them is shaped.
+/// wing box sits. The airframe around them is `AircraftProfile.planform`.
 struct CabinPlan {
     /// Two-abreast cabins skip B and E so the letters still line up with the
     /// three-abreast rows behind them, exactly as real narrowbodies do.
@@ -163,17 +143,11 @@ struct CabinPlan {
 
     let cabins: [Cabin]
     let exitRows: Set<Int>
-    /// 0 is a pointed nose, 1 a blunt one.
-    let noseFullness: Double
-    /// Wing half-span and tip rake, as fractions of the fuselage width.
-    let wingSpan: Double
-    let wingSweep: Double
-    let engineSize: Double
 
     /// The widest row in the plan decides how big every seat can be.
     var maxSeatsPerRow: Int { cabins.map(\.seatsPerRow).max() ?? 4 }
 
-    /// The wing box is drawn immediately behind the last over-wing exit row.
+    /// The row the wing is placed against: the last over-wing exit.
     var wingAnchorRow: Int? { exitRows.max() }
 
     func cabin(forRow row: Int) -> Cabin? {

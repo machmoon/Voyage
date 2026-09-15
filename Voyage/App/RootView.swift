@@ -12,10 +12,19 @@ struct RootView: View {
     @State private var settings = SettingsStore.shared
     /// A flight the previous process did not survive, logged on this launch.
     @State private var recoveredFlight: LogbookEntry?
+    /// The cold-launch flyover, over whichever screen comes first.
+    @State private var showingFlyover = LaunchFlyoverView.shouldPlay && !Self.debugStampScreenshot
+    /// Held back until the flyover's plane reaches the centre. The first
+    /// screen is a MapKit globe, and its first render stalls presentation for
+    /// most of a second; mounted any earlier, it hides the flight behind the
+    /// launch screen. See `LaunchFlyoverView`.
+    @State private var contentMounted = !LaunchFlyoverView.shouldPlay || Self.debugStampScreenshot
 
     var body: some View {
         ZStack {
-            if !settings.hasCompletedOnboarding {
+            if !contentMounted {
+                Color.clear
+            } else if !settings.hasCompletedOnboarding {
                 OnboardingView {
                     withAnimation(.smooth(duration: 0.6)) {
                         settings.hasCompletedOnboarding = true
@@ -32,6 +41,14 @@ struct RootView: View {
                     }
                 }
                 .transition(.opacity)
+            }
+
+            if showingFlyover {
+                LaunchFlyoverView(
+                    onReadyForContent: { contentMounted = true },
+                    onFinish: { showingFlyover = false }
+                )
+                .zIndex(1)
             }
         }
         // Cross-dissolve every full-screen stage swap — including the departure

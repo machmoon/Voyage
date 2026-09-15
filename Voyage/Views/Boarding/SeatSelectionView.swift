@@ -1,11 +1,13 @@
 import SwiftUI
 
 /// Airline-style seat map, drawn from the aircraft's real cabin plan and its
-/// real planform: nose taper, constant-section cabin, swept wing, tailcone.
+/// real planform (`AircraftProfile.planform`): flight deck, constant-section
+/// cabin, swept wing, tailplane and fin.
 ///
-/// The aircraft is drawn full-bleed rather than as a diagram on a card. The
-/// wings run past both screen edges instead of stopping in stubs, so the map
-/// reads as a slice of a real airframe you are scrolling along.
+/// The airframe is drawn at true proportion around the seat grid rather than
+/// shrunk to fit the phone. A narrowbody's wing is about four fuselage widths
+/// long, so it runs far past both screen edges, and its chord covers the eight
+/// or so rows it really does. Scrolling the cabin moves along a real aircraft.
 ///
 /// Follows the conventions carriers use on their own maps, so a frequent flyer
 /// can read it without a key: taken seats are struck through with an X rather
@@ -19,12 +21,14 @@ struct SeatSelectionView: View {
 
     @State private var selected: String?
     /// Centre of the over-wing exit rows, measured from the cabin's own top so
-    /// the wing box is drawn where the exits actually are on this aircraft.
-    @State private var wingCenterY: CGFloat = 0
+    /// the wing is drawn where the exits actually are on this aircraft.
+    @State private var exitRowCenters: [Int: CGFloat] = [:]
 
     private static let cabinSpace = "voyage.cabin"
+    fileprivate static let tailClearance: CGFloat = 28
 
     private var plan: CabinPlan { session.aircraft.cabinPlan }
+    private var planform: AirframePlanform { session.aircraft.planform }
 
     // MARK: Metrics
     //
@@ -57,13 +61,19 @@ struct SeatSelectionView: View {
         groupWidth * 2 + aisleWidth + edgeInset * 2
     }
 
-    /// A pointed nose is a long nose. Blunt narrowbody domes are short, a
-    /// supersonic spike runs for several rows before the cabin starts.
-    private var noseLength: CGFloat {
-        rowPitch * (1.0 + (1.0 - plan.noseFullness) * 2.6)
-    }
+    /// Points per metre across the aircraft: the drawn fuselage is the real
+    /// fuselage width.
+    private var xScale: CGFloat { fuselageWidth / CGFloat(planform.fuselageWidth) }
 
-    private var tailLength: CGFloat { rowPitch * 2.4 }
+    /// Points per metre along the aircraft: one row pitch is one real seat
+    /// pitch.
+    private var yScale: CGFloat { rowPitch / CGFloat(AirframePlanform.seatPitch) }
+
+    /// Flight deck and forward galley, ahead of row 1.
+    private var noseLength: CGFloat { CGFloat(planform.noseToFirstRow) * yScale }
+
+    /// Aft galley and tailcone, behind the last row.
+    private var tailLength: CGFloat { CGFloat(planform.aftOfLastRow) * yScale }
 
     /// First-class seats are wider because there are fewer of them across the
     /// same cabin — the geometry produces the recliner, no special casing.
@@ -82,7 +92,7 @@ struct SeatSelectionView: View {
                 cabin
                     .background(alignment: .top) { airframe }
                     .coordinateSpace(name: Self.cabinSpace)
-                    .onPreferenceChange(WingAnchorKey.self) { wingCenterY = $0 }
+                    .onPreferenceChange(ExitRowCentersKey.self) { exitRowCenters = $0 }
             }
 
             VStack(spacing: 0) {
@@ -183,18 +193,28 @@ struct SeatSelectionView: View {
 
     // MARK: Airframe
 
-    /// The aircraft itself, drawn behind the cabin and sized to it. Wings are
-    /// deliberately run off both edges: a wing that stops inside the screen
-    /// reads as a stub, and a real seat map at this zoom always cuts them.
+    /// The aircraft itself, drawn behind the cabin and sized to it.
+    ///
+    /// The canvas is exactly the scroll content's size, so everything past the
+    /// screen edge (most of each wing, the stabiliser tips, the engines) is
+    /// clipped by the canvas and never reaches layout: no horizontal scroll,
+    /// no wider content. It sits in the cabin's background and ignores hits,
+    /// so no part of the airframe can take a tap from a seat.
     private var airframe: some View {
         AirframeCanvas(
-            plan: plan,
-            fuselageWidth: fuselageWidth,
-            noseLength: noseLength,
-            tailLength: tailLength,
-            rowPitch: rowPitch,
-            wingCenterY: wingCenterY
+            planform: planform,
+            xScale: xScale,
+            yScale: yScale,
+            wingAnchorY: wingAnchorY
         )
+    }
+
+    /// Midway between the first and last over-wing exit rows. The two rows
+    /// can straddle a cabin header, so both are measured.
+    private var wingAnchorY: CGFloat {
+        let centers = plan.exitRows.compactMap { exitRowCenters[$0] }
+        guard !centers.isEmpty else { return 0 }
+        return ((centers.min() ?? 0) + (centers.max() ?? 0)) / 2
     }
 
     // MARK: Cabin
@@ -209,13 +229,13 @@ struct SeatSelectionView: View {
                     seatRow(row, cabin: cabin)
                 }
             }
-            Color.clear.frame(height: tailLength)
+            // The tailcone, plus a little clear page past the tail end so
+            // the last of the airframe never tucks under the Continue card.
+            Color.clear.frame(height: tailLength + Self.tailClearance)
         }
     }
 
-    /// The nose is empty cabin-side, so the flight deck fills it: a windscreen
-    /// and the two side windows either side of it.
-    /// The nose is empty cabin-side. The windshield is drawn with the nose
+    /// The nose is empty cabin-side. The flight deck is drawn with the nose
     /// in `AirframeCanvas`, so this only reserves the space.
     private var flightDeck: some View {
         Color.clear.frame(height: noseLength).accessibilityHidden(true)
@@ -289,13 +309,13 @@ struct SeatSelectionView: View {
             }
         }
         .background {
-            // Report where the wing box belongs, so the planform behind the
-            // cabin lines up with the exits rather than guessing.
-            if row == plan.wingAnchorRow {
+            // Report where the exits are, so the wing behind the cabin lines
+            // up with them rather than guessing.
+            if isExit {
                 GeometryReader { geo in
                     Color.clear.preference(
-                        key: WingAnchorKey.self,
-                        value: geo.frame(in: .named(Self.cabinSpace)).midY
+                        key: ExitRowCentersKey.self,
+                        value: [row: geo.frame(in: .named(Self.cabinSpace)).midY]
                     )
                 }
             }
@@ -561,200 +581,85 @@ struct SeatSelectionView: View {
 
 // MARK: - Wing placement
 
-/// Carries the measured centre of the over-wing exit rows up to the airframe.
-private struct WingAnchorKey: PreferenceKey {
-    static let defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        let next = nextValue()
-        if next != 0 { value = next }
+/// Carries the measured centre of each over-wing exit row up to the airframe.
+private struct ExitRowCentersKey: PreferenceKey {
+    static let defaultValue: [Int: CGFloat] = [:]
+    static func reduce(value: inout [Int: CGFloat], nextValue: () -> [Int: CGFloat]) {
+        value.merge(nextValue()) { $1 }
     }
 }
 
 // MARK: - Airframe
 
-/// The aircraft drawn behind the cabin: wing, engines, tailplane, then the
-/// fuselage over the top of them.
+/// The aircraft drawn behind the cabin: engines, wings and tailplane, then the
+/// fuselage over their roots, then the flight deck glazing and the fin.
 ///
-/// Everything is driven off the aircraft's own `CabinPlan` geometry, so the
-/// narrowbodies get a modestly swept wing with big nacelles and the supersonic
-/// gets a long, highly swept delta and a spike nose. The wing ends inside the
-/// canvas with a raked tip, so the aircraft reads whole rather than cropped.
+/// Geometry comes from `AirframeOutline`. The nose is placed at the top of the
+/// cabin, the tail end at the bottom, and the wing around the measured
+/// over-wing exit row.
 private struct AirframeCanvas: View {
-    let plan: CabinPlan
-    let fuselageWidth: CGFloat
-    let noseLength: CGFloat
-    let tailLength: CGFloat
-    let rowPitch: CGFloat
-    let wingCenterY: CGFloat
+    let planform: AirframePlanform
+    let xScale: CGFloat
+    let yScale: CGFloat
+    /// Centre of the over-wing exit rows, in the cabin's coordinates.
+    let wingAnchorY: CGFloat
 
     var body: some View {
         Canvas { context, size in
-            let midX = size.width / 2
-            let halfBody = fuselageWidth / 2
-            let bodyLeft = midX - halfBody
-            let bodyRight = midX + halfBody
-            // Inset the wingtips from the canvas edge so both wings are whole.
-            let bleed: CGFloat = -10
+            let outline = AirframeOutline(
+                planform: planform,
+                midX: size.width / 2,
+                xScale: xScale,
+                yScale: yScale,
+                noseTipY: 1,
+                // Before the first layout pass reports the exit row, park the
+                // wing mid-cabin rather than at the nose.
+                exitY: wingAnchorY > 0 ? wingAnchorY : size.height * 0.45,
+                tailEndY: size.height - SeatSelectionView.tailClearance
+            )
+            let edge = Theme.seatMapInk.opacity(0.14)
+            let hairline = StrokeStyle(lineWidth: 1, lineJoin: .round)
 
-            // Wing box centre: fall back to a sensible spot before the first
-            // layout pass reports where the exit rows landed.
-            let wingY = wingCenterY > 0 ? wingCenterY : size.height * 0.55
+            for side: CGFloat in [-1, 1] {
+                // Nacelles hang under the wing: drawn first, only the inlet
+                // ahead of the leading edge shows, as it does from above.
+                for nacelle in outline.nacelles(side: side) {
+                    context.fill(nacelle, with: .color(Theme.seatMapNacelle))
+                    context.stroke(nacelle, with: .color(edge), style: hairline)
+                }
+                let wing = outline.wing(side: side)
+                context.fill(wing, with: .color(Theme.seatMapWing))
+                context.stroke(wing, with: .color(edge), style: hairline)
+                context.stroke(outline.wingPanelLines(side: side),
+                               with: .color(Theme.seatMapInk.opacity(0.09)),
+                               style: StrokeStyle(lineWidth: 0.75, lineCap: .round))
 
-            drawWing(context: context, size: size, bodyLeft: bodyLeft,
-                     bodyRight: bodyRight, wingY: wingY, bleed: bleed)
-            drawTailplane(context: context, size: size, midX: midX,
-                          halfBody: halfBody)
-            drawFuselage(context: context, size: size, midX: midX,
-                         halfBody: halfBody)
-            drawFin(context: context, size: size, midX: midX)
+                if let tail = outline.horizontalTail(side: side) {
+                    context.fill(tail, with: .color(Theme.seatMapWing))
+                    context.stroke(tail, with: .color(edge), style: hairline)
+                }
+            }
+
+            // A soft shadow lifts the white fuselage off the wing and the page.
+            let fuselage = outline.fuselage
+            context.drawLayer { layer in
+                layer.addFilter(.shadow(color: .black.opacity(0.10), radius: 10, y: 2))
+                layer.fill(fuselage, with: .color(Theme.seatMapFuselage))
+            }
+            context.stroke(fuselage, with: .color(edge), style: hairline)
+
+            context.drawLayer { glazing in
+                glazing.clip(to: fuselage)
+                for pane in outline.windshield {
+                    glazing.fill(pane, with: .color(Theme.seatMapInk.opacity(0.82)))
+                }
+            }
+
+            let fin = outline.fin
+            context.fill(fin, with: .color(Theme.seatMapWing))
+            context.stroke(fin, with: .color(edge), style: hairline)
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)
-    }
-
-    // MARK: Wing
-
-    private func drawWing(context: GraphicsContext, size: CGSize,
-                          bodyLeft: CGFloat, bodyRight: CGFloat,
-                          wingY: CGFloat, bleed: CGFloat) {
-        // Horizontal run from the fuselage side to past the screen edge.
-        let span = bodyLeft + bleed
-        // A delta carries its chord along most of the fuselage; a narrowbody
-        // wing is a much shorter root.
-        let rootChord = rowPitch * (2.6 + plan.wingSpan * 1.6)
-        let tipChord = max(8, rootChord * (0.30 - plan.wingSweep * 0.18))
-        let sweep = span * plan.wingSweep * 1.15
-        let rootLead = wingY - rootChord * 0.45
-        let tipLead = rootLead + sweep
-
-        for side in [-1.0, 1.0] {
-            let root = side < 0 ? bodyLeft : bodyRight
-            let tip = side < 0 ? -bleed : size.width + bleed
-            // The tip is raked: the trailing edge meets the leading edge a
-            // little inboard, so the wing ends in a point, not a square.
-            let rake = (tip - root) * 0.06
-            var path = Path()
-            path.move(to: CGPoint(x: root, y: rootLead))
-            path.addLine(to: CGPoint(x: tip, y: tipLead))
-            path.addLine(to: CGPoint(x: tip - rake, y: tipLead + tipChord))
-            path.addLine(to: CGPoint(x: root, y: rootLead + rootChord))
-            path.closeSubpath()
-            context.fill(path, with: .color(Theme.seatMapWing))
-
-            // Nacelle slung under the leading edge, out at the pylon station.
-            let engineX = root + (tip - root) * 0.40
-            let engineLead = rootLead + (tipLead - rootLead) * 0.40
-            let engineLength = rowPitch * (0.9 + plan.engineSize * 3.4)
-            let engineWidth = max(9, fuselageWidth * plan.engineSize * 0.85)
-            let engine = CGRect(x: engineX - engineWidth / 2,
-                                y: engineLead + rootChord * 0.10,
-                                width: engineWidth,
-                                height: engineLength)
-            context.fill(
-                Path(roundedRect: engine, cornerRadius: engineWidth / 2),
-                with: .color(Theme.seatMapInk.opacity(0.16))
-            )
-        }
-    }
-
-    // MARK: Tailplane
-
-    private func drawTailplane(context: GraphicsContext, size: CGSize,
-                               midX: CGFloat, halfBody: CGFloat) {
-        let y = size.height - tailLength * 0.72
-        let chord = rowPitch * 1.15
-        let span = halfBody * 1.55
-        let sweep = span * 0.55
-
-        for side in [-1.0, 1.0] {
-            let root = midX + halfBody * 0.72 * side
-            let tip = root + span * side
-            var path = Path()
-            path.move(to: CGPoint(x: root, y: y))
-            path.addLine(to: CGPoint(x: tip, y: y + sweep))
-            path.addLine(to: CGPoint(x: tip, y: y + sweep + chord * 0.34))
-            path.addLine(to: CGPoint(x: root, y: y + chord))
-            path.closeSubpath()
-            context.fill(path, with: .color(Theme.seatMapWing))
-        }
-    }
-
-    // MARK: Fin
-
-    /// The vertical stabiliser seen from above: a short dark spine at the
-    /// very end of the tailcone.
-    private func drawFin(context: GraphicsContext, size: CGSize, midX: CGFloat) {
-        let length = tailLength * 0.55
-        let rect = CGRect(x: midX - 2, y: size.height - length - 4, width: 4, height: length)
-        context.fill(Path(roundedRect: rect, cornerRadius: 2),
-                     with: .color(Theme.seatMapInk.opacity(0.28)))
-    }
-
-    // MARK: Fuselage
-
-    /// Nose taper, constant-section cabin, tailcone. `noseFullness` moves the
-    /// shoulder: a blunt narrowbody reaches full width almost immediately, a
-    /// supersonic spike carries the taper for several rows.
-    private func drawFuselage(context: GraphicsContext, size: CGSize,
-                              midX: CGFloat, halfBody: CGFloat) {
-        let fullness = plan.noseFullness
-        let bodyLeft = midX - halfBody
-        let bodyRight = midX + halfBody
-        // The tailcone narrows but never closes to a point: that stub is the
-        // APU exhaust, and closing it makes the tail read as a dart.
-        let tailHalf = halfBody * 0.20
-        let tailStart = size.height - tailLength
-
-        var path = Path()
-        path.move(to: CGPoint(x: bodyLeft, y: noseLength))
-        // A rounded nose: the sides curve in and meet in a blunt tip, the
-        // way United's seat map draws it, not a point.
-        path.addCurve(
-            to: CGPoint(x: midX, y: 0),
-            control1: CGPoint(x: bodyLeft, y: noseLength * (0.35 - fullness * 0.2)),
-            control2: CGPoint(x: midX - halfBody * 0.55, y: 0)
-        )
-        path.addCurve(
-            to: CGPoint(x: bodyRight, y: noseLength),
-            control1: CGPoint(x: midX + halfBody * 0.55, y: 0),
-            control2: CGPoint(x: bodyRight, y: noseLength * (0.35 - fullness * 0.2))
-        )
-        // Constant section down to where the tail starts.
-        path.addLine(to: CGPoint(x: bodyRight, y: tailStart))
-        // Tailcone: a smooth taper to a rounded end.
-        path.addCurve(
-            to: CGPoint(x: midX + tailHalf, y: size.height - 2),
-            control1: CGPoint(x: bodyRight, y: size.height - tailLength * 0.45),
-            control2: CGPoint(x: midX + tailHalf * 1.6, y: size.height - tailLength * 0.12)
-        )
-        path.addQuadCurve(
-            to: CGPoint(x: midX - tailHalf, y: size.height - 2),
-            control: CGPoint(x: midX, y: size.height + 2)
-        )
-        path.addCurve(
-            to: CGPoint(x: bodyLeft, y: tailStart),
-            control1: CGPoint(x: midX - tailHalf * 1.6, y: size.height - tailLength * 0.12),
-            control2: CGPoint(x: bodyLeft, y: size.height - tailLength * 0.45)
-        )
-        path.closeSubpath()
-
-        context.fill(path, with: .color(Theme.seatMapFuselage))
-
-        // Cockpit windshield: a dark wraparound band near the tip, the one
-        // detail that makes the nose read as the front of an aircraft.
-        let glassY = noseLength * 0.34
-        let glassHalf = halfBody * 0.42
-        var glass = Path()
-        glass.move(to: CGPoint(x: midX - glassHalf, y: glassY + 10))
-        glass.addQuadCurve(to: CGPoint(x: midX + glassHalf, y: glassY + 10),
-                           control: CGPoint(x: midX, y: glassY - 8))
-        glass.addLine(to: CGPoint(x: midX + glassHalf * 0.8, y: glassY + 18))
-        glass.addQuadCurve(to: CGPoint(x: midX - glassHalf * 0.8, y: glassY + 18),
-                           control: CGPoint(x: midX, y: glassY + 4))
-        glass.closeSubpath()
-        context.fill(glass, with: .color(Theme.seatMapInk.opacity(0.75)))
-        // Centre post between the two panes.
-        context.fill(Path(CGRect(x: midX - 0.75, y: glassY + 1, width: 1.5, height: 15)),
-                     with: .color(Theme.seatMapFuselage))
     }
 }
