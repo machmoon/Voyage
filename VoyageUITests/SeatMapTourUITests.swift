@@ -29,7 +29,7 @@ final class SeatMapTourUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["Choose your seat"].waitForExistence(timeout: 8))
 
-        for aircraft in ["Voyage Classic", "Boeing 737-800", "Airbus A320neo"] {
+        for aircraft in ["Voyage Classic", "Boeing 737-800", "Airbus A320neo", "Boom Overture"] {
             try select(aircraft: aircraft, in: app)
             let slug = aircraft.lowercased()
                 .replacingOccurrences(of: " ", with: "-")
@@ -44,16 +44,19 @@ final class SeatMapTourUITests: XCTestCase {
             sleep(1)
             save("qa-seatmap-\(slug)-wing")
 
+            // Aft wing root, where the trailing edge passes the rows behind
+            // the exits.
+            cabin.swipeUp(velocity: .slow)
+            sleep(1)
+            save("qa-seatmap-\(slug)-aft-wing")
+
             cabin.swipeUp(velocity: .slow)
             cabin.swipeUp(velocity: .slow)
             sleep(1)
             save("qa-seatmap-\(slug)-tail")
 
             // Back to the nose before switching type.
-            cabin.swipeDown(velocity: .fast)
-            cabin.swipeDown(velocity: .fast)
-            cabin.swipeDown(velocity: .fast)
-            cabin.swipeDown(velocity: .fast)
+            for _ in 0..<5 { cabin.swipeDown(velocity: .fast) }
             sleep(1)
         }
     }

@@ -90,6 +90,7 @@
 		50343094091DB580FFF3B03A /* captain_midpoint_new-york.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 296C3DACDD9062493FE6B322 /* captain_midpoint_new-york.m4a */; };
 		507D87B2B8B562183973CFB3 /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DF13B0FF6F67EF0797DAFA7 /* SettingsStore.swift */; };
 		509AD1FB19B3E07CD307F67E /* BoardingPassView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88D4D98A42F216B799704C84 /* BoardingPassView.swift */; };
+		524DBBE6CF9858F888E6A5E2 /* AirframePlanform.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6CB91E0EA01BD53011DE71A /* AirframePlanform.swift */; };
 		525ACC17F5E9926B8C7CF0A6 /* captain_layover_seattle.m4a in Resources */ = {isa = PBXBuildFile; fileRef = B5780AD54B7CADA1C817EAF8 /* captain_layover_seattle.m4a */; };
 		554C78207D710A62AA2CAA5F /* captain_landed_vancouver.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 33C9A3FD04706085D944B5B1 /* captain_landed_vancouver.m4a */; };
 		55F23693CF9EF21785BD3E99 /* RecorderScreenshotUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B36A674EB82F814C49CC6650 /* RecorderScreenshotUITests.swift */; };
@@ -227,6 +228,7 @@
 		EC52F779CF1E3F0ECA3677E5 /* FlightVisualEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 358B888860361493B6366533 /* FlightVisualEngine.swift */; };
 		ED9339E9798A3987FA78A55C /* WeatherMappingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9C6A8900000325A9B0AEC28 /* WeatherMappingTests.swift */; };
 		EF1A61B70BBA4A5C83FF193F /* StudyCoach.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C70DC94325C931FE057F890 /* StudyCoach.swift */; };
+		F103353FCBEC83DBADC6E5FB /* AirframeOutline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98574FD13928CDA5C71D1CE9 /* AirframeOutline.swift */; };
 		F2B95849F958E5025187B57E /* crew_landed_san-francisco.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 0CC3FEEBABF6F092F5A82772 /* crew_landed_san-francisco.m4a */; };
 		F42857A0BA1CF0C013401D1F /* StartupGlobeCover.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E3D55D19B23027BB0992231 /* StartupGlobeCover.swift */; };
 		F539099ECED8D80CDCA8CE15 /* VoyageWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 0D68B05EFC09E000DA1DDF10 /* VoyageWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -420,6 +422,7 @@
 		8F8C967F7B680DFEE8371514 /* captain_landed_los-angeles.m4a */ = {isa = PBXFileReference; path = "captain_landed_los-angeles.m4a"; sourceTree = "<group>"; };
 		952C4F0274367DADF70B685E /* GreatCircle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GreatCircle.swift; sourceTree = "<group>"; };
 		970C634E7950DD9E7BABFF21 /* captain_descent_miami.m4a */ = {isa = PBXFileReference; path = captain_descent_miami.m4a; sourceTree = "<group>"; };
+		98574FD13928CDA5C71D1CE9 /* AirframeOutline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirframeOutline.swift; sourceTree = "<group>"; };
 		98A39FC9F4E02536EFECAF1D /* FlightDataRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightDataRecorder.swift; sourceTree = "<group>"; };
 		98D80A40384AA0FD2BE7D690 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		9968ED4F95A2D37CDE0A2494 /* FlightSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightSessionTests.swift; sourceTree = "<group>"; };
@@ -462,6 +465,7 @@
 		C27E2A5E4DBC77E8C75FC1AF /* PilotRatingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PilotRatingsTests.swift; sourceTree = "<group>"; };
 		C2A8F01DA97D301AB3FDFBFD /* PilotRatings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PilotRatings.swift; sourceTree = "<group>"; };
 		C3FDADA12F8C38769AAC13FF /* StudyCoachTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyCoachTests.swift; sourceTree = "<group>"; };
+		C6CB91E0EA01BD53011DE71A /* AirframePlanform.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirframePlanform.swift; sourceTree = "<group>"; };
 		C6EA3177491BACB00D2315D7 /* RealWorldWindowSceneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealWorldWindowSceneView.swift; sourceTree = "<group>"; };
 		CA71C0325864048E6EDDA32D /* RecorderDemoLogbook.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecorderDemoLogbook.swift; sourceTree = "<group>"; };
 		CA93F9C86955AB5BB4D19771 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -890,6 +894,7 @@
 		DB54CF3BDF5963E781E6A783 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				C6CB91E0EA01BD53011DE71A /* AirframePlanform.swift */,
 				CAE328D769F7CC7D57744FF9 /* Airport.swift */,
 				B32E3BBACEDDD2F260A6DB5C /* DigitalTwin.swift */,
 				98A39FC9F4E02536EFECAF1D /* FlightDataRecorder.swift */,
@@ -920,6 +925,7 @@
 		FB4311188B9EDE3F76A9DF87 /* Support */ = {
 			isa = PBXGroup;
 			children = (
+				98574FD13928CDA5C71D1CE9 /* AirframeOutline.swift */,
 				BAD8B69CF65E78B46148736E /* AppFeedback.swift */,
 				48FB43F251445FBC7E06E159 /* DepartureReadiness.swift */,
 				0A03A9E0E2A8FB0FC316F94E /* FlightActivityController.swift */,
@@ -1253,6 +1259,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F103353FCBEC83DBADC6E5FB /* AirframeOutline.swift in Sources */,
+				524DBBE6CF9858F888E6A5E2 /* AirframePlanform.swift in Sources */,
 				161265440A6378F89192956D /* Airport.swift in Sources */,
 				FE79B828B4AFC2D728D6915A /* AirportWorldMetalView.swift in Sources */,
 				22916C44E8510AA1BA7CB56E /* Announcer.swift in Sources */,

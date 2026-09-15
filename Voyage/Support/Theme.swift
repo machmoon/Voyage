@@ -102,6 +102,8 @@ enum Theme {
     /// Wings and tailplane sit a step darker than the fuselage so the airframe
     /// reads as one object with the cabin on top of it.
     static let seatMapWing = Color(hex: "DBE1EA")
+    /// Engine nacelles, a step darker again so the inlet reads ahead of the wing.
+    static let seatMapNacelle = Color(hex: "C9D1DC")
     static let seatOpen = Color(hex: "DCE8FF")
     static let seatChosen = accent
     static let seatTakenFill = Color(hex: "D5D9E0")
