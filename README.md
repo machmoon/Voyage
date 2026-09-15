@@ -1,311 +1,135 @@
-# Voyage
-
-### A focus timer you have to land
-
-Voyage turns a study session into a flight. Book a real route on a 3D globe, choose a seat, check your tasks as baggage, tear the boarding pass, and focus through a live airplane-window view until you arrive. Leave for more than 30 seconds and the aircraft diverts.
-
-Built with **Codex powered by GPT-5.6** for the **Apps for Your Life** track of the [OpenAI Build Week Challenge](https://openai.devpost.com/).
-
-[![Platform](https://img.shields.io/badge/platform-iOS%2017%2B-111827)](#run-it)
-[![Swift](https://img.shields.io/badge/Swift-5-F05138)](#technical-implementation)
-[![Dependencies](https://img.shields.io/badge/third--party%20dependencies-0-16A34A)](#technical-implementation)
-[![License](https://img.shields.io/badge/license-MIT-2563EB)](LICENSE)
-[![App Store](https://img.shields.io/badge/App%20Store-Voyage%3A%20Study%20%26%20Focus%20Timer-0D96F6)](https://apps.apple.com/app/id6794570257)
-
-**[Download Voyage on the App Store](https://apps.apple.com/app/id6794570257)** — free, no account, no ads. Version 1.1.1 keeps the screen awake for the whole flight, prints the boarding pass cleanly, logs a flight the app did not survive, and fixes large-text layouts in flight and on the seat map.
+<p align="center"><strong>Voyage</strong> is a study timer for iPhone that turns a focus session into a flight.</p>
+<p align="center">
+  <img src="https://raw.githubusercontent.com/machmoon/Voyage-QA/main/readme/voyage-preview.gif" alt="Opening flyover, booking a route, choosing a seat, tearing the boarding pass, and takeoff" width="300" />
+</p>
+</br>
+<p align="center">Free, no account, no ads, open source. If you want the app, <a href="https://apps.apple.com/app/id6794570257">download Voyage on the App Store</a>.
+</br>If you want to build it yourself, see <a href="#build-from-source">Build from source</a>.
+</br>If you want to know how it works inside, read <a href="CLAUDE.md">CLAUDE.md</a>.</p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/machmoon/Voyage-QA/main/qa-01-home.png" width="170" alt="Book a focus flight from the globe">
-  <img src="https://raw.githubusercontent.com/machmoon/Voyage-QA/main/qa-03-seats.png" width="170" alt="Choose a seat in the aircraft">
-  <img src="https://raw.githubusercontent.com/machmoon/Voyage-QA/main/qa-04-boarding-pass-pre-tear.png" width="170" alt="Tear the boarding pass to commit">
-  <img src="https://raw.githubusercontent.com/machmoon/Voyage-QA/main/qa-07-inflight-climb-clouds.png" width="170" alt="Focus through the passenger window">
+  <a href="https://apps.apple.com/app/id6794570257"><img src="https://img.shields.io/badge/App%20Store-Voyage%3A%20Study%20%26%20Focus%20Timer-0D96F6" alt="App Store"></a>
+  <a href="#build-from-source"><img src="https://img.shields.io/badge/platform-iOS%2017%2B-111827" alt="iOS 17+"></a>
+  <a href="#build-from-source"><img src="https://img.shields.io/badge/third--party%20dependencies-0-16A34A" alt="No third-party dependencies"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2563EB" alt="MIT"></a>
 </p>
 
-## The problem
+---
 
-Starting a timer is easy. Obeying one is not.
+## How a flight works
 
-Pomodoro timers measure an intention, but pressing **Start** creates almost no emotional obligation to finish. Air travel has the opposite property: a flight has a destination, a seat you chose, baggage you checked, and a very clear expectation that you should not leave halfway through.
+You pick a route on the globe. Its real flight time becomes the length of your study session. You choose a seat, pack up to three things to work on as bags, and tear the boarding pass to begin. Then you study while the plane flies: takeoff, climb, cruise, descent, landing. Leaving the app for more than 30 seconds ends the flight early. Landing earns a passport stamp and a logbook entry.
 
-Voyage borrows that psychological machinery. It is not an airplane placed next to a countdown. It is a personal commitment device in which beginning, remaining, and finishing all have consequences.
+<table>
+  <tr>
+    <td align="center"><img src="https://raw.githubusercontent.com/machmoon/Voyage-QA/main/readme/01-home.png" width="200" alt="Globe with nearby routes"><br>Pick a destination.</td>
+    <td align="center"><img src="https://raw.githubusercontent.com/machmoon/Voyage-QA/main/readme/03-departure-board.png" width="200" alt="Departure board"><br>Fly now or schedule a departure.</td>
+    <td align="center"><img src="https://raw.githubusercontent.com/machmoon/Voyage-QA/main/readme/04-seat-map.png" width="200" alt="Seat map"><br>Choose a seat. Window seats change the view.</td>
+    <td align="center"><img src="https://raw.githubusercontent.com/machmoon/Voyage-QA/main/readme/06-boarding-pass.png" width="200" alt="Boarding pass"><br>Tear the pass to start.</td>
+  </tr>
+  <tr>
+    <td align="center"><img src="https://raw.githubusercontent.com/machmoon/Voyage-QA/main/readme/08-window-cruise.png" width="200" alt="Window seat at cruise"><br>Study by the window.</td>
+    <td align="center"><img src="https://raw.githubusercontent.com/machmoon/Voyage-QA/main/readme/11-map-follow.png" width="200" alt="Live flight map"><br>Or follow the route on the map.</td>
+    <td align="center"><img src="https://raw.githubusercontent.com/machmoon/Voyage-QA/main/readme/12-logbook.png" width="200" alt="Logbook"><br>Every landing goes in the logbook.</td>
+    <td align="center"><img src="https://raw.githubusercontent.com/machmoon/Voyage-QA/main/readme/14-passport.png" width="200" alt="Passport stamps"><br>Collect a stamp for each city.</td>
+  </tr>
+</table>
 
-## The experience
+### The boarding pass
 
-1. **Book a real route.** Pick a destination from the globe, or tap the die for a surprise. Directional block times, carriers, flight numbers, schedules, and popular connections come from the bundled route catalog.
-2. **Choose your seat.** Aircraft and seat selection affect the passenger-camera geometry, window side, and wing view.
-3. **Check your intentions.** Pack up to three tasks as baggage and claim the ones you complete after landing.
-4. **Tear to depart.** The boarding pass is a physical commitment ritual, not a decorative confirmation screen.
-5. **Focus through the flight.** Takeoff, climb, cruise, descent, and landing drive the window, map, weather, altitude, cabin lighting, announcements, haptics, and procedural audio. Double-tap for pure mode: only the window and the clock.
-6. **Do not abandon the aircraft.** Backgrounding starts a 30-second grace period. Missing the deadline diverts the flight.
-7. **Land and remember it.** Completed flights earn miles, extend streaks, produce passport stamps, preserve completed intentions, and can be replayed from the logbook.
-8. **Optional system hooks.** Location permission sets your nearest airport as the origin on the globe. Flight Focus ties into iOS Focus mode: add the filter once, then grant Focus access when you board for an airplane-mode-style session.
+The pass is the commitment. Press the button or slide along the dotted line, and the stub falls away.
 
-The active flight also appears in a Live Activity and the Dynamic Island, so the remaining time can be checked without reopening the app and accidentally causing an aviation incident.
+<p align="center">
+  <img src="https://raw.githubusercontent.com/machmoon/Voyage-QA/main/readme/tear-boarding-pass.gif" alt="Tearing the boarding pass and the departure screen fading in" width="240" />
+</p>
 
-## Why it belongs in Apps for Your Life
+### What else is on board
 
-Voyage solves an ordinary personal problem, staying with work after deciding to begin, by giving the session a departure, a destination, and a cost for leaving.
+- **Real routes.** Every airport pair has actual block times, so eastbound is shorter than westbound. Carriers, flight numbers, and typical departure times feed the departure board.
+- **Connections.** Longer sessions can route through a hub with a layover between legs. Miss the boarding window and you miss the connection.
+- **Window scenery.** Apple Maps satellite and terrain imagery streams past the window. With streaming off, or with no network, a procedural sky and cloud renderer takes over.
+- **Live weather.** Current conditions at both airports come from Open-Meteo and show in the window. Without a connection, the sky is clear.
+- **Cabin.** Recorded crew and captain announcements, procedural engine ambience, chimes, haptics, and cabin lighting that follows the phase of flight. Double-tap for pure mode: window and clock only.
+- **Lock screen.** The flight shows in a Live Activity and the Dynamic Island, so you can check the time left without opening the app.
+- **Study coach.** Insights reads your own logbook and suggests a length and a time for your next flight. It can also copy your logbook for ChatGPT, Claude or Gemini.
+- **Cabin service.** Optional reminders to drink water, rest your eyes, and stretch.
+- **Focus.** A Flight Focus filter ties a flight to iOS Focus. Location, if you allow it, sets your nearest airport as home. The app does not block other apps or turn on airplane mode.
 
-| Challenge question | Voyage's answer |
-| --- | --- |
-| Is it useful in everyday life? | It turns studying, writing, reading, and other focus work into sessions with a meaningful commitment loop. |
-| Is it a coherent product rather than a proof of concept? | Booking, boarding, flying, diversion, landing, rewards, replay, notifications, and lock-screen state form one end-to-end journey. |
-| Is the idea meaningfully different? | Routes determine duration, seats determine the view, tasks become baggage, leaving causes diversion, and finishing creates a persistent travel history. The metaphor changes behavior instead of merely changing the theme. |
-| Can judges run it? | Clone, open, and press Run. No accounts, keys, or sample-data downloads. The single package dependency resolves automatically, the route catalog is bundled, live data falls back cleanly, and `-VoyageShortFlights` compresses a flight for quick evaluation. |
+Your logbook stays on the device. Voyage collects nothing and has no analytics or third-party SDKs. Details are in [PRIVACY.md](PRIVACY.md).
 
-## How Codex and GPT-5.6 were used
+## Build from source
 
-Voyage was built with **GPT-5.6 as the reasoning and coding model inside Codex**. Codex was not used only to scaffold the repository or autocomplete isolated functions. It remained inside the development loop from product definition through architecture, implementation, debugging, testing, and visual QA.
+You need macOS with Xcode 15 or newer and an iPhone simulator or device on iOS 17 or newer. There are no packages to resolve, keys to set, or data to download.
 
-### Where Codex accelerated the workflow
-
-| Workstream | How GPT-5.6 and Codex were used | Evidence in the repository |
-| --- | --- | --- |
-| Product design | Converted the initial “airplane timer” into a commitment ritual, challenged screens that did not reinforce the central loop, and repeatedly audited the app for decorative noise. | [`PLAN.md`](PLAN.md), [`QA/DESIGN_AUDIT.md`](QA/DESIGN_AUDIT.md), [`BoardingFlowView.swift`](Voyage/Views/Boarding/BoardingFlowView.swift) |
-| State-machine architecture | Reasoned across timing, app lifecycle, audio, persistence, layovers, and failure states; helped centralize them in one deterministic session model instead of distributing clocks across views. | [`FlightSession.swift`](Voyage/Flight/FlightSession.swift), [`VoyageClock.swift`](Voyage/Support/VoyageClock.swift) |
-| Unfamiliar platform work | Implemented and debugged SwiftUI, SwiftData, MapKit, ActivityKit, WidgetKit, Metal, AVFoundation, speech synthesis, App Intents, Core Location, and the Cloudflare Worker within one native product. | [`Voyage/`](Voyage/), [`VoyageWidgets/`](VoyageWidgets/), [`worker/`](worker/) |
-| Flight simulation | Helped translate aircraft phase, seat side, weather, and elapsed time into a renderer-independent passenger-camera model that is deterministic enough for tests and replay. | [`DigitalTwin.swift`](Voyage/Models/DigitalTwin.swift), [`WindowWorldRenderer.swift`](Voyage/Views/Flight/WindowWorldRenderer.swift), [`Shaders.metal`](Voyage/Support/Shaders.metal) |
-| Aviation data | Built and validated directional route data, great-circle interpolation, live weather normalization, and offline fallback behavior rather than relying on a permanently available demo backend. | [`RouteCatalog.swift`](Voyage/Models/RouteCatalog.swift), [`GreatCircle.swift`](Voyage/Models/GreatCircle.swift), [`worker/src/index.ts`](worker/src/index.ts) |
-| Debugging | Traced failures across UI state, lifecycle transitions, generated Xcode configuration, shaders, sound, and test processes. Fixes were verified in code instead of being accepted from model output on faith. | Commit history, [`QA/FINAL_QA_REPORT.md`](QA/FINAL_QA_REPORT.md) |
-| Automated verification | Generated unit and UI coverage for phase boundaries, diversion deadlines, connections, route geometry, weather mapping, digital-twin determinism, booking, and visual checkpoints. | [`VoyageTests/`](VoyageTests/), [`VoyageUITests/`](VoyageUITests/) |
-| Visual iteration | Used simulator screenshots as model-visible evidence, compared complete flows, identified hierarchy and legibility problems, then regenerated the committed visual tour after changes. | [`QA/`](QA/), [`ScreenshotTourUITests.swift`](VoyageUITests/ScreenshotTourUITests.swift) |
-
-### Key decisions made with Codex
-
-#### 1. The ritual is the product
-
-The first concept was an airplane-themed timer. GPT-5.6 helped interrogate which interactions actually changed commitment. That produced the seat → baggage → boarding-pass tear sequence and the decision to remove anything that did not strengthen departure or arrival.
-
-#### 2. Time must be injected, never improvised
-
-Several independent timers would eventually disagree about whether the flight was cruising, descending, or already parked at a gate in another application. Codex helped consolidate all temporal behavior into `FlightSession` and introduce `VoyageClock`. Production uses `SystemClock`; tests use `ManualClock` and can fly an entire route instantly.
-
-#### 3. Flight phase should be derived, not stored
-
-Within each leg, phase is a pure function of elapsed time:
-
-$$
-p=\min\left(1,\frac{t-t_0}{T}\right)
-$$
-
-The same session instant therefore drives the window, map, altitude, audio, announcements, Live Activity, screenshots, and replay. This eliminated an entire class of contradictory UI state.
-
-#### 4. The experience must survive unavailable services
-
-Codex helped design a layered weather and schedule strategy: live aviation data when available, platform or public fallbacks where appropriate, and bundled deterministic data as the final authority. A focus app should not become unfocusable because a weather provider is having a difficult afternoon.
-
-#### 5. Visual polish must be testable
-
-GPT-5.6 and Codex helped turn the simulator into a repeatable visual QA loop. `-VoyageShortFlights` compresses takeoff and climb, while UI tests navigate the real app and write screenshots into `QA/`. The project consequently has a visual regression tour rather than a collection of screenshots selected from the one occasion on which everything happened to work.
-
-### What remained human
-
-Codex increased the amount we could attempt; it did not choose what was worth shipping. We retained final control over the product thesis, interaction taste, aviation metaphor, scope, and acceptance of every change. Model-generated code was read, built, exercised in the simulator, and covered with tests where failure would affect the journey.
-
-This human/model division mattered. GPT-5.6 supplied unusually broad technical reasoning across the stack. Human judgment kept that breadth pointed at one idea: **a study session you cannot quietly abandon, dressed as a flight you chose to take.**
-
-## Technical implementation
-
-Voyage is a native iOS 17 application built entirely on first-party Apple frameworks. It has **zero third-party dependencies**: no Swift packages, no CocoaPods, no vendored frameworks. Every layer, including persistence, audio, navigation, scenery, widgets, and intents, is Apple-native. Streamed scenery comes from MapKit, and the passenger window falls back to a procedural Metal renderer when streaming is off or unavailable.
-
-| Layer | Technology | Responsibility |
-| --- | --- | --- |
-| Interface | SwiftUI | Globe, booking, boarding ritual, in-flight cabin, arrival, passport, and settings |
-| Session engine | Observation + injected clock | Timing, phases, lifecycle enforcement, layovers, diversion, cues, and completion |
-| Persistence | SwiftData | Flights, miles, streaks, intentions, weather snapshots, and replay metadata |
-| Navigation | MapKit + great-circle SLERP | Route drawing, aircraft position, follow camera, terrain, and satellite modes |
-| Window world | SwiftUI Canvas + Metal | Runway, clouds, haze, weather, passenger camera, aircraft performance, and wing view |
-| Streamed scenery | MapKit → procedural | Satellite and terrain imagery for the window, selected at runtime by settings, network, and thermal state |
-| Audio | AVFoundation + AVSpeechSynthesizer | Procedural ambience, chimes, PA filtering, stamps, and phase transitions |
-| System integration | ActivityKit, WidgetKit, App Intents, notifications | Dynamic Island, lock screen, Siri/Shortcuts, departure reminders, and focus integration |
-| Live data | Open-Meteo, credited under CC BY 4.0 | Current conditions for airports and route sample points, frozen into the flight replay |
-| Verification | XCTest + XCUITest | 163 unit tests and 8 UI tours, including automated visual and demo capture |
-
-### Deterministic flight engine
-
-`FlightSession` is the center of the app. It owns two layered state machines:
-
-```text
-preflight ──→ inFlight ──→ layover ──→ arrived
-                  │             │
-                  └→ diverted   └→ missedConnection
-```
-
-Each leg derives `takeoffRoll → climb → cruise → descent → landing` from elapsed time. Renderers never start private wall clocks, so live flight, test flight, screenshot capture, and logbook replay agree about the same instant.
-
-### Great-circle navigation
-
-Given unit vectors $a$ and $b$ for the origin and destination, the aircraft position at progress $p$ is calculated with spherical interpolation:
-
-$$
-\operatorname{slerp}(a,b,p)=
-\frac{\sin((1-p)\theta)}{\sin\theta}a+
-\frac{\sin(p\theta)}{\sin\theta}b,
-\qquad
-\theta=\cos^{-1}(a\cdot b)
-$$
-
-This follows the curvature of the Earth rather than the geographically innovative straight lines preferred by ordinary screen coordinates.
-
-### Real data without demo fragility
-
-- The route catalog contains every supported directed airport pair, including directional block times and popular connections.
-- Weather uses live observations from Open-Meteo and stores a frozen departure snapshot for deterministic replay.
-- The `worker/` directory holds a Cloudflare METAR adapter kept for future use. The shipped app does not call it and reads weather from Open-Meteo directly.
-- Unit tests remain offline.
-- If all live services are unavailable, Voyage continues with its bundled catalog and clear weather rather than crashing at the gate.
-
-## Run it
-
-### Requirements
-
-- macOS with Xcode 15 or newer
-- iOS 17 SDK
-- An iPhone simulator or physical iPhone
-- XcodeGen only if regenerating the project after file-layout changes
-- Metal toolchain for `Shaders.metal`
-
-**No accounts, API keys, package resolution, or sample-data downloads are required.** There are no third-party dependencies, so a clean checkout builds offline.
-
-### Fastest judge path
-
-```bash
+```shell
 git clone https://github.com/machmoon/Voyage.git
 cd Voyage
 open Voyage.xcodeproj
 ```
 
-In Xcode:
+Select the **Voyage** scheme and an iPhone simulator, then press **Cmd+R**.
 
-1. Select the **Voyage** scheme.
-2. Select any iPhone simulator running iOS 17 or newer.
-3. Press **Cmd+R**.
-4. Choose a destination, select a seat, check a bag, and tear the pass.
+Real flights run at real length. To try one in under a minute, add `-VoyageShortFlights` under **Scheme → Run → Arguments**, or launch an installed simulator build with it:
 
-For a compressed demonstration, add `-VoyageShortFlights` under **Scheme → Run → Arguments**, or launch an already installed simulator build with:
-
-```bash
+```shell
 xcrun simctl launch booted com.patrickliu.voyage -VoyageShortFlights
 ```
 
-This compresses the takeoff roll to approximately 3 seconds and reaches cruise at approximately 8 seconds. Route duration, persistence, and strict-mode logic remain unchanged.
+This shortens the takeoff roll and climb. Route length, the logbook, and the 30-second rule are unchanged.
 
-### Sample data
+<details>
+<summary>Command line build and tests</summary>
 
-None to download. Everything needed to fly is compiled into the app:
+Find a booted simulator, then substitute its name:
 
-- [`RouteCatalog.swift`](Voyage/Models/RouteCatalog.swift) — every supported directed airport pair, with directional block times, carriers, flight numbers, schedules, and popular connections.
-- [`Airport.swift`](Voyage/Models/Airport.swift) — airport coordinates, names, and metadata used by the globe and great-circle math.
-- Weather falls back to clear conditions when live observations are unavailable, so a first run never blocks on the network.
-
-The logbook starts empty by design — the first flight you complete is the first stamp in the passport.
-
-### Window scenery
-
-The passenger window picks its renderer at runtime in this order:
-
-1. **MapKit.** Apple's satellite and terrain imagery, streamed. No key, no account, no configuration. Apple's attribution stays visible in the window.
-2. **Procedural Metal.** The fully offline authored sky, clouds, and runway.
-
-Both tiers are always available, so **the app is complete and demo-ready with no configuration**. Streaming can be turned off in Settings, and the window drops to the procedural renderer. It also drops automatically when the network is unavailable or the device is thermally constrained.
-
-### Build from the command line
-
-Check for a booted simulator first:
-
-```bash
+```shell
 xcrun simctl list devices booted
-```
 
-Then substitute its device name:
-
-```bash
 xcodebuild -project Voyage.xcodeproj -scheme Voyage \
   -destination 'platform=iOS Simulator,name=iPhone 17' build
-```
 
-If a fresh Xcode installation cannot compile the Metal shader:
-
-```bash
-xcodebuild -downloadComponent MetalToolchain
-```
-
-### Run the tests
-
-```bash
 # Unit and UI tests
 xcodebuild -project Voyage.xcodeproj -scheme Voyage \
   -destination 'platform=iOS Simulator,name=iPhone 17' test
 
 # Unit tests only
 xcodebuild -project Voyage.xcodeproj -scheme Voyage \
-  -destination 'platform=iOS Simulator,name=iPhone 17' \
-  test -only-testing:VoyageTests
+  -destination 'platform=iOS Simulator,name=iPhone 17' test -only-testing:VoyageTests
 ```
 
-Unit tests cover session phases, diversion deadlines, layovers, persistence, great-circle geometry, route planning, weather mapping, flyer tiers, and deterministic digital-twin frames. UI tests cover booking, boarding, the in-flight tour, and authored SFO window checkpoints.
+If a fresh Xcode cannot compile `Shaders.metal`:
 
-## Project structure
-
-```text
-Voyage/
-├── App/                 Application entry point and root routing
-├── AppIntents/          Siri and Shortcuts integration
-├── Audio/               Procedural cabin audio, PA, and haptics
-├── Flight/              Deterministic FlightSession state machine
-├── Models/              Airports, routes, logbook, geometry, digital twin
-├── Support/             Clock, weather, scheduling, notifications, shader
-└── Views/               Booking, boarding, flight, landing, sharing, logbook
-VoyageWidgets/           Live Activity and Dynamic Island extension
-VoyageTests/             Unit tests
-VoyageUITests/           Smoke, screenshot, demo, and visual-checkpoint tours
-worker/                  Cloudflare METAR adapter, not called by the shipped app
-QA/                      Committed visual state and design audit
+```shell
+xcodebuild -downloadComponent MetalToolchain
 ```
 
-## Project generation
+`Voyage.xcodeproj` is generated from `project.yml`. After adding or removing source files, run `xcodegen generate` instead of editing the project by hand.
 
-`Voyage.xcodeproj` is generated from [`project.yml`](project.yml). After adding or removing source files, regenerate it instead of editing the project file manually:
+</details>
 
-```bash
-brew install xcodegen
-xcodegen generate
-```
+## How it is built
 
-## Privacy and resilience
+Voyage is SwiftUI on iOS 17 with no third-party dependencies. The pieces:
 
-- Voyage requires no account and collects no personal data.
-- The logbook is stored locally with SwiftData and never leaves the device.
-- Location is used once, on device, to select the nearest airport. The position itself is never sent anywhere.
-- The app contains no advertising, no analytics, and no third-party SDKs.
-- The iOS client contains no provider secrets, because it calls no keyed service.
-- Weather comes from Open-Meteo, credited in Settings under CC BY 4.0; scenery comes from Apple Maps. Both fall back to bundled data on failure.
-- Unit tests never contact weather services.
+| Part | Where | What it does |
+| --- | --- | --- |
+| Flight engine | `Voyage/Flight/FlightSession.swift` | One state machine owns timing, phases, announcements, the 30-second rule, layovers, and the logbook write. Time comes from an injected clock, so tests fly a whole route instantly. |
+| Routes | `Voyage/Models/RouteCatalog.swift` | Every directed airport pair with block times, carriers, flight numbers, schedules, and connections. |
+| Navigation | `Voyage/Models/GreatCircle.swift` | Spherical interpolation places the plane on the map along the real great-circle track. |
+| Window | `Voyage/Views/Flight/` | A Canvas passenger window with per-phase kinematics, MapKit scenery, and a Metal haze shader. |
+| Audio | `Voyage/Audio/`, `Voyage/Resources/PA/` | Procedural ambience, chimes, and haptics. Recorded PA lines for the crew and captain. |
+| Persistence | SwiftData | A single `LogbookEntry` model. Tiers computed from the logbook unlock cosmetics only. |
+| Widgets | `VoyageWidgets/` | Live Activity and Dynamic Island. |
+| Tests | `VoyageTests/`, `VoyageUITests/` | Unit tests for phases, deadlines, connections, geometry, and weather. UI tours that write screenshots to `QA/`. |
 
-## Build Week submission
+The full architecture note is [CLAUDE.md](CLAUDE.md). Weather is from [Open-Meteo](https://open-meteo.com), credited under CC BY 4.0 in Settings. Scenery is Apple Maps with Apple's attribution in the window.
 
-- **Track:** Apps for Your Life
-- **Built with:** Codex + GPT-5.6
-- **Source:** This repository
-- **License:** [MIT](LICENSE)
-- **Project story:** [`DEVPOST.md`](DEVPOST.md)
-- **Three-minute demo script:** [`BUILD_WEEK_DEMO.md`](BUILD_WEEK_DEMO.md)
-- **Visual QA:** [`QA/`](QA/)
+## Docs
 
-The required `/feedback` Codex Session ID is supplied in the Devpost submission form.
+- [**Privacy**](PRIVACY.md) and [**Terms**](TERMS.md)
+- [**Screenshots and demo media**](https://github.com/machmoon/Voyage-QA)
+- [**Origins**](DEVPOST.md): Voyage began as an entry to the OpenAI Build Week Challenge, built with Codex.
 
-## Future direction
+Voyage is for students, by students. Bug reports, route suggestions, and pull requests are welcome.
 
-Voyage is a complete focus loop today, but the flight metaphor opens room to grow:
-
-- **AI study insights:** post-flight summaries of what you worked on, patterns across sessions, and gentle nudges before you board.
-- **Social flights:** study the same route with friends, shared boarding calls, and a group logbook for accountability without turning focus into a feed.
-- **Personal bests and achievements:** route records, streak milestones, and tier unlocks that reward showing up.
-- **Richer replays:** animated journey recaps, shareable route cards, and weekly flight films from your logbook.
-- **More of the world:** expanded route catalog, seasonal scenes, and deeper real-world scenery along popular corridors.
-
-If you build on Voyage or have ideas, the project is [open source](https://github.com/machmoon/Voyage). Issues and PRs are welcome.
-
-## License
-
-Voyage is available under the [MIT License](LICENSE).
+This repository is licensed under the [MIT License](LICENSE).
