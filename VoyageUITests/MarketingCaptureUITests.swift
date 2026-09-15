@@ -155,10 +155,19 @@ final class MarketingCaptureUITests: XCTestCase {
         settle(1)
 
         // 10 and 11. Moving map, route camera then follow camera, satellite.
+        // The second double tap is sometimes read as a single tap and pure
+        // mode stays on, which left the "map" captures showing the bare window
+        // (AppStore/screenshots-1.2 slot 5, September 14). Retry until the
+        // chrome is back, then prove the map is up before capturing it.
         let mapToggle = app.buttons["Map view"]
         require(mapToggle, "the Map view toggle")
+        for _ in 0..<3 where !mapToggle.isHittable {
+            app.doubleTap()
+            settle(2)
+        }
         mapToggle.tap()
         settle(2)
+        require(app.buttons["Follow"], "the map camera controls")
         tapIfPresent(app.buttons["Satellite"])
         tapIfPresent(app.buttons["Route"])
         settle(4)
@@ -188,6 +197,21 @@ final class MarketingCaptureUITests: XCTestCase {
         app.buttons["open-recorder"].tap()
         settle(3)
         capture(app, "mk-13-recorder")
+
+        // The study coach under the findings.
+        let plan = app.staticTexts["Study coach"]
+        for _ in 0..<6 where !(plan.exists && plan.isHittable) {
+            app.swipeUp()
+        }
+        require(plan, "the Study coach heading")
+        app.swipeUp()
+        settle(1)
+        capture(app, "mk-15-coach")
+        app.swipeUp()
+        app.swipeUp()
+        require(app.buttons["coach-copy-logbook"], "the Ask an AI card")
+        settle(1)
+        capture(app, "mk-16-coach-ask")
         app.navigationBars.buttons.firstMatch.tap()
         settle(1)
 

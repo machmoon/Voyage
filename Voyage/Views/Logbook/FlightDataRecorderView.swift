@@ -28,7 +28,11 @@ struct FlightDataRecorderView: View {
 
     var body: some View {
         ScrollView {
-            RecorderReadout(report: report)
+            RecorderReadout(report: report) {
+                if overrideReport == nil {
+                    StudyCoachSection(entries: entries, report: report)
+                }
+            }
         }
         .background(Self.backdrop)
         .navigationTitle("Insights")
@@ -44,8 +48,16 @@ struct FlightDataRecorderView: View {
 /// Split out so it can be rendered offscreen by `ImageRenderer`, which does
 /// not lay out `ScrollView` content. Keeping the split here rather than in
 /// the test means a capture is the real view, not a re-creation of it.
-struct RecorderReadout: View {
+struct RecorderReadout<Coach: View>: View {
     let report: FlightDataReport
+    /// The study coach, placed after the findings and before the method note.
+    /// Empty for offscreen captures, which render the recorder alone.
+    @ViewBuilder var coach: Coach
+
+    init(report: FlightDataReport, @ViewBuilder coach: () -> Coach) {
+        self.report = report
+        self.coach = coach()
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -62,6 +74,8 @@ struct RecorderReadout: View {
             } else {
                 recordingCard
             }
+
+            coach
 
             methodNote
         }
@@ -277,7 +291,7 @@ private struct EvidenceRow: View {
 /// gradient. Over a near-black backdrop `.ultraThinMaterial` has almost
 /// nothing to blur and the panel edge disappears; the fill gives the card a
 /// body of its own and keeps it visible when the gradient is at its darkest.
-private struct InstrumentCard<Content: View>: View {
+struct InstrumentCard<Content: View>: View {
     @ViewBuilder var content: Content
 
     private var shape: RoundedRectangle { RoundedRectangle(cornerRadius: 18, style: .continuous) }
@@ -308,5 +322,11 @@ private struct ProgressRail: View {
             }
         }
         .frame(height: 5)
+    }
+}
+
+extension RecorderReadout where Coach == EmptyView {
+    init(report: FlightDataReport) {
+        self.init(report: report) { EmptyView() }
     }
 }

@@ -25,6 +25,8 @@ enum LogbookExport {
     session was ended early. "Bags" are tasks the student set out to finish. Use only
     the numbers below. Do not invent data, do not diagnose, do not praise.
     Give three plain observations and one concrete suggestion for next week.
+    Then name one study method that fits this log, such as active recall,
+    spaced review or interleaved practice, and say how to use it on the next flight.
     """
 
     static func markdown(entries: [LogbookEntry],
