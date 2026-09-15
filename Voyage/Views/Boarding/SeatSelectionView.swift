@@ -617,7 +617,7 @@ private struct AirframeCanvas: View {
                 exitY: wingAnchorY > 0 ? wingAnchorY : size.height * 0.45,
                 tailEndY: size.height - SeatSelectionView.tailClearance
             )
-            let edge = Theme.seatMapInk.opacity(0.14)
+            let edge = Theme.seatMapInk.opacity(0.22)
             let hairline = StrokeStyle(lineWidth: 1, lineJoin: .round)
 
             for side: CGFloat in [-1, 1] {

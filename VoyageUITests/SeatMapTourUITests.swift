@@ -16,6 +16,9 @@ final class SeatMapTourUITests: XCTestCase {
             "-AppleLanguages", "(en)",
             "-AppleLocale", "en_US",
             "-VoyageShortFlights",
+            // Pin the home airport like every other tour: on a fresh simulator
+            // the default put LAX at the end of the rail, off-screen.
+            "-VoyageHomeAirport", "SFO",
         ]
         app.launch()
 

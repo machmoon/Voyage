@@ -101,9 +101,11 @@ enum Theme {
     static let seatMapFuselage = Color.white
     /// Wings and tailplane sit a step darker than the fuselage so the airframe
     /// reads as one object with the cabin on top of it.
-    static let seatMapWing = Color(hex: "DBE1EA")
+    /// DBE1EA was two steps off the page (F2F4F8) and the wing past the
+    /// screen edge read as margin, not metal (QA/qa-seatmap-*-wing.png).
+    static let seatMapWing = Color(hex: "C5CDD9")
     /// Engine nacelles, a step darker again so the inlet reads ahead of the wing.
-    static let seatMapNacelle = Color(hex: "C9D1DC")
+    static let seatMapNacelle = Color(hex: "AEB8C6")
     static let seatOpen = Color(hex: "DCE8FF")
     static let seatChosen = accent
     static let seatTakenFill = Color(hex: "D5D9E0")
