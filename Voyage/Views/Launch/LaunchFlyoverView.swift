@@ -24,8 +24,8 @@ import SwiftUI
 /// render then costs a longer hover, not the flight. Home's own startup cover
 /// (`StartupGlobeGate`) still hides the blank globe underneath.
 ///
-/// It never gates the app. It plays once per process, runs 1.75 seconds (3.5
-/// at the very most, see `FlyoverClock`), and passes every touch through.
+/// It never gates the app. It plays once per process, runs about 2.9 seconds
+/// (4 at the very most, see `FlyoverClock`), and passes every touch through.
 /// Under Reduce Motion the plane holds still, the first screen mounts at once,
 /// and the cover crossfades.
 struct LaunchFlyoverView: View {
@@ -41,13 +41,16 @@ struct LaunchFlyoverView: View {
 
     private static let planform = AircraftProfile.voyageClassic.planform
     /// The aircraft's length on screen at the start of the flight.
-    private static let planeLength: CGFloat = 96
+    private static let planeLength: CGFloat = 124
 
     // Timeline, in seconds.
-    private static let flightEnd: Double = 0.9
-    /// Level at the centre while the first screen mounts underneath.
-    private static let zoomStart: Double = 1.3
-    private static let total: Double = 1.75
+    private static let flightEnd: Double = 1.15
+    /// Holding at the centre while the first screen mounts underneath and
+    /// Home's startup cover (`StartupGlobeGate.holdDuration`) swallows the
+    /// globe's blank frames. Zooming any sooner flew through into that dark
+    /// cover and the globe lit up afterwards (preview capture, September 15).
+    private static let zoomStart: Double = flightEnd + StartupGlobeGate.holdDuration + 0.25
+    private static let total: Double = zoomStart + 0.5
     private static let reducedTotal: Double = 0.75
 
     var body: some View {
@@ -132,19 +135,26 @@ struct LaunchFlyoverView: View {
     private func draw(context: GraphicsContext, size: CGSize, elapsed: Double) {
         let path = flightPath(in: size)
         let t = easeInOut(elapsed / Self.flightEnd)
-        let position = bezier(path, t)
-        let angle = heading(path, t)
+        var position = bezier(path, t)
+        var angle = heading(path, t)
+
+        // Holding: a slow bob and a small wing rock, so the wait reads as a
+        // plane in the air rather than a frozen frame. Fades in from level.
+        let holding = max(0, elapsed - Self.flightEnd)
+        let settleIn = CGFloat(min(1, holding / 0.3))
+        position.y += settleIn * 5 * CGFloat(sin(holding * 2 * .pi / 1.4))
+        angle += settleIn * 0.05 * CGFloat(sin(holding * 2 * .pi / 2.1))
 
         // Bank into the turn: roll follows how fast the heading is changing,
         // and a rolled wing is a foreshortened wing.
         let turnRate = heading(path, min(1, t + 0.04)) - angle
-        let roll = min(abs(turnRate) * 6, 0.6)
+        let roll = min(abs(turnRate) * 6, 0.6) + settleIn * 0.12 * CGFloat(abs(sin(holding * 2 * .pi / 2.1)))
         let wingScale = cos(roll)
 
         // RevealingSplashView's anticipation: a small settle before the zoom.
         let settle = progress(elapsed, from: Self.flightEnd, to: Self.zoomStart)
         let zoom = progress(elapsed, from: Self.zoomStart, to: Self.total)
-        let scale = (1 - 0.1 * sin(settle * .pi)) * (1 + 19 * CGFloat(pow(zoom, 2.6)))
+        let scale = (1 - 0.08 * sin(settle * .pi)) * (1 + 19 * CGFloat(pow(zoom, 2.6)))
 
         // The cover fades through the second half of the zoom; the white plane
         // fades early, so what grows is a window onto the app, not a flash.
@@ -238,7 +248,7 @@ struct LaunchFlyoverView: View {
 @MainActor
 final class FlyoverClock {
     static let maxStep: TimeInterval = 1.0 / 30
-    static let ceiling: TimeInterval = 3.5
+    static let ceiling: TimeInterval = 4.0
 
     private var last: Date?
     private(set) var elapsed: TimeInterval = 0

@@ -117,8 +117,9 @@ final class DemoReelUITests: XCTestCase {
     /// The App Store preview: one booking, paced for a 15 to 30 second clip.
     ///
     /// Driven by `scripts/record_app_preview.sh`, which starts `simctl
-    /// recordVideo` the moment this test writes `QA/preview-ready` (the globe
-    /// has settled) and stops it after the takeoff hold. Under
+    /// recordVideo` the moment this test writes `QA/preview-ready` (just
+    /// before launch, so the flyover is on tape) and stops it after the
+    /// takeoff hold. Under
     /// `-VoyageShortFlights` the schedule rolls for 28 s with rotation at
     /// about 19 s (`FlightPhaseSchedule.make`), and the leg starts 2 to 3 s
     /// after the tear. Booking takes about 10 s of the 30 s cap, so the clip
@@ -126,8 +127,9 @@ final class DemoReelUITests: XCTestCase {
     /// opening, and the globe is the stronger first frame. The hold below
     /// simply outlasts the recording.
     ///
-    /// Beat sheet from the marker:
-    ///   0–1.5s   Home globe
+    /// Beat sheet from the first app frame:
+    ///   0–2s     Launch flyover into the globe
+    ///   2–3.5s   Home globe
     ///   1.5–3s   Destination picked, route arc drawn
     ///   3–8s     Departure zoom, seat map, seat taken
     ///   8–12s    Pass prints, torn
@@ -140,19 +142,24 @@ final class DemoReelUITests: XCTestCase {
             "-AppleLocale", "en_US",
             "-VoyageHomeAirport", "SFO",
             "-VoyageShortFlights",
+            "-VoyageSkipOnboarding",    // the script uninstalls first, so this is a fresh install
             "-VoyageSceneHour", "10",   // a daylight window whatever the wall clock says
             // The drawn world, whatever the simulator's persisted setting is;
             // the satellite twin can be left on by the settings tour.
             "-windowWorldMode", "illustrated",
             "-realWorldTwinEnabled", "<false/>",
         ]
+        // The clip opens on the cold-launch flyover (`LaunchFlyoverView`),
+        // which plays once per process, so the recorder has to be running
+        // before the app starts. `simctl recordVideo` takes about a second to
+        // write its first frame; the script trims the dead lead-in.
+        try? "ready".write(to: Self.previewMarker, atomically: true, encoding: .utf8)
+        pause(2.0)
         app.launch()
 
         dismissLocationPromptIfPresent()
         _ = app.staticTexts["VOYAGE"].waitForExistence(timeout: 15)
-        pause(3.0)
-        try? "ready".write(to: Self.previewMarker, atomically: true, encoding: .utf8)
-        pause(1.2)
+        pause(0.8)
 
         let cards = app.buttons.matching(
             NSPredicate(format: "identifier BEGINSWITH %@", "destination-"))
@@ -164,22 +171,28 @@ final class DemoReelUITests: XCTestCase {
 
         // Tighter than `pickASeat`: the reel can linger, a preview cannot.
         _ = app.staticTexts["Choose your seat"].waitForExistence(timeout: 8)
-        pause(0.4)
-        let seat = app.buttons.matching(
-            NSPredicate(format: "label MATCHES %@", #"Seat [A-F][0-9]+"#)).firstMatch
-        if seat.waitForExistence(timeout: 5) {
-            seat.tap()
-            pause(0.8)
-        }
-        _ = tap(app.buttons.matching(
-            NSPredicate(format: "label BEGINSWITH %@", "Take seat")).firstMatch, timeout: 3)
+        // Glide from the nose back to the wing, so the airframe is in the shot.
+        pause(0.8)
+        app.swipeUp(velocity: .slow)
+        // Seat C7, the first open Extra Legroom seat, where one slow swipe
+        // leaves it. A miss is harmless: the footer then reads "Skip", which
+        // assigns the first open seat and the flow carries on.
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.41, dy: 0.39)).tap()
+        pause(0.6)
+        // Coordinate taps from here on. Every element query snapshots the
+        // seat map's accessibility tree (about 150 seats), which cost a second
+        // a lookup and left the clip holding on a still seat map for five.
+        // Footer button: "Continue", labelled "Take seat C7".
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.908)).tap()
         skipBags(in: app)
 
-        // Tear as soon as the pass is out; rotation is about 21 s after the
-        // tap and the hold has to outlast the recording.
+        // Slide along the tear line rather than pressing the button, so the
+        // clip shows the cut. The stub sits at about 61% of the screen height
+        // once the pass has printed; the drag covers the cut span with margin.
         _ = app.buttons["Tear and board"].waitForExistence(timeout: 12)
-        pause(0.4)
-        _ = tap(app.buttons["Tear and board"], timeout: 4)
+        let cutStart = app.coordinate(withNormalizedOffset: CGVector(dx: 0.08, dy: 0.615))
+        let cutEnd = app.coordinate(withNormalizedOffset: CGVector(dx: 0.97, dy: 0.62))
+        cutStart.press(forDuration: 0.05, thenDragTo: cutEnd, withVelocity: 140, thenHoldForDuration: 0.1)
         pause(26.0)
         try? FileManager.default.removeItem(at: Self.previewMarker)
     }

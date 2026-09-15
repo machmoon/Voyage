@@ -16,7 +16,9 @@ cd "$REPO"
 
 DEVICE="${VOYAGE_SIM_DEVICE:-iPhone 17}"
 SECONDS_TO_RECORD="${SECONDS_TO_RECORD:-32}"
-# Seconds cut from the front of the capture; the globe needs less hold than the takeoff.
+# Seconds cut from the front of the capture: the recorder starts before launch,
+# so this is the springboard lead-in before the flyover. KEEP_RAW=1 keeps the
+# untrimmed capture for re-timing.
 TRIM_START="${TRIM_START:-2.5}"
 OUT_DIR="$REPO/AppStore/preview"
 RAW="$OUT_DIR/raw-capture.mp4"
@@ -46,6 +48,19 @@ xcrun simctl status_bar "$UDID" override --time 9:41 --batteryLevel 100 --batter
 TOUR_PID=""; REC_PID=""
 trap 'kill $TOUR_PID $REC_PID 2>/dev/null; xcrun simctl status_bar "$UDID" clear >/dev/null 2>&1; rm -f "$MARKER"' EXIT
 
+# The tour's long hold ends with the app killed mid-flight, and the next launch
+# then opens on the interrupted-flight alert, right over the launch flyover.
+# Clear that record (InterruptedFlightRecovery.key) rather than reinstalling:
+# a fresh install also resets location access, and its prompt lands on the
+# flyover too. The grant only sticks to an installed app, so the very first
+# take on a new simulator may still show it.
+xcrun simctl terminate "$UDID" com.patrickliu.voyage >/dev/null 2>&1 || true
+APP_DATA="$(xcrun simctl get_app_container "$UDID" com.patrickliu.voyage data 2>/dev/null || true)"
+if [ -n "$APP_DATA" ] && [ -f "$APP_DATA/Library/Preferences/com.patrickliu.voyage.plist" ]; then
+  plutil -remove voyage.inFlightRecord "$APP_DATA/Library/Preferences/com.patrickliu.voyage.plist" >/dev/null 2>&1 || true
+fi
+xcrun simctl privacy "$UDID" grant location com.patrickliu.voyage >/dev/null 2>&1 || true
+
 echo "==> driving the preview tour on $DEVICE"
 xcodebuild -project Voyage.xcodeproj -scheme Voyage \
   -destination "platform=iOS Simulator,id=$UDID" \
@@ -61,8 +76,10 @@ for _ in $(seq 1 240); do
 done
 [ -f "$MARKER" ] || { echo "marker never appeared — see $OUT_DIR/tour.log" >&2; kill "$TOUR_PID" 2>/dev/null || true; exit 1; }
 
+# HEVC: with h264 the recorder dropped the launch flyover's swoop frames
+# while the app and the test runner were both starting up.
 echo "==> recording ${SECONDS_TO_RECORD}s"
-xcrun simctl io "$UDID" recordVideo --codec h264 --force "$RAW" &
+xcrun simctl io "$UDID" recordVideo --codec "${RECORD_CODEC:-hevc}" --force "$RAW" &
 REC_PID=$!
 sleep "$SECONDS_TO_RECORD"
 kill -INT "$REC_PID"
@@ -78,7 +95,8 @@ ffmpeg -y -loglevel error -ss "$TRIM_START" -i "$RAW" -f lavfi -i anullsrc=chann
   -c:v libx264 -profile:v high -pix_fmt yuv420p -movflags +faststart \
   -c:a aac -b:a 256k -ac 2 -shortest \
   "$OUT"
-rm -f "$RAW" "$MARKER"
+[ -n "${KEEP_RAW:-}" ] || rm -f "$RAW"
+rm -f "$MARKER"
 xcrun simctl status_bar "$UDID" clear >/dev/null 2>&1 || true
 ffprobe -v error -select_streams v:0 -show_entries stream=width,height,r_frame_rate:format=duration -of default=nw=1 "$OUT"
 echo "wrote $OUT"

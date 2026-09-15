@@ -105,6 +105,6 @@ final class AirframePlanformTests: XCTestCase {
     }
 
     func testFlyoverCeilingIsShort() {
-        XCTAssertLessThanOrEqual(FlyoverClock.ceiling, 3.5)
+        XCTAssertLessThanOrEqual(FlyoverClock.ceiling, 4.0)
     }
 }
