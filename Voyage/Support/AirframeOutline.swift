@@ -89,12 +89,16 @@ struct AirframeOutline {
 
     /// Flight deck glazing seen from above: two front panes meeting at a
     /// centre post, and a side window wrapping back on each side. Placed a
-    /// little behind the nose tip, where the crown starts to rise.
+    /// little behind the nose tip, where the crown starts to rise. Clip it to
+    /// `fuselage` when drawing: on a slender nose the panes are wider than
+    /// the skin at that station.
     var windshield: [Path] {
         let noseLength = CGFloat(planform.noseTaper) * yScale
         // Pointed noses push the flight deck further back.
         let frontY = noseTipY + noseLength * (0.36 - CGFloat(planform.noseFullness) * 0.08)
-        let depth = max(1.6, noseLength * 0.045)
+        // Shallow panes. A slender nose caps them by width, or they read as a
+        // visor rather than glazing.
+        let depth = max(1.6, min(noseLength * 0.045, halfBody * 0.1))
         let halfWidth = halfBody * 0.44
         let post = max(0.6, halfBody * 0.025)
         let bow = depth * 1.6

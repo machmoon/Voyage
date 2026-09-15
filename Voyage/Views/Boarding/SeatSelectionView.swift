@@ -648,8 +648,11 @@ private struct AirframeCanvas: View {
             }
             context.stroke(fuselage, with: .color(edge), style: hairline)
 
-            for pane in outline.windshield {
-                context.fill(pane, with: .color(Theme.seatMapInk.opacity(0.82)))
+            context.drawLayer { glazing in
+                glazing.clip(to: fuselage)
+                for pane in outline.windshield {
+                    glazing.fill(pane, with: .color(Theme.seatMapInk.opacity(0.82)))
+                }
             }
 
             let fin = outline.fin
