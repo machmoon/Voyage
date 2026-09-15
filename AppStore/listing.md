@@ -1,6 +1,6 @@
 # Voyage App Store copy — proposed September 11, 2026
 
-Status: 1.2 (build 7) submitted September 14, 2026 with the eight-slot screenshot set in `AppStore/screenshots-1.2/` and the flight-training "What's new" in `build/submit_update.py`. Earlier: version 1.1 (4) shipped with this name, subtitle, description, promotional text, and keywords on September 13, 2026. Version 1.1.1 (build 6) is waiting for review with the same copy, a new "What's new" (screen stays awake in flight, boarding pass print fix, interrupted flights logged, large-text layout fixes), and the first app preview: a 29-second clip of one booking from the globe to the takeoff roll, recorded by `scripts/record_app_preview.sh`.
+Status: 1.2 (build 8) submitted September 14, 2026 and in review as of September 15, replacing the 1.1.1 review with the eight-slot screenshot set in `AppStore/screenshots-1.2/` and the flight-training "What's new" in `build/submit_update.py`. Earlier: version 1.1 (4) shipped with this name, subtitle, description, promotional text, and keywords on September 13, 2026. Version 1.1.1 (build 6) was submitted with the same copy, a new "What's new" (screen stays awake in flight, boarding pass print fix, interrupted flights logged, large-text layout fixes), and the first app preview: a 29-second clip of one booking from the globe to the takeoff roll, recorded by `scripts/record_app_preview.sh`. Its review was cancelled and the version renamed to 1.2, since App Store Connect allows one editable version.
 
 ## Positioning
 
