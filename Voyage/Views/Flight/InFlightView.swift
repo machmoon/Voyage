@@ -11,7 +11,12 @@ struct InFlightView: View {
         case map = "Map"
     }
 
-    @State private var studyView: StudyView = .window
+    /// The map opens first. `-VoyageOpenOnWindow` keeps the QA and App Store
+    /// tours, which photograph the window at takeoff, on the window.
+    @State private var studyView: StudyView = Self.initialStudyView
+    static var initialStudyView: StudyView {
+        ProcessInfo.processInfo.arguments.contains("-VoyageOpenOnWindow") ? .window : .map
+    }
     @State private var showInfoPill = false
     /// Pure mode: only the window and the clock. Double tap toggles it, the
     /// way VLC toggles player chrome on a tap (vlc-ios,
@@ -32,14 +37,13 @@ struct InFlightView: View {
 
     // MARK: Study-map warm-up
     //
-    // SwiftUI's `Map` reports no rendered-frame callback, so the map card is
-    // warmed ahead of first use rather than gated on a signal that never comes.
+    // The map card is mounted while it is on screen, and warmed ahead of first
+    // use if the flight opened on the window. `FlightMapView` covers its own
+    // tiles until MapKit reports a full render.
     @State private var inFlightSince: Date?
-    @State private var mapMountedAt: Date?
     @State private var mapLeftAt: Date?
-    @State private var hasOpenedMap = false
-    @State private var mapIsMounted = false
-    @State private var showsMapCover = true
+    @State private var hasOpenedMap = Self.initialStudyView == .map
+    @State private var mapIsMounted = Self.initialStudyView == .map
 
     private var shortFlights: Bool { FlightSession.shortFlightsEnabled }
 
@@ -60,12 +64,7 @@ struct InFlightView: View {
 
         if shouldMount != mapIsMounted {
             mapIsMounted = shouldMount
-            mapMountedAt = shouldMount ? now : nil
         }
-
-        showsMapCover = StudyMapWarmup.showsFirstPaintCover(
-            secondsMounted: mapMountedAt.map { now.timeIntervalSince($0) }
-        )
     }
 
     private var sceneAirport: Airport {
@@ -410,8 +409,6 @@ struct InFlightView: View {
             mapLeftAt = nil
             if !mapIsMounted {
                 mapIsMounted = true
-                mapMountedAt = Date()
-                showsMapCover = true
             }
         } else if studyView == .map {
             mapLeftAt = Date()
@@ -514,20 +511,6 @@ struct InFlightView: View {
     private var mapCard: some View {
         FlightMapView(session: session, showsControls: studyView == .map)
             .aspectRatio(0.78, contentMode: .fit)
-            .overlay {
-                // A warmed map is long past the cover interval and shows this
-                // not at all. A genuinely cold one crossfades from the same
-                // calm palette as the departure curtain — never bare MapKit.
-                if showsMapCover {
-                    LinearGradient(
-                        colors: [Color(hex: "0D1531"), Color(hex: "050713")],
-                        startPoint: .top, endPoint: .bottom
-                    )
-                    .transition(.opacity)
-                    .accessibilityHidden(true)
-                }
-            }
-            .animation(.easeInOut(duration: 0.32), value: showsMapCover)
             .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 28, style: .continuous)

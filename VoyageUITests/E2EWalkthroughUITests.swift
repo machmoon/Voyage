@@ -160,6 +160,7 @@ final class E2EWalkthroughUITests: XCTestCase {
         app.launchArguments += Self.localeArguments + Self.mutedAudioArguments
             + Self.originArguments + ["-VoyageShortFlights"]
         app.launchArguments += [
+            "-VoyageOpenOnWindow",
             "-UIPreferredContentSizeCategoryName",
             "UICTContentSizeCategoryAccessibilityL",
         ]
