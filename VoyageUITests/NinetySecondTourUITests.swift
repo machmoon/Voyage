@@ -27,6 +27,7 @@ final class NinetySecondTourUITests: XCTestCase {
     func testNinetySecondFeatureTour() throws {
         let app = XCUIApplication()
         app.launchArguments += [
+            "-VoyageOpenOnWindow",
             "-AppleLanguages", "(en)",
             "-AppleLocale", "en_US",
             "-VoyageShortFlights",

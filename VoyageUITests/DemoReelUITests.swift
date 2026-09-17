@@ -30,6 +30,7 @@ final class DemoReelUITests: XCTestCase {
     func testDemoReel() throws {
         let app = XCUIApplication()
         app.launchArguments += [
+            "-VoyageOpenOnWindow",
             "-AppleLanguages", "(en)",
             "-AppleLocale", "en_US",
             "-VoyageDemoFlight",
@@ -58,6 +59,7 @@ final class DemoReelUITests: XCTestCase {
     func testTearCloseUp() throws {
         let app = XCUIApplication()
         app.launchArguments += [
+            "-VoyageOpenOnWindow",
             "-AppleLanguages", "(en)",
             "-AppleLocale", "en_US",
             "-VoyageDemoFlight",
@@ -90,6 +92,7 @@ final class DemoReelUITests: XCTestCase {
     func testTearSlideCloseUp() throws {
         let app = XCUIApplication()
         app.launchArguments += [
+            "-VoyageOpenOnWindow",
             "-AppleLanguages", "(en)",
             "-AppleLocale", "en_US",
             "-VoyageDemoFlight",
@@ -138,6 +141,7 @@ final class DemoReelUITests: XCTestCase {
     func testAppPreview() throws {
         let app = XCUIApplication()
         app.launchArguments += [
+            "-VoyageOpenOnWindow",
             "-AppleLanguages", "(en)",
             "-AppleLocale", "en_US",
             "-VoyageHomeAirport", "SFO",
@@ -209,6 +213,7 @@ final class DemoReelUITests: XCTestCase {
     func testLandingCloseUp() throws {
         let app = XCUIApplication()
         app.launchArguments += [
+            "-VoyageOpenOnWindow",
             "-AppleLanguages", "(en)",
             "-AppleLocale", "en_US",
             "-VoyageHomeAirport", "SFO",
@@ -251,6 +256,7 @@ final class DemoReelUITests: XCTestCase {
     func testWebsiteDemo() throws {
         let app = XCUIApplication()
         app.launchArguments += [
+            "-VoyageOpenOnWindow",
             "-AppleLanguages", "(en)",
             "-AppleLocale", "en_US",
             "-VoyageHomeAirport", "SFO",

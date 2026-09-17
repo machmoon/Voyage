@@ -87,29 +87,25 @@ final class StudyMapWarmupTests: XCTestCase {
         XCTAssertTrue(shouldMount(showing: true, useful: false))
     }
 
-    // MARK: First-paint cover
+    // MARK: Tile cover
 
-    func testUnmountedMapIsAlwaysCovered() {
-        XCTAssertTrue(StudyMapWarmup.showsFirstPaintCover(secondsMounted: nil))
+    private func covered(_ tiles: WorldSceneryLoadState, online: Bool = true, ceiling: Bool = false) -> Bool {
+        StudyMapWarmup.showsTileCover(tiles: tiles, isOnline: online, ceilingPassed: ceiling)
     }
 
-    func testColdMapIsCoveredForItsFirstPaintThenRevealed() {
-        XCTAssertTrue(StudyMapWarmup.showsFirstPaintCover(secondsMounted: 0))
-        XCTAssertTrue(
-            StudyMapWarmup.showsFirstPaintCover(
-                secondsMounted: StudyMapWarmup.firstPaintCover - 0.01
-            )
-        )
-        XCTAssertFalse(
-            StudyMapWarmup.showsFirstPaintCover(secondsMounted: StudyMapWarmup.firstPaintCover)
-        )
+    func testLoadingMapStaysCoveredUntilTheCeiling() {
+        XCTAssertTrue(covered(.loading))
+        XCTAssertFalse(covered(.loading, ceiling: true))
     }
 
-    func testAPreWarmedMapShowsNoCoverAtAll() {
-        // This is what makes the warm path free: by the time the traveller taps
-        // Map, the card has been mounted far longer than the cover interval.
-        let mountedSince = StudyMapWarmup.warmStartDelay(shortFlights: false) + 2
-        XCTAssertFalse(StudyMapWarmup.showsFirstPaintCover(secondsMounted: mountedSince))
+    func testFullyRenderedMapIsRevealedAtOnce() {
+        XCTAssertFalse(covered(.ready))
+        XCTAssertFalse(covered(.ready, online: false))
+    }
+
+    func testFailedOrOfflineMapIsNeverRevealedAsBareGrid() {
+        XCTAssertTrue(covered(.failed, ceiling: true))
+        XCTAssertTrue(covered(.loading, online: false, ceiling: true))
     }
 
     // MARK: QA short flights stay compressed

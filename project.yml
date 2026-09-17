@@ -15,10 +15,10 @@ fileTypes:
 settings:
   base:
     SWIFT_VERSION: "5.0"
-    MARKETING_VERSION: "1.3"
-    # App Store Connect: 1.2 (8) is live. 1.3 ships as build 9.
+    MARKETING_VERSION: "1.4"
+    # App Store Connect: 1.3 (9) is live. 1.4 ships as build 10.
     # Increment this shared app/widget build number for each upload.
-    CURRENT_PROJECT_VERSION: "9"
+    CURRENT_PROJECT_VERSION: "10"
     GENERATE_INFOPLIST_FILE: false
 targets:
   Voyage:

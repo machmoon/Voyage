@@ -41,6 +41,7 @@ final class MarketingCaptureUITests: XCTestCase {
     private var writesPNGs = false
 
     private static let launchArguments = [
+        "-VoyageOpenOnWindow",
         "-AppleLanguages", "(en)",
         "-AppleLocale", "en_US",
         "-VoyageHomeAirport", "SFO",

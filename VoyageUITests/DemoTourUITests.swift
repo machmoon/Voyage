@@ -22,6 +22,7 @@ final class DemoTourUITests: XCTestCase {
     func testSocialDemoTour() throws {
         let app = XCUIApplication()
         app.launchArguments += [
+            "-VoyageOpenOnWindow",
             "-AppleLanguages", "(en)",
             "-AppleLocale", "en_US",
             "-VoyageShortFlights",

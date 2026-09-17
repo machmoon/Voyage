@@ -1,15 +1,13 @@
 import Foundation
 
 /// When the in-flight flight-tracker map card should be mounted, and when its
-/// first paint still needs covering.
+/// tiles still need covering.
 ///
-/// The window's satellite twin is a `UIViewRepresentable` and can report a
-/// rendered frame through `MKMapViewDelegate`. The study map is SwiftUI's
-/// `Map`, which exposes no such callback — there is no readiness signal to
-/// gate on, so this is a *warm-up* policy rather than a readiness gate: mount
-/// the map early and invisibly so it is never cold when the traveller first
-/// taps Map, and derive "does the first paint still need covering?" from how
-/// long the map has been mounted.
+/// The map opens by default, so it is mounted from the start of the flight and
+/// the warm pass only matters to a traveller who switched to the window before
+/// the map ever showed. The cover is a readiness gate: `FlightMapView` reports
+/// MapKit's full render, and until then the traveller sees a calm cover rather
+/// than MapKit's grey loading grid.
 ///
 /// Deliberately pure: no MapKit, no SwiftUI, no clock of its own.
 enum StudyMapWarmup {
@@ -35,10 +33,10 @@ enum StudyMapWarmup {
         shortFlights ? 5 : 120
     }
 
-    /// How long a freshly mounted map is covered while it takes its first
-    /// paint. A pre-warmed map has been mounted far longer than this by the
-    /// time it is revealed, so it shows no cover at all.
-    static let firstPaintCover: TimeInterval = 0.6
+    /// The longest the cover waits for a full render. A camera that keeps
+    /// moving (Follow) can stop MapKit from ever reporting one, and the map is
+    /// still worth seeing then.
+    static let tileCoverCeiling: TimeInterval = 5
 
     // MARK: Policy
 
@@ -83,13 +81,20 @@ enum StudyMapWarmup {
         return elapsed >= start && elapsed < start + warmDuration(shortFlights: shortFlights)
     }
 
-    /// Whether the calm cover still hides the map's first paint.
+    /// Whether the calm cover still hides the map.
     ///
-    /// Driven purely by how long the map has been mounted, which is what makes
-    /// the warm path free: a map warmed seconds ago is already past the cover
-    /// interval, so revealing it shows live tiles with no cover and no pop.
-    static func showsFirstPaintCover(secondsMounted: TimeInterval?) -> Bool {
-        guard let secondsMounted else { return true }
-        return secondsMounted < firstPaintCover
+    /// * rendered — never covered;
+    /// * failed, or offline — covered, since there is nothing but grid to show;
+    /// * loading — covered until the ceiling.
+    static func showsTileCover(
+        tiles: WorldSceneryLoadState,
+        isOnline: Bool,
+        ceilingPassed: Bool
+    ) -> Bool {
+        switch tiles {
+        case .ready: return false
+        case .failed: return true
+        case .loading: return !isOnline || !ceilingPassed
+        }
     }
 }

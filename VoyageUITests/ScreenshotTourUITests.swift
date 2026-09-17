@@ -100,7 +100,7 @@ final class ScreenshotTourUITests: XCTestCase {
     @MainActor
     func testQAScreenshotTour() throws {
         let app = XCUIApplication()
-        app.launchArguments += Self.baseArguments + Self.mutedAudioArguments + ["-VoyageShortFlights"]
+        app.launchArguments += Self.baseArguments + Self.mutedAudioArguments + ["-VoyageShortFlights", "-VoyageOpenOnWindow"]
         app.launch()
 
         dismissLocationPromptIfPresent()
