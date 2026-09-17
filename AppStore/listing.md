@@ -1,6 +1,6 @@
 # Voyage App Store copy — proposed September 11, 2026
 
-Status: 1.3 (build 9) submitted September 15, 2026, waiting for review: seat map at true proportion, launch flyover, study coach, slide-to-tear, "For students, by students" copy, the eight-slot screenshot set in `AppStore/screenshots-1.2/` regenerated, and a new 25 s preview cut by `scripts/cut_app_preview.sh` (flyover, booking, seat map, tear, takeoff). 1.2 (build 8) went live the same day. The "What's new" is in `build/submit_update.py`.
+Status: 1.4 (build 10) being prepared September 16, 2026: the flight map opens by default and stays covered until MapKit finishes drawing, so no grey tiles. 1.3 (build 9) is live. The "What's new" is in `build/submit_update.py`.
 
 ## Positioning
 
