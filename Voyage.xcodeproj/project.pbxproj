@@ -77,6 +77,7 @@
 		44F2C1D573B171F98D8C73CD /* captain_layover_toronto.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 05EF9D1BFEC95228550B90AD /* captain_layover_toronto.m4a */; };
 		463001B68F1B7ECCEEE5EC9E /* RecorderDemoLogbook.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA71C0325864048E6EDDA32D /* RecorderDemoLogbook.swift */; };
 		46EA8DBD5FEBA0A688144736 /* crew_midpoint_vancouver.m4a in Resources */ = {isa = PBXBuildFile; fileRef = E8257D03576EAFBC1DB7AA5C /* crew_midpoint_vancouver.m4a */; };
+		47864DFD7E0F46C7660116B5 /* LoyaltyProgramTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 896418F2BD5C90838D03F3DB /* LoyaltyProgramTests.swift */; };
 		4988E370A735BF5D60C834F7 /* CabinAudioEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0C5C9C32760DDC7FD61A5E7 /* CabinAudioEngine.swift */; };
 		49A3835CFA98EF8FC1963F9A /* crew_descent_boston.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 4F98FC08D65248552ABD63AE /* crew_descent_boston.m4a */; };
 		49C4809073DCCF532388C4DE /* DepartureCurtainOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D4AA23E0CA6F27E6C563DD9 /* DepartureCurtainOverlay.swift */; };
@@ -194,6 +195,7 @@
 		BEEC020E7B00A161632E72BC /* VoyageSmokeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B08FC90B909634E033DBB2B /* VoyageSmokeUITests.swift */; };
 		BFB5FD2F181C241870577433 /* FlightPostView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4622E9976475575ABB598CDC /* FlightPostView.swift */; };
 		C3D0DA87C3A260120110D617 /* crew_landed_raleigh-durham.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 39BF15532E3111871FE32A10 /* crew_landed_raleigh-durham.m4a */; };
+		C67FA72B89B0F962AD2DDFE0 /* LoyaltyProgram.swift in Sources */ = {isa = PBXBuildFile; fileRef = 249CC56FE35BB1FBA3B5CC85 /* LoyaltyProgram.swift */; };
 		C6A224EEDC8399DCCF214A22 /* OnboardingUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF9D0F0A8DEEE9D163BE0277 /* OnboardingUITests.swift */; };
 		C7FDAF2BD88333F514059BF5 /* ScreenshotTourUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C6FBB0F4116077FBF34D6A5 /* ScreenshotTourUITests.swift */; };
 		C8201A0E76B2053A2174980B /* DigitalTwinTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEAB439A61F321209907F358 /* DigitalTwinTests.swift */; };
@@ -316,6 +318,7 @@
 		2250BE09A57429CDBCC6FF5E /* StudyMapWarmupTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyMapWarmupTests.swift; sourceTree = "<group>"; };
 		2383FDD5245C999AB4D11CFA /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
 		2395A0E623392E6DA9E44EF0 /* Voyage.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Voyage.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		249CC56FE35BB1FBA3B5CC85 /* LoyaltyProgram.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoyaltyProgram.swift; sourceTree = "<group>"; };
 		24E40D44F9AAB6E845D06485 /* captain_welcome.m4a */ = {isa = PBXFileReference; path = captain_welcome.m4a; sourceTree = "<group>"; };
 		250EAA9C80C9942F80EDE294 /* captain_layover_boston.m4a */ = {isa = PBXFileReference; path = captain_layover_boston.m4a; sourceTree = "<group>"; };
 		256772C2F15D221799B2A8B9 /* VoyageAppIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoyageAppIntents.swift; sourceTree = "<group>"; };
@@ -415,6 +418,7 @@
 		87B1FDF0F5A5C8A27A9135C1 /* captain_descent_regina.m4a */ = {isa = PBXFileReference; path = captain_descent_regina.m4a; sourceTree = "<group>"; };
 		88D4D98A42F216B799704C84 /* BoardingPassView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardingPassView.swift; sourceTree = "<group>"; };
 		8932B7364F79721178C4C7C3 /* crew_midpoint_san-francisco.m4a */ = {isa = PBXFileReference; path = "crew_midpoint_san-francisco.m4a"; sourceTree = "<group>"; };
+		896418F2BD5C90838D03F3DB /* LoyaltyProgramTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoyaltyProgramTests.swift; sourceTree = "<group>"; };
 		8AB9E2B12781602B785FA7FE /* crew_midpoint_boston.m4a */ = {isa = PBXFileReference; path = crew_midpoint_boston.m4a; sourceTree = "<group>"; };
 		8BC502018702C4D4B4D54602 /* crew_midpoint_regina.m4a */ = {isa = PBXFileReference; path = crew_midpoint_regina.m4a; sourceTree = "<group>"; };
 		8C5C70CC4052CFAD39B33D3D /* crew_finalcall_raleigh-durham.m4a */ = {isa = PBXFileReference; path = "crew_finalcall_raleigh-durham.m4a"; sourceTree = "<group>"; };
@@ -590,6 +594,7 @@
 				3E30BFA907F67EA8F525E70D /* LogbookExportTests.swift */,
 				D852A33B5FE2C0E2F34BB75C /* LogbookMigrationTests.swift */,
 				6772A9E155A264D847919184 /* LogbookPostTests.swift */,
+				896418F2BD5C90838D03F3DB /* LoyaltyProgramTests.swift */,
 				C27E2A5E4DBC77E8C75FC1AF /* PilotRatingsTests.swift */,
 				FF3BFC67E078E4199B9419D6 /* RouteCatalogTests.swift */,
 				CE7C38C4A1700E1751034581 /* RoutePlannerTests.swift */,
@@ -916,6 +921,7 @@
 				952C4F0274367DADF70B685E /* GreatCircle.swift */,
 				A6D839091C0E94900792F598 /* LogbookEntry.swift */,
 				7E022A608CB304EC16BA6E04 /* LogbookExport.swift */,
+				249CC56FE35BB1FBA3B5CC85 /* LoyaltyProgram.swift */,
 				C2A8F01DA97D301AB3FDFBFD /* PilotRatings.swift */,
 				84CD44E3543F506A3749B2CE /* RouteCatalog.swift */,
 				B677A2CF7162DBB0F3C7D092 /* RoutePlanner.swift */,
@@ -1240,6 +1246,7 @@
 				A76F6B72E79DC3C17B2AF909 /* LogbookExportTests.swift in Sources */,
 				7ABC500B9DB9CF1AE2C4D682 /* LogbookMigrationTests.swift in Sources */,
 				9D717AE98ED5B8BAB8267A46 /* LogbookPostTests.swift in Sources */,
+				47864DFD7E0F46C7660116B5 /* LoyaltyProgramTests.swift in Sources */,
 				B7664D42A73AF6A21FAACC4B /* PilotRatingsTests.swift in Sources */,
 				87603F97599BDD9EBA2488DE /* RouteCatalogTests.swift in Sources */,
 				2AB8D241BA72ABEF44132012 /* RoutePlannerTests.swift in Sources */,
@@ -1322,6 +1329,7 @@
 				27855472949B510D2B901C5C /* LogbookExportButtons.swift in Sources */,
 				16A32CB1EEA04037E9A2FC41 /* LogbookStorageWarning.swift in Sources */,
 				0056CD7616753D1EF62C48F1 /* LogbookView.swift in Sources */,
+				C67FA72B89B0F962AD2DDFE0 /* LoyaltyProgram.swift in Sources */,
 				1EE78AA8B9FC081A917B453A /* MapWarmer.swift in Sources */,
 				9CA8B5599618A7590FA87C45 /* OnboardingView.swift in Sources */,
 				AB3DD460AA7855763742CBBB /* PassportPhotoStore.swift in Sources */,

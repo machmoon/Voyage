@@ -34,13 +34,46 @@ struct HomeView: View {
     private var origin: Airport { settings.homeAirport }
 
     /// Destinations ordered shortest flight first, so the card row reads
-    /// like a departure board sorted by time.
+    /// like a departure board sorted by time. Bookable routes come first and
+    /// the ones the traveler has not opened yet trail after them, dimmed.
     private var destinations: [Airport] {
-        Airport.all.filter { $0 != origin }
+        let access = destinationAccess
+        return Airport.all.filter { $0 != origin }
             .sorted {
-                RoutePlanner.itinerary(from: origin, to: $0).totalFocusDuration
+                let open0 = access[$0.code]?.isUnlocked ?? true
+                let open1 = access[$1.code]?.isUnlocked ?? true
+                if open0 != open1 { return open0 }
+                return RoutePlanner.itinerary(from: origin, to: $0).totalFocusDuration
                     < RoutePlanner.itinerary(from: origin, to: $1).totalFocusDuration
             }
+    }
+
+    // MARK: Loyalty
+
+    /// QA, UI-test and demo launches see every route (`LoyaltyProgram.bypassesLocks`).
+    private static let loyaltyBypass = LoyaltyProgram.bypassesLocks()
+
+    /// Folded from the logbook once per change, like `ratingLine`.
+    @State private var standing = LoyaltyStanding.newTraveler
+
+    private var destinationAccess: [String: DestinationAccess] {
+        Dictionary(uniqueKeysWithValues:
+            LoyaltyProgram.destinations(from: origin, standing: standing,
+                                        bypass: Self.loyaltyBypass)
+                .map { ($0.airport.code, $0) })
+    }
+
+    private func isUnlocked(_ airport: Airport) -> Bool {
+        destinationAccess[airport.code]?.isUnlocked ?? true
+    }
+
+    /// "Short-haul opens at 2h focus · 1h 20m to go", under the greeting.
+    private var nextUnlockLine: String? {
+        guard let next = LoyaltyProgram.nextUnlock(from: origin, standing: standing,
+                                                   bypass: Self.loyaltyBypass) else { return nil }
+        return "\(next.band.title) opens at "
+            + "\(PilotRatings.hoursText(next.band.requiredFocusSeconds)) focus · "
+            + "\(PilotRatings.hoursText(next.remainingFocusSeconds)) to go"
     }
 
     private var selectedItinerary: Itinerary? {
@@ -120,6 +153,8 @@ struct HomeView: View {
         // planned the same route once for every airport on screen.
         let roles = routeRoles
         let segments = routeSegments
+        let unlocked = LoyaltyProgram.unlockedCodes(from: origin, standing: standing,
+                                                    bypass: Self.loyaltyBypass)
         return Map(position: $cameraPosition, interactionModes: [.pan, .zoom, .rotate]) {
             // Route first, pins second. Map content draws in declaration order,
             // so the old ordering laid the line over the top of every dot it
@@ -128,7 +163,8 @@ struct HomeView: View {
 
             ForEach(Airport.all) { airport in
                 Annotation(airport.code, coordinate: airport.coordinate) {
-                    airportPin(airport, role: roles[airport.code] ?? .available)
+                    airportPin(airport, role: roles[airport.code] ?? .available,
+                               locked: airport != origin && !unlocked.contains(airport.code))
                 }
                 .annotationTitles(.hidden)
             }
@@ -168,7 +204,8 @@ struct HomeView: View {
 
     // MARK: Pins
 
-    private func airportPin(_ airport: Airport, role: GlobeRoute.PinRole) -> some View {
+    private func airportPin(_ airport: Airport, role: GlobeRoute.PinRole,
+                            locked: Bool) -> some View {
         Button {
             guard role != .origin else { return }
             Haptics.tap()
@@ -178,9 +215,12 @@ struct HomeView: View {
             // Airports off the booked route stay tappable but stop shouting.
             // In a SFO to YVR to YQR booking this is what finally separates
             // SEA, which sits almost on the line without being part of it.
-            .opacity(role == .offRoute ? 0.4 : 1)
+            // A destination the traveler has not opened yet stays on the
+            // globe, dimmed, and can still be tapped to preview the route.
+            .opacity(role == .offRoute || (locked && role == .available) ? 0.4 : 1)
         }
         .buttonStyle(.plain)
+        .accessibilityValue(locked ? "Locked" : "")
         .animation(.smooth(duration: 0.35), value: role == .offRoute)
     }
 
@@ -324,6 +364,7 @@ struct HomeView: View {
 
     private func refreshRatingLine() {
         ratingLine = entries.isEmpty ? nil : RatingProgress.evaluate(entries: entries).summaryLine
+        standing = LoyaltyStanding(entries: entries)
     }
 
     private var headerActions: some View {
@@ -446,10 +487,22 @@ struct HomeView: View {
             if let itinerary = selectedItinerary {
                 routeSummary(itinerary)
             } else {
-                Text(greeting)
-                    .font(.headline)
-                    .foregroundStyle(.white)
-                    .shadow(color: .black.opacity(0.6), radius: 3)
+                VStack(spacing: 4) {
+                    Text(greeting)
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .shadow(color: .black.opacity(0.6), radius: 3)
+                    if let nextUnlockLine {
+                        Label(nextUnlockLine, systemImage: "lock.open")
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.white.opacity(0.8))
+                            .shadow(color: .black.opacity(0.6), radius: 3)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                            .padding(.horizontal, 20)
+                            .accessibilityIdentifier("next-unlock")
+                    }
+                }
             }
 
             ScrollView(.horizontal, showsIndicators: false) {
@@ -462,7 +515,12 @@ struct HomeView: View {
                 .padding(.horizontal, 20)
             }
 
-            if selectedItinerary != nil {
+            if let selectedDestination, let access = destinationAccess[selectedDestination.code],
+               !access.isUnlocked {
+                lockedNotice(access)
+                    .padding(.horizontal, 20)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            } else if selectedItinerary != nil {
                 departButtons
                     .padding(.horizontal, 20)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -507,6 +565,8 @@ struct HomeView: View {
     private func destinationCard(_ airport: Airport) -> some View {
         let itinerary = RoutePlanner.itinerary(from: origin, to: airport)
         let isSelected = airport == selectedDestination
+        let access = destinationAccess[airport.code]
+        let locked = !(access?.isUnlocked ?? true)
         return Button {
             Haptics.tap()
             withAnimation(.snappy) {
@@ -518,7 +578,11 @@ struct HomeView: View {
                     Text(airport.code)
                         .font(.system(size: 20, weight: .heavy, design: .monospaced))
                     Spacer()
-                    if isSelected {
+                    if locked {
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 11, weight: .bold))
+                            .opacity(0.7)
+                    } else if isSelected {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 13, weight: .bold))
                             .foregroundStyle(Theme.accent)
@@ -527,6 +591,15 @@ struct HomeView: View {
                 Text(airport.city)
                     .font(.caption.weight(.medium))
                     .lineLimit(1)
+                if let access, locked {
+                    // The locked-premium-seat idiom from the seat map: the
+                    // card stays, dimmed, and says what opens it.
+                    Text(access.unlockHint)
+                        .font(.system(size: 10, weight: .semibold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.78)
+                        .opacity(0.8)
+                } else {
                 HStack(spacing: 4) {
                     Image(systemName: itinerary.isConnection ? "arrow.triangle.swap" : "timer")
                         .font(.system(size: 8, weight: .bold))
@@ -538,6 +611,7 @@ struct HomeView: View {
                         .minimumScaleFactor(0.78)
                 }
                 .opacity(0.65)
+                }
             }
             .padding(12)
             .frame(width: 132, alignment: .leading)
@@ -546,10 +620,12 @@ struct HomeView: View {
                 in: RoundedRectangle(cornerRadius: 16, style: .continuous)
             )
             .shadow(color: .black.opacity(isSelected ? 0.25 : 0), radius: 10, y: 4)
+            .opacity(locked && !isSelected ? 0.55 : 1)
         }
         .buttonStyle(.plain)
         .foregroundStyle(isSelected ? .black : .white)
         .accessibilityIdentifier("destination-\(airport.code)")
+        .accessibilityHint(locked ? "Locked. \(access?.unlockHint ?? "")" : "")
     }
 
     /// "Surprise me": a die at the end of the rail picks a destination for a
@@ -559,7 +635,7 @@ struct HomeView: View {
     /// which reshuffles on every press).
     private var surpriseCard: some View {
         Button {
-            let others = destinations.filter { $0 != selectedDestination }
+            let others = destinations.filter { $0 != selectedDestination && isUnlocked($0) }
             guard let pick = others.randomElement() else { return }
             Haptics.tap()
             withAnimation(.snappy) { selectedDestination = pick }
@@ -583,6 +659,32 @@ struct HomeView: View {
         .foregroundStyle(.white)
         .accessibilityIdentifier("destination-random")
         .accessibilityLabel("Surprise me: pick a random destination")
+    }
+
+    /// Takes the place of the depart buttons when a locked destination is
+    /// selected: the route still previews on the globe, and the pill says
+    /// what opens it and how far off that is.
+    private func lockedNotice(_ access: DestinationAccess) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: "lock.fill")
+                .font(.system(size: 14, weight: .bold))
+            VStack(alignment: .leading, spacing: 2) {
+                Text("\(access.band.title) · \(access.unlockHint)")
+                    .font(.subheadline.weight(.semibold))
+                Text("\(access.remainingText). Every landing counts toward it.")
+                    .font(.caption)
+                    .opacity(0.75)
+            }
+            .lineLimit(2)
+            .minimumScaleFactor(0.85)
+            Spacer(minLength: 0)
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 12)
+        .background(.ultraThinMaterial, in: Capsule())
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("destination-locked-notice")
     }
 
     /// Pill buttons matching the app's capsule language: quiet glass for
@@ -620,11 +722,14 @@ struct HomeView: View {
     }
 
     private func depart(to destination: Airport, flightNumber: String? = nil) {
+        // A flight already on the schedule boards whatever the rules say now.
+        guard flightNumber != nil || isUnlocked(destination) else { return }
         let itinerary = RoutePlanner.itinerary(from: origin, to: destination,
                                                flightNumberOverride: flightNumber)
         let session = FlightSession(itinerary: itinerary,
                                     modelContext: modelContext,
                                     tier: LogbookStats.tier(entries))
+        session.landedFlights = standing.landedFlights
         session.prepareRealWorldTwin()
 
         // Every departure starts cold: the curtain must not be waved through by

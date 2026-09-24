@@ -33,6 +33,15 @@ struct VoyageApp: App {
         if RecorderDemoLogbook.isEnabled, let demo = try? RecorderDemoLogbook.makeContainer() {
             return demo
         }
+        // `-VoyageLoyaltyStarter`: one landed flight, loyalty locks enforced.
+        if LoyaltyStarterLogbook.isEnabled,
+           let starter = try? ModelContainer(for: LogbookEntry.self,
+                                             configurations: ModelConfiguration(isStoredInMemoryOnly: true)) {
+            let context = ModelContext(starter)
+            LoyaltyStarterLogbook.entries().forEach(context.insert)
+            try? context.save()
+            return starter
+        }
         // `-VoyageEmptyLogbook`: a fresh in-memory logbook, for captures of
         // first-launch states on a simulator whose real store has history.
         if ProcessInfo.processInfo.arguments.contains("-VoyageEmptyLogbook"),
