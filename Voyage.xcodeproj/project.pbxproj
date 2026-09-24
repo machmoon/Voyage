@@ -17,6 +17,7 @@
 		03C101EBF053D4C8E1B49DA8 /* crew_landed_regina.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 9A165B73007A3BD7DF568A7A /* crew_landed_regina.m4a */; };
 		05426DFD9E8A8129F4B17A7F /* captain_landed_los-angeles.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 8F8C967F7B680DFEE8371514 /* captain_landed_los-angeles.m4a */; };
 		07081E57D6E66D161AC72A74 /* RouteCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84CD44E3543F506A3749B2CE /* RouteCatalog.swift */; };
+		07342AC9822B7C289DF846C1 /* LoyaltyCaptureUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A919135A73C063F6C1B3CE94 /* LoyaltyCaptureUITests.swift */; };
 		08B6075264A59077B458F1F3 /* crew_descent_new-york.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 8EA806FC94716821E564176F /* crew_descent_new-york.m4a */; };
 		0ADB70ECA9F1CD23A9FF1A62 /* crew_midpoint_regina.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 8BC502018702C4D4B4D54602 /* crew_midpoint_regina.m4a */; };
 		0BB91FFE101D02A87500F870 /* captain_landed_new-york.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 2E2B670CB2D758196437D340 /* captain_landed_new-york.m4a */; };
@@ -447,6 +448,7 @@
 		A6A023CFECA8AEB98EA408C1 /* captain_midpoint_boston.m4a */ = {isa = PBXFileReference; path = captain_midpoint_boston.m4a; sourceTree = "<group>"; };
 		A6D839091C0E94900792F598 /* LogbookEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogbookEntry.swift; sourceTree = "<group>"; };
 		A851C2DFD70982BD495F403F /* PassportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PassportView.swift; sourceTree = "<group>"; };
+		A919135A73C063F6C1B3CE94 /* LoyaltyCaptureUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoyaltyCaptureUITests.swift; sourceTree = "<group>"; };
 		A93104A963095B69587AD9F3 /* Announcer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Announcer.swift; sourceTree = "<group>"; };
 		AD711E337CC4BCE705C6F75C /* crew_midpoint_seattle.m4a */ = {isa = PBXFileReference; path = crew_midpoint_seattle.m4a; sourceTree = "<group>"; };
 		AF793AC68D4A7EF2EF74F82B /* crew_landed_new-york.m4a */ = {isa = PBXFileReference; path = "crew_landed_new-york.m4a"; sourceTree = "<group>"; };
@@ -538,6 +540,7 @@
 				99CA0EDD0DD64CFDE04B6781 /* DemoReelUITests.swift */,
 				0E1A44A112EA4A374D264C3A /* DemoTourUITests.swift */,
 				40E479A32A9C1A390407B447 /* E2EWalkthroughUITests.swift */,
+				A919135A73C063F6C1B3CE94 /* LoyaltyCaptureUITests.swift */,
 				FFFA55727F79CA0DBA4AE691 /* MarketingCaptureUITests.swift */,
 				80DF8DC44A094F25C9BF7BDB /* NinetySecondTourUITests.swift */,
 				DF9D0F0A8DEEE9D163BE0277 /* OnboardingUITests.swift */,
@@ -1266,6 +1269,7 @@
 				0C60227684184A3C82478EB5 /* DemoReelUITests.swift in Sources */,
 				15BEF97DF9B4093ED9142A65 /* DemoTourUITests.swift in Sources */,
 				DE89D9530FEA6A54A0BCC59B /* E2EWalkthroughUITests.swift in Sources */,
+				07342AC9822B7C289DF846C1 /* LoyaltyCaptureUITests.swift in Sources */,
 				76C5046599AEEAAA41A6E102 /* MarketingCaptureUITests.swift in Sources */,
 				DB6E0FBC7A8C23F896FCA196 /* NinetySecondTourUITests.swift in Sources */,
 				C6A224EEDC8399DCCF214A22 /* OnboardingUITests.swift in Sources */,
