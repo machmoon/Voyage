@@ -64,8 +64,8 @@ struct LogbookView: View {
                     Button("Done") { dismiss() }
                 }
             }
-            // Ramp's links and nav controls are ink, never a brand hue.
-            .tint(Ramp.ink)
+            // The app accent, the same as every other sheet.
+            .tint(Theme.tint)
         }
         .fullScreenCover(item: $replaySelection) { selection in
             FlightReplayView(entries: selection.entries, title: selection.title)
@@ -142,15 +142,13 @@ struct LogbookView: View {
     ///
     /// Deviation, stated: Airbnb's 20% layer is the outline color at .2. On
     /// the grey tile that is grey on grey, so the area under the line is the
-    /// lime FILL instead, which is Airbnb's dataviz pairing of a tint fill
-    /// under a saturated stroke (client.css --palette-bg-dataviz-progress-* /
-    /// --palette-border-dataviz-progress-*). Lime stays a fill; the line is ink.
+    /// accent at 25% instead: a tint fill under an ink stroke.
     private var recorderRow: some View {
         HStack(spacing: 14) {
-            InsightsGlyph(line: Ramp.ink, area: Ramp.solar, areaOpacity: 1)
+            InsightsGlyph(line: Ramp.ink, area: Theme.tint, areaOpacity: 0.25)
                 .frame(width: 30, height: 30)
                 .frame(width: 48, height: 48)
-                .background(Ramp.tint, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .background(Ramp.tile, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             VStack(alignment: .leading, spacing: 2) {
                 Text("Insights")
                     .voyageFont(16, weight: .semibold)
@@ -181,7 +179,7 @@ struct LogbookView: View {
 
     /// Laid out like a balance card on ramp.com: a hushed label, one large
     /// number in regular weight (headline-xl), a hushed caption, then the
-    /// single lime call to action (bg-solar, rounded-md, text-primary).
+    /// single filled call to action, in the app accent (rounded-md).
     private var statusCard: some View {
         VStack(alignment: .leading, spacing: 24) {
             // The rating card. One rating at a time, one row per requirement,
@@ -246,20 +244,21 @@ struct LogbookView: View {
                              ? "No completed flights yet"
                              : "\(weekEntries.count) flight\(weekEntries.count == 1 ? "" : "s") · \(Int(LogbookStats.totalMiles(weekEntries)).formatted()) miles")
                             .voyageFont(Ramp.TypeScale.bodyXS)
-                            // #222222 at 70% on the lime is still 5.9:1.
-                            .opacity(0.7)
+                            // Full white: 5.15:1 on AccentFill #2F66DE.
+                            // At 85% it would drop to 4.19:1, under 4.5:1
+                            // for 12pt, so the size carries the hierarchy.
                     }
                     Spacer()
                     Image(systemName: "arrow.right")
                         .voyageFont(Ramp.TypeScale.bodyS, weight: .medium)
                 }
-                .foregroundStyle(Ramp.onSolar)
+                .foregroundStyle(Color.white)
                 .padding(.horizontal, 16)
                 // minHeight, not height: the label inside is two lines of
                 // scaling text and a fixed 54 clipped it from AX2 up.
                 .frame(minHeight: 54)
             }
-            .buttonStyle(RampSolarButtonStyle())
+            .buttonStyle(AccentFillButtonStyle())
             .disabled(weekEntries.isEmpty)
             .accessibilityLabel("Replay \(weekEntries.count) flights from this week")
             }
@@ -389,14 +388,15 @@ struct LogbookView: View {
     }
 }
 
-/// Ramp's primary CTA: `bg-solar hover:bg-solarLight text-primary rounded-md`
-/// (ramp.com/business-cards). The pressed state is the hover color.
-struct RampSolarButtonStyle: ButtonStyle {
+/// The Logbook's one filled action: `Theme.accentFill` behind white text,
+/// Ramp's 6pt `rounded-md` corner. Pressed dims the fill, as
+/// `VoyageAccentButtonStyle` does.
+struct AccentFillButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .background(configuration.isPressed ? Ramp.solarLight : Ramp.solar,
+            .background(Theme.accentFill.opacity(configuration.isPressed ? 0.85 : 1),
                         in: RoundedRectangle(cornerRadius: Ramp.Radius.button, style: .continuous))
             .opacity(isEnabled ? 1 : 0.5)
             .animation(.easeInOut(duration: 0.3), value: configuration.isPressed)

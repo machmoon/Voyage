@@ -35,19 +35,26 @@ import SwiftUI
 //   - Not collected: the SAME art recolored grey, not faded (S11 hidden stamp
 //     `filter: brightness(0) … invert(72%)` ≈ #B8B8B8, with
 //     `transition: filter 250ms cubic-bezier(0.2,0,0,1)`). `StampInk.uncollected`.
-//   - Gold is scarce. Airbnb uses gold for exactly one accolade (Guest
-//     Favorite). Here it marks only the single most-visited city, and only at
-//     3+ visits. The ink is a split of the laurel's measured gold ramp
-//     (#644307 → #926816 → #B58824 → #D7B23E → #F9EC67, S15 PNGs) and the
-//     label is the pearly Guest-Favorite pill (S22 live style:
-//     linear-gradient(to right top, #F2F2F2 0%, #FFF 11%, #FFF 70%, #EBEBEB 94%),
-//     1px #FFF border, 0 4px 10px rgba(0,0,0,.16), 500 weight). The scalloped
-//     die is kept for this stamp only (research §6c.2: the special shape is
-//     as rare as the gold).
+//   - The most-visited stamp is set apart by SHAPE and a LABEL (scalloped
+//     die, "Most visited" pill), and printed in the accent `Theme.tint`
+//     rather than the quieter `Theme.stampInk`. HIG Branding allows the
+//     accent for "status indicators, like badges"
+//     (developer.apple.com/design/human-interface-guidelines/branding).
+//
+// COLOR PASS (2026-09-24, design/color-pass). Stamps used to print in ten
+// per-city inks plus a gold gradient for the most-visited city. That put
+// eleven hues in one grid, contradicted `Theme.passportInk`'s own rule (one
+// ink for the collection, per-city color only at the arrival moment), and
+// gave gold a second meaning (it is First class on the seat map,
+// `Theme.seatFirstGold`). HIG Color: "Avoid using the same color to mean
+// different things" (developer.apple.com/design/human-interface-guidelines/color).
+// Apple's own per-item palettes stay inside content art and never reach
+// chrome (apple/sample-backyard-birds, `LayeredArtworkLibrary/ComposedBird.swift`).
+// Now: one ink, grey for not yet, the accent for the single badge.
 
 /// One destination's arrival stamp: ring, code, country, landmark.
 struct PassportStamp: View {
-    enum StampState: Equatable { case collected, uncollected, gold }
+    enum StampState: Equatable { case collected, uncollected, mostVisited }
 
     let code: String
     let state: StampState
@@ -92,7 +99,7 @@ struct PassportStamp: View {
 
     @ViewBuilder
     private func ring(line: CGFloat, ink: AnyShapeStyle) -> some View {
-        if state == .gold {
+        if state == .mostVisited {
             ScallopedRing(teeth: 24)
                 .stroke(ink, style: StrokeStyle(lineWidth: line, lineJoin: .round))
                 .padding(line)
@@ -105,7 +112,7 @@ struct PassportStamp: View {
         switch state {
         case .collected: AnyShapeStyle(StampInk.forCode(code))
         case .uncollected: AnyShapeStyle(StampInk.uncollected)
-        case .gold: AnyShapeStyle(StampInk.gold)
+        case .mostVisited: AnyShapeStyle(StampInk.mostVisited)
         }
     }
 
@@ -130,79 +137,37 @@ struct PassportStamp: View {
 
 // MARK: - Inks
 
-/// Per-destination stamp inks, built like Airbnb's avatar schemes (S2
-/// `--palette-text-avatar-scheme-*`): each hue's dark partner for text on a
-/// light page. The hues are Voyage's own (`Airport.accentHex` in
-/// Airport.swift), stepped in HSL lightness until each clears 7:1 (WCAG
-/// relative luminance) on its card: light on #FFFFFF, dark on #242526
-/// (MetaStyle.cardBackground). Airbnb's own stamp navy #103672 sits at 10.5:1,
-/// which is why these are this dark. Measured ratios in the comments.
+/// The three stamp inks, all shared tokens. One ink for every collected
+/// city, opaque grey (not faded ink) for one not yet visited, the accent for
+/// the one most-visited badge. The city name and "Not yet" caption under each
+/// stamp carry the state in words too, so color is never the only cue (HIG
+/// Accessibility, "Convey information with more than color alone").
 enum StampInk {
-    private static let table: [String: (light: String, dark: String)] = [
-        "BOS": ("1053B9", "85B1F4"),   // 7.09 / 7.01
-        "JFK": ("785106", "F5B02C"),   // 7.05 / 8.14
-        "MIA": ("B20033", "FF8CAD"),   // 7.14 / 7.02
-        "RDU": ("405987", "9EB0D1"),   // 7.01 / 7.01
-        "SFO": ("A32F00", "FF9469"),   // 7.09 / 7.09
-        "LAX": ("7300ED", "CC9BFF"),   // 7.11 / 7.09
-        "SEA": ("2E5D7A", "88B6D2"),   // 7.09 / 7.07
-        "YYZ": ("0F5D8B", "62B9EE"),   // 7.10 / 7.09
-        "YVR": ("186549", "2FC68F"),   // 7.01 / 7.02
-        "YQR": ("72520D", "E8B23A"),   // 7.17 / 7.94
-    ]
-
-    static func forCode(_ code: String) -> Color {
-        let pair = table[code] ?? ("1053B9", "85B1F4")
-        return MetaStyle.pair(pair.light, pair.dark)
-    }
-
-    /// S11's hidden-stamp grey (≈#B8B8B8 on light). On the dark card the
-    /// same idea is #5C5C5C, between S2's grey-800 #515151 and grey-700
-    /// #6C6C6C: quiet, but still legible as the same art.
-    static let uncollected = MetaStyle.pair("B8B8B8", "5C5C5C")
-
-    /// The laurel's gold (S15), split along a diagonal like its faceted
-    /// leaves: shade → mid → shade. On light the darker half of the ramp
-    /// (#926816 is 4.98:1 on white); on dark the lighter half
-    /// (#D7B23E is 7.55:1 on #242526).
-    static let gold = LinearGradient(
-        stops: [
-            .init(color: MetaStyle.pair("7A5610", "F9EC67"), location: 0),
-            .init(color: MetaStyle.pair("B58824", "D7B23E"), location: 0.45),
-            .init(color: MetaStyle.pair("644307", "B58824"), location: 1),
-        ],
-        startPoint: .topLeading, endPoint: .bottomTrailing)
+    static func forCode(_ code: String) -> Color { Theme.stampInk }
+    static let uncollected = Theme.inactive
+    static let mostVisited = Theme.tint
 }
 
-// MARK: - Gold pill
+// MARK: - Most-visited pill
 
-/// The one gold label in the app, built like Airbnb's Guest Favorite pill
-/// (S22 live computed style): pearly white gradient, 1pt white border, soft
-/// 0/4/10 16% shadow, 500-weight text in black, a small gold glyph. The glyph
-/// is Voyage's own (a laurel-free star), not Airbnb's trophy or laurels.
+/// The one badge in the grid: a small capsule on the card color with a soft
+/// shadow, a star in the accent and the words in primary text. Was a pearly
+/// white gradient with black text, which stayed white in dark mode.
 struct MostVisitedPill: View {
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: "star.fill")
                 .font(.system(size: 9, weight: .semibold))
-                .foregroundStyle(LinearGradient(colors: [Color(hex: "D7B23E"), Color(hex: "926816")],
-                                                startPoint: .topLeading, endPoint: .bottomTrailing))
+                .foregroundStyle(Theme.tint)
             Text("Most visited")
                 .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(Color.black)
+                .foregroundStyle(Theme.label)
         }
         .padding(.horizontal, 8)
         .frame(height: 22)
-        .background(
-            Capsule().fill(LinearGradient(
-                stops: [.init(color: Color(hex: "F2F2F2"), location: 0),
-                        .init(color: .white, location: 0.11),
-                        .init(color: .white, location: 0.70),
-                        .init(color: Color(hex: "EBEBEB"), location: 0.94)],
-                startPoint: .bottomLeading, endPoint: .topTrailing))
-        )
-        .overlay(Capsule().strokeBorder(Color.white, lineWidth: 1))
-        .shadow(color: .black.opacity(0.16), radius: 5, y: 4)
+        .background(Capsule().fill(Theme.groupedSurface))
+        .overlay(Capsule().strokeBorder(Theme.separator, lineWidth: 0.5))
+        .shadow(color: .black.opacity(0.12), radius: 5, y: 3)
         .accessibilityHidden(true)
     }
 }
@@ -349,7 +314,7 @@ struct StampMotif: Shape {
     }
 }
 
-/// A die with a wavy edge, for the gold stamp only.
+/// A die with a wavy edge, for the most-visited stamp only.
 struct ScallopedRing: Shape {
     let teeth: Int
 

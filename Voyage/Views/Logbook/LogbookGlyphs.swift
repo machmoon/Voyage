@@ -71,8 +71,8 @@ struct TicketShape: InsettableShape {
 ///
 /// Built on IcSystemTicket32: the perforation is its column of 5 dots
 /// (r = 1, 4 units apart, centred at x = 9 of 32, i.e. 8 / 30 of the body),
-/// and the stub left of it carries the lime fill, the one place the accent
-/// shows on a row (research §7, "use lime sparingly"). The code takes the
+/// and the stub left of it carries the accent fill, the one place the
+/// accent shows on a row. The code takes the
 /// wide side where the icon draws its two bars.
 ///
 /// A flight that stopped early keeps the same ticket in grey, the way
@@ -99,7 +99,7 @@ struct TicketTile: View {
             TicketShape().fill(Ramp.surface)
             if landed {
                 Rectangle()
-                    .fill(Ramp.solar)
+                    .fill(Theme.tint)
                     .frame(width: stubWidth)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .clipShape(TicketShape())
@@ -150,7 +150,7 @@ struct TicketTile: View {
 struct InsightsGlyph: View {
     var line: Color
     /// The 20% layer. Airbnb uses currentColor at .2; `area` lets the row
-    /// put the lime fill there instead (see LogbookView.recorderRow).
+    /// put the accent there instead (see LogbookView.recorderRow).
     var area: Color
     var areaOpacity: Double = 0.2
     var lineWidth: CGFloat = 1.75

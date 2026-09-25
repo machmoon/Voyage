@@ -249,7 +249,7 @@ struct PassportView: View {
     /// (PassportStamp.swift): the stamp itself, then live-text captions.
     private var stampPage: some View {
         let list = records
-        let goldCode = Self.goldCode(in: list)
+        let mostVisitedCode = Self.mostVisitedCode(in: list)
         return VStack(alignment: .leading, spacing: 16) {
             MetaSectionHeader(title: "Arrival stamps",
                               trailing: "\(collectedCount) of \(list.count)")
@@ -259,7 +259,7 @@ struct PassportView: View {
                 spacing: 20
             ) {
                 ForEach(Array(list.enumerated()), id: \.element.id) { index, record in
-                    StampCell(record: record, index: index, isGold: record.id == goldCode)
+                    StampCell(record: record, index: index, isMostVisited: record.id == mostVisitedCode)
                 }
             }
             .dynamicTypeSize(...DynamicTypeSize.xxLarge)
@@ -267,11 +267,10 @@ struct PassportView: View {
         .metaSection(vertical: 14)
     }
 
-    /// The one gold stamp: the most-visited city, and only once it has
+    /// The one badged stamp: the most-visited city, and only once it has
     /// been visited three times. Ties go to the most recent visit (records
-    /// are sorted newest first). Airbnb keeps gold for a single accolade;
-    /// so does this.
-    private static func goldCode(in records: [DestinationRecord]) -> String? {
+    /// are sorted newest first). One badge in the grid, in the accent.
+    private static func mostVisitedCode(in records: [DestinationRecord]) -> String? {
         guard let top = records.map(\.visits).max(), top >= 3 else { return nil }
         return records.first { $0.visits == top }?.id
     }
@@ -279,13 +278,13 @@ struct PassportView: View {
     private struct StampCell: View {
         let record: DestinationRecord
         let index: Int
-        let isGold: Bool
+        let isMostVisited: Bool
 
         private static let diameter: CGFloat = 100
 
         private var state: PassportStamp.StampState {
             guard record.isCollected else { return .uncollected }
-            return isGold ? .gold : .collected
+            return isMostVisited ? .mostVisited : .collected
         }
 
         var body: some View {
@@ -295,7 +294,7 @@ struct PassportView: View {
                     .rotationEffect(.degrees(tilt))
                     .scaleEffect(PassportStamp.tiltScale(degrees: tilt))
                     .overlay(alignment: .bottom) {
-                        if isGold {
+                        if isMostVisited {
                             MostVisitedPill().offset(y: 8)
                         }
                     }
@@ -318,7 +317,7 @@ struct PassportView: View {
                         .minimumScaleFactor(0.8)
                 }
                 .multilineTextAlignment(.center)
-                .padding(.top, isGold ? 22 : 13)
+                .padding(.top, isMostVisited ? 22 : 13)
             }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(accessibilityLabel)
@@ -337,7 +336,7 @@ struct PassportView: View {
             return "\(record.airport.city), \(record.airport.code), stamped, "
                 + "\(record.visits) visit\(record.visits == 1 ? "" : "s"), last "
                 + lastVisit.formatted(date: .abbreviated, time: .omitted)
-                + (isGold ? ", most visited" : "")
+                + (isMostVisited ? ", most visited" : "")
         }
     }
 

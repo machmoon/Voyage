@@ -45,7 +45,8 @@ import UIKit
 //      packages/shared-ui/src/tokens.stylex.ts were read. They theme the
 //      StyleX docs site (purple primary, Tailwind-like scale), not Meta's
 //      products, so nothing was taken from them. Their `light-dark()` pairing
-//      of every token is the pattern followed by `MetaStyle.pair` below.
+//      of every token is the pattern the asset catalog's light/dark Color Sets
+//      now serve (see `Theme`).
 //    - github.com/facebook/react-strict-dom and github.com/facebook/docusaurus
 //      ship no product palette either (only their own docs sites' custom.css).
 //
@@ -70,30 +71,36 @@ import UIKit
 /// so the pages follow the system light/dark setting with no extra code.
 enum MetaStyle {
 
-    // MARK: Color (light, dark), from `.__fb-light-mode` / `.__fb-dark-mode`
+    // MARK: Color
+    //
+    // Color pass (2026-09-24, design/color-pass): the Comet colors listed in
+    // (1) above are no longer used. Meta blue #0866FF was a second blue on
+    // top of Voyage's own, and Comet's wash/card greys (#F0F2F5 / #18191A,
+    // #242526) were a third page color in one sheet next to the Flights tab.
+    // Each token keeps its Comet name, so the layout code is unchanged, and
+    // resolves to the shared `Theme` token for the same role. Layout values
+    // in (1) (radii, heights, the 3pt tab underline) still stand.
 
-    static let webWash = pair("F0F2F5", "18191A")
-    static let cardBackground = pair("FFFFFF", "242526")
-    static let cardBackgroundFlat = pair("F7F8FA", "323436")
-    static let primaryText = pair("050505", "E4E6EB")
-    static let secondaryText = pair("65676B", "B0B3B8")
-    static let primaryIcon = pair("050505", "E4E6EB")
-    static let secondaryIcon = pair("65676B", "B0B3B8")
-    static let disabledIcon = pair("BCC0C4", "FFFFFF4D")
-    static let divider = pair("CED0D4", "3E4042")
-    static let accent = pair("0866FF", "0866FF")
-    static let blueLink = pair("0064D1", "5AA7FF")
-    static let primaryButtonBackground = pair("0866FF", "0866FF")
-    static let primaryButtonText = pair("FFFFFF", "FFFFFF")
-    static let secondaryButtonBackground = pair("E4E6EB", "FFFFFF1A")
-    static let secondaryButtonText = pair("050505", "E4E6EB")
-    static let deemphasizedButtonBackground = pair("EBF5FF", "1D85FC33")
-    static let deemphasizedButtonText = pair("0064D1", "75B6FF")
-    static let wash = pair("E4E6EB", "3E4042")
-    static let listCellChevron = pair("65676B", "B0B3B8")
-    static let progressTrack = pair("0866FF33", "0866FF33")
-    static let highlightBackground = pair("E7F3FF", "1877F24F")
-    static let positive = pair("31A24C", "31A24C")
+    static let webWash = Theme.groupedBackground
+    static let cardBackground = Theme.groupedSurface
+    static let primaryText = Theme.label
+    static let secondaryText = Theme.secondaryLabel
+    static let primaryIcon = Theme.label
+    static let secondaryIcon = Theme.secondaryLabel
+    static let divider = Theme.separator
+    static let accent = Theme.tint
+    static let primaryButtonBackground = Theme.accentFill
+    static let primaryButtonText = Color.white
+    static let secondaryButtonBackground = Theme.quietFill
+    static let secondaryButtonText = Theme.label
+    static let deemphasizedButtonBackground = Theme.tint.opacity(0.12)
+    static let deemphasizedButtonText = Theme.tint
+    /// Photo placeholder disc: opaque, one step off the card.
+    static let wash = Color(uiColor: .systemGray4)
+    static let progressTrack = Theme.track
+    /// The empty cover: the accent at 12% over the card.
+    static let highlightBackground = Theme.tint.opacity(0.12)
+    static let positive = Theme.positive
 
     // MARK: Shape and size (px in the CSS, points here)
 
@@ -107,33 +114,6 @@ enum MetaStyle {
     /// The gap of wash between full-bleed sections in the feed.
     static let sectionGap: CGFloat = 8
     static let gutter: CGFloat = 16
-
-    // MARK: Helpers
-
-    /// One token, two appearances: the Swift form of StyleX's
-    /// `light-dark(light, dark)` pairing.
-    static func pair(_ light: String, _ dark: String) -> Color {
-        Color(uiPair(light, dark))
-    }
-
-    /// The UIKit form of `pair`, for the segmented control's text attributes.
-    static func uiPair(_ light: String, _ dark: String) -> UIColor {
-        UIColor { traits in
-            traits.userInterfaceStyle == .dark ? uiColor(dark) : uiColor(light)
-        }
-    }
-
-    /// `RRGGBB` or `RRGGBBAA`, the two forms the CSS uses.
-    static func uiColor(_ hex: String) -> UIColor {
-        var value: UInt64 = 0
-        Scanner(string: hex).scanHexInt64(&value)
-        let hasAlpha = hex.count == 8
-        let rgb = hasAlpha ? value >> 8 : value
-        return UIColor(red: CGFloat((rgb >> 16) & 0xFF) / 255,
-                       green: CGFloat((rgb >> 8) & 0xFF) / 255,
-                       blue: CGFloat(rgb & 0xFF) / 255,
-                       alpha: hasAlpha ? CGFloat(value & 0xFF) / 255 : 1)
-    }
 }
 
 // MARK: - Type ramp
@@ -317,7 +297,7 @@ struct MetaTabControl<Tab: Hashable>: UIViewRepresentable {
     private func style(_ control: UISegmentedControl) {
         let height: CGFloat = 44
         let clear = Self.image(height: height, underline: nil)
-        let selected = Self.image(height: height, underline: MetaStyle.uiColor("0866FF"))
+        let selected = Self.image(height: height, underline: UIColor(Theme.tint))
         control.setBackgroundImage(clear, for: .normal, barMetrics: .default)
         control.setBackgroundImage(clear, for: .highlighted, barMetrics: .default)
         control.setBackgroundImage(selected, for: .selected, barMetrics: .default)
@@ -333,11 +313,11 @@ struct MetaTabControl<Tab: Hashable>: UIViewRepresentable {
             .scaledFont(for: .systemFont(ofSize: 15, weight: .semibold))
         control.setTitleTextAttributes([
             .font: font,
-            .foregroundColor: MetaStyle.uiPair("65676B", "B0B3B8"),   // --secondary-text
+            .foregroundColor: UIColor.secondaryLabel,
         ], for: .normal)
         control.setTitleTextAttributes([
             .font: font,
-            .foregroundColor: MetaStyle.uiColor("0866FF"),             // --accent
+            .foregroundColor: UIColor(Theme.tint),
         ], for: .selected)
         control.setContentPositionAdjustment(UIOffset(horizontal: 0, vertical: -1),
                                              forSegmentType: .any, barMetrics: .default)
