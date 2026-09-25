@@ -37,18 +37,10 @@ struct GeneratedPart {
     var minutes: Int
 }
 
-/// The captain's note, decoded under a regex that admits no digits. The
-/// instructions alone did not hold: three simulator runs in a row came back
-/// with "30,000 feet". Constrained decoding makes that output impossible
-/// rather than something to filter afterwards; `BriefingRules.captainLine`
-/// still checks everything else.
-@available(iOS 26.0, *)
-@Generable(description: "A short note from the captain to one passenger.")
-struct GeneratedCaptainNote {
-    @Guide(description: "One or two calm sentences to the passenger, naming the destination and their first task.",
-           #/[A-Z][A-Za-z ,.;:'’?-]{19,199}/#)
-    var line: String
-}
+// The captain's note is plain text. A regex `@Guide` with no digits was tried
+// (the model kept writing "30,000 feet") and threw at runtime on the iOS 26.5
+// simulator, so invented numbers are caught by `BriefingRules.captainLine`
+// instead, and a rejected note leaves the recorded PA alone.
 
 @available(iOS 26.0, *)
 final class FoundationModelsBriefingService: FlightBriefingService, @unchecked Sendable {
@@ -115,10 +107,9 @@ final class FoundationModelsBriefingService: FlightBriefingService, @unchecked S
         let session = LanguageModelSession(model: model, instructions: BriefingPrompts.captainInstructions)
         let response = try await session.respond(
             to: BriefingPrompts.captainPrompt(for: request, firstStep: firstStep),
-            generating: GeneratedCaptainNote.self,
             options: Self.captainOptions
         )
-        return response.content.line
+        return response.content
     }
 
     /// `LanguageModelSession.GenerationError` onto `BriefingError`, case for
