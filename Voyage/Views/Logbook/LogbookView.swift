@@ -120,7 +120,10 @@ struct LogbookView: View {
                 .padding(.trailing, 44)
             }
             .listRowBackground(Ramp.surface)
-            .listRowSeparatorTint(Ramp.rule)
+            // Row rules are Airbnb's divider (#EBEBEB / #2C2C2C), one step
+            // lighter than the card hairline (#DDDDDD), as client.css splits
+            // --palette-bg-divider from --palette-border-secondary.
+            .listRowSeparatorTint(Ramp.divider)
         }
         .scrollContentBackground(.hidden)
         .background(Ramp.page)
@@ -131,23 +134,35 @@ struct LogbookView: View {
 
     /// Entry point to the flight data recorder. The caption states where the
     /// recorder stands rather than promising insight it may not have.
+    ///
+    /// Laid out like an Airbnb feature callout: a 48-grid two-tone glyph
+    /// (IcFeatureGraphUpAlt48, see LogbookGlyphs.swift) on a 12pt tile
+    /// (client.css `--corner-radius-medium`), a 16/20 semibold title and a
+    /// 14/18 secondary line (client.css title / body scale).
+    ///
+    /// Deviation, stated: Airbnb's 20% layer is the outline color at .2. On
+    /// the grey tile that is grey on grey, so the area under the line is the
+    /// lime FILL instead, which is Airbnb's dataviz pairing of a tint fill
+    /// under a saturated stroke (client.css --palette-bg-dataviz-progress-* /
+    /// --palette-border-dataviz-progress-*). Lime stays a fill; the line is ink.
     private var recorderRow: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "waveform.path.ecg.rectangle")
-                .voyageFont(Ramp.TypeScale.bodyL)
-                .foregroundStyle(Ramp.ink)
-                .frame(width: 36, height: 36)
-                .background(Ramp.tint, in: RoundedRectangle(cornerRadius: Ramp.Radius.button, style: .continuous))
+        HStack(spacing: 14) {
+            InsightsGlyph(line: Ramp.ink, area: Ramp.solar, areaOpacity: 1)
+                .frame(width: 30, height: 30)
+                .frame(width: 48, height: 48)
+                .background(Ramp.tint, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             VStack(alignment: .leading, spacing: 2) {
                 Text("Insights")
-                    .voyageFont(Ramp.TypeScale.bodyM)
+                    .voyageFont(16, weight: .semibold)
+                    .kerning(-0.16)
                     .foregroundStyle(Ramp.ink)
                 Text(recorderCaption)
-                    .voyageFont(Ramp.TypeScale.bodyXS)
+                    .voyageFont(Ramp.TypeScale.bodyS)
                     .foregroundStyle(Ramp.hushed)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, 8)
     }
 
     private var recorderCaption: String {
@@ -180,9 +195,12 @@ struct LogbookView: View {
                 Text("Total focus time")
                     .voyageFont(Ramp.TypeScale.bodyS)
                     .foregroundStyle(Ramp.hushed)
+                // Airbnb sets its large numerals in MEDIUM weight with -2%
+                // tracking (the 4.98 hero: 100px / 500 / -2px, read live off
+                // airbnb.com/rooms/…; "Guest favorite" 22px / 500 / -0.44px).
                 Text(PilotRatings.hoursText(LogbookStats.totalFocusSeconds(entries)))
-                    .voyageFont(Ramp.TypeScale.headlineXL, weight: .regular)
-                    .kerning(-0.4)
+                    .voyageFont(Ramp.TypeScale.headlineXL, weight: .medium)
+                    .kerning(-0.8)
                     .monospacedDigit()
                     .foregroundStyle(Ramp.ink)
                 let landings = entries.filter(\.completed)
@@ -222,11 +240,13 @@ struct LogbookView: View {
                         .voyageFont(11, weight: .bold)
                     VStack(alignment: .leading, spacing: 1) {
                         Text("Replay this week")
-                            .voyageFont(Ramp.TypeScale.bodyM, weight: .medium)
+                            .voyageFont(Ramp.TypeScale.bodyM, weight: .semibold)
+                            .kerning(-0.15)
                         Text(weekEntries.isEmpty
                              ? "No completed flights yet"
                              : "\(weekEntries.count) flight\(weekEntries.count == 1 ? "" : "s") · \(Int(LogbookStats.totalMiles(weekEntries)).formatted()) miles")
                             .voyageFont(Ramp.TypeScale.bodyXS)
+                            // #222222 at 70% on the lime is still 5.9:1.
                             .opacity(0.7)
                     }
                     Spacer()
@@ -300,41 +320,24 @@ struct LogbookView: View {
 
     // MARK: Entry row
 
-    /// A ramp.com transaction line: a square merchant tile, name over a
-    /// hushed date, and the amount (here, focus time) right-aligned in
-    /// tabular figures.
+    /// A ramp.com transaction line: a leading tile, name over a hushed date,
+    /// and the amount (here, focus time) right-aligned in tabular figures.
+    /// The tile is a ticket (LogbookGlyphs.swift, after IcSystemTicket32):
+    /// the shape carries the meaning, so the old "ADMITTED" caption is gone.
     private func entryRow(_ entry: LogbookEntry) -> some View {
         HStack(spacing: 12) {
-            // Destination tile for a landing; a plain tile for a flight that
-            // stopped early, since nothing was admitted.
-            VStack(spacing: 1) {
-                Text(entry.destinationCode)
-                    .voyageFont(12, weight: .semibold, design: .monospaced)
-                if entry.completed {
-                    Text("ADMITTED")
-                        .voyageFont(5.5, weight: .semibold)
-                        .kerning(0.4)
-                        .opacity(0.6)
-                }
-            }
-            .foregroundStyle(entry.completed ? Ramp.ink : Ramp.hushed)
-            // The tile is fixed geometry, so it is capped rather than grown:
-            // a tile that doubles in size pushes the route and the time off
-            // the row. Same call WordPress-iOS makes on its fixed cards
-            // (Modules/Sources/JetpackStats/Cards/TopListCard.swift).
-            .frame(width: 44, height: 44)
-            .dynamicTypeSize(...DynamicTypeSize.xxLarge)
-            .background(entry.completed ? Ramp.tint : Color.clear,
-                        in: RoundedRectangle(cornerRadius: Ramp.Radius.button, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: Ramp.Radius.button, style: .continuous)
-                    .strokeBorder(Ramp.rule, style: StrokeStyle(lineWidth: 1, dash: entry.completed ? [] : [3, 3]))
-            )
+            // Fixed geometry with its own 13pt code, so it does not grow with
+            // Dynamic Type: a tile that doubles in size pushes the route and
+            // the time off the row. Same call WordPress-iOS makes on its
+            // fixed cards (Modules/Sources/JetpackStats/Cards/TopListCard.swift).
+            TicketTile(code: entry.destinationCode, landed: entry.completed)
 
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 5) {
+                    // Airbnb's card title: 15px / 500 / #222222 (live
+                    // computed style of a search result card).
                     Text("\(entry.originCode) → \(entry.destinationCode)")
-                        .voyageFont(Ramp.TypeScale.bodyM)
+                        .voyageFont(Ramp.TypeScale.bodyM, weight: .medium)
                         .foregroundStyle(Ramp.ink)
                     if let via = entry.connectionCode {
                         Text("via \(via)")
@@ -347,7 +350,11 @@ struct LogbookView: View {
                 // stamp, not repeated on every row.
                 Text("\(entry.date.formatted(.dateTime.month(.abbreviated).day()))\(entry.completed ? "" : " · Stopped early")")
                     .voyageFont(Ramp.TypeScale.bodyXS)
-                    .foregroundStyle(entry.completed ? Ramp.hushed : Ramp.blaze)
+                    // Stopped early reads from the grey ticket and the words;
+                    // the caption stays secondary text. (Ramp's #E96516 was
+                    // 3.2:1 on white, under AA for 12pt.) Airbnb lets neutrals
+                    // do this work and keeps color for the one accent.
+                    .foregroundStyle(Ramp.hushed)
             }
 
             Spacer(minLength: 8)

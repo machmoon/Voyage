@@ -124,6 +124,7 @@
 		6F9AFF29542E49A9011411DA /* captain_midpoint_seattle.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 833A8DC291E5D138D4EFBFEE /* captain_midpoint_seattle.m4a */; };
 		6FB599CC1616240DCF159909 /* ReceiptShareItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7786EE4299103918E00934CE /* ReceiptShareItem.swift */; };
 		72D2646E064132F40173CEC7 /* FlightDataRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98A39FC9F4E02536EFECAF1D /* FlightDataRecorder.swift */; };
+		75851D7A4CD16A7979B8C57B /* PassportStamp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B0C317E42D0EBC1E6BDA165 /* PassportStamp.swift */; };
 		759925328CE800E288791F2B /* StudyCoachTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3FDADA12F8C38769AAC13FF /* StudyCoachTests.swift */; };
 		76C5046599AEEAAA41A6E102 /* MarketingCaptureUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFFA55727F79CA0DBA4AE691 /* MarketingCaptureUITests.swift */; };
 		76CC4587C8BEF7CFC738C549 /* captain_descent_boston.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 54A9B7B92D4A9F0F447C44D0 /* captain_descent_boston.m4a */; };
@@ -145,6 +146,7 @@
 		81C5D1238C2C9F4684C5BD34 /* ActivityStaleDateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B95FC7EE99A7EB1A1CB608F3 /* ActivityStaleDateTests.swift */; };
 		821CB140226E8AB297CB2327 /* crew_finalcall_boston.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 769B66EA814D4152B1FFA3E1 /* crew_finalcall_boston.m4a */; };
 		830A6D5893A053711BDC2CFD /* AppFeedback.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAD8B69CF65E78B46148736E /* AppFeedback.swift */; };
+		8406DE51DDCAE927FCCA25A5 /* LogbookGlyphs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6988335E65EA01D7197D4936 /* LogbookGlyphs.swift */; };
 		8451688444A87EFF98AB7E42 /* MetaStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF2A3F1314C94114A0228BD3 /* MetaStyle.swift */; };
 		84D96C365E0154599BE41940 /* FlightDataAPIArchiveTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52BC5A1D0F75E530ADD37BB2 /* FlightDataAPIArchiveTests.swift */; };
 		85C98D53F1C9A880C9D9A914 /* captain_landed_san-francisco.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 041B5C33A99E1E6564EBBF30 /* captain_landed_san-francisco.m4a */; };
@@ -328,6 +330,7 @@
 		2A32B0AC3F6B4A577B3EA051 /* FlightVisualEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightVisualEngineTests.swift; sourceTree = "<group>"; };
 		2A8D8DC2AF2C3A0185462BE6 /* crew_finalcall_miami.m4a */ = {isa = PBXFileReference; path = crew_finalcall_miami.m4a; sourceTree = "<group>"; };
 		2B08FC90B909634E033DBB2B /* VoyageSmokeUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoyageSmokeUITests.swift; sourceTree = "<group>"; };
+		2B0C317E42D0EBC1E6BDA165 /* PassportStamp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PassportStamp.swift; sourceTree = "<group>"; };
 		2CB577FFDB00B9AA668840E0 /* LogbookView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogbookView.swift; sourceTree = "<group>"; };
 		2E2B670CB2D758196437D340 /* captain_landed_new-york.m4a */ = {isa = PBXFileReference; path = "captain_landed_new-york.m4a"; sourceTree = "<group>"; };
 		2F20ED08225FD46B874E403D /* crew_beverage.m4a */ = {isa = PBXFileReference; path = crew_beverage.m4a; sourceTree = "<group>"; };
@@ -389,6 +392,7 @@
 		68DD5201FC873FE71421AE60 /* SoundEffects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundEffects.swift; sourceTree = "<group>"; };
 		68FEB4B222C523BFA7B43431 /* captain_descent_seattle.m4a */ = {isa = PBXFileReference; path = captain_descent_seattle.m4a; sourceTree = "<group>"; };
 		692D9A90EA26F6C0206B3FE7 /* captain_descent_toronto.m4a */ = {isa = PBXFileReference; path = captain_descent_toronto.m4a; sourceTree = "<group>"; };
+		6988335E65EA01D7197D4936 /* LogbookGlyphs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogbookGlyphs.swift; sourceTree = "<group>"; };
 		6B4B0BB4DDA53541AF9E921B /* SeatMapTourUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeatMapTourUITests.swift; sourceTree = "<group>"; };
 		6CB0E8E2B49F73535A03C4E3 /* FlightSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightSession.swift; sourceTree = "<group>"; };
 		6FD32186AF1A70DAF0ABAA98 /* StudyCoachSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyCoachSection.swift; sourceTree = "<group>"; };
@@ -630,9 +634,11 @@
 				70B261169A7B09AB85EFC180 /* FlightDataRecorderView.swift */,
 				FF80C2A93AEA43F2FA415128 /* FlightReplayView.swift */,
 				EDC3A5BA4D41E5179301A3C2 /* LogbookExportButtons.swift */,
+				6988335E65EA01D7197D4936 /* LogbookGlyphs.swift */,
 				55AC9A9549FAC8C00EAA0616 /* LogbookStorageWarning.swift */,
 				2CB577FFDB00B9AA668840E0 /* LogbookView.swift */,
 				FF2A3F1314C94114A0228BD3 /* MetaStyle.swift */,
+				2B0C317E42D0EBC1E6BDA165 /* PassportStamp.swift */,
 				A851C2DFD70982BD495F403F /* PassportView.swift */,
 				6FD32186AF1A70DAF0ABAA98 /* StudyCoachSection.swift */,
 			);
@@ -1326,12 +1332,14 @@
 				6B99E16B21802902D1DEA935 /* LogbookEntry.swift in Sources */,
 				7D8B650B074938BCCF34B385 /* LogbookExport.swift in Sources */,
 				27855472949B510D2B901C5C /* LogbookExportButtons.swift in Sources */,
+				8406DE51DDCAE927FCCA25A5 /* LogbookGlyphs.swift in Sources */,
 				16A32CB1EEA04037E9A2FC41 /* LogbookStorageWarning.swift in Sources */,
 				0056CD7616753D1EF62C48F1 /* LogbookView.swift in Sources */,
 				1EE78AA8B9FC081A917B453A /* MapWarmer.swift in Sources */,
 				8451688444A87EFF98AB7E42 /* MetaStyle.swift in Sources */,
 				9CA8B5599618A7590FA87C45 /* OnboardingView.swift in Sources */,
 				AB3DD460AA7855763742CBBB /* PassportPhotoStore.swift in Sources */,
+				75851D7A4CD16A7979B8C57B /* PassportStamp.swift in Sources */,
 				3573E8F27242AF37FB6A92BF /* PassportView.swift in Sources */,
 				61110BA43DD5F1BD341EFAC2 /* PilotRatings.swift in Sources */,
 				68A40B9919F476C5D3627376 /* RampDesign.swift in Sources */,

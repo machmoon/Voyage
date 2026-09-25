@@ -245,91 +245,89 @@ struct PassportView: View {
 
     // MARK: Stamp page
 
-    /// A three-across grid of square tiles with a name and a count under
-    /// each, the way a profile's friends and photos sections are drawn.
+    /// The Meta grid, three across, now holding Airbnb-style stamps
+    /// (PassportStamp.swift): the stamp itself, then live-text captions.
     private var stampPage: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        let list = records
+        let goldCode = Self.goldCode(in: list)
+        return VStack(alignment: .leading, spacing: 16) {
             MetaSectionHeader(title: "Arrival stamps",
-                              trailing: "\(collectedCount) of \(records.count)")
+                              trailing: "\(collectedCount) of \(list.count)")
 
             LazyVGrid(
                 columns: Array(repeating: GridItem(.flexible(), spacing: 8, alignment: .top), count: 3),
-                spacing: 14
+                spacing: 20
             ) {
-                ForEach(records) { record in
-                    StampCell(record: record)
+                ForEach(Array(list.enumerated()), id: \.element.id) { index, record in
+                    StampCell(record: record, index: index, isGold: record.id == goldCode)
                 }
             }
-            // Each tile holds a fixed 112pt die with 6pt to 8pt type inside it.
-            .dynamicTypeSize(...DynamicTypeSize.xLarge)
+            .dynamicTypeSize(...DynamicTypeSize.xxLarge)
         }
         .metaSection(vertical: 14)
     }
 
+    /// The one gold stamp: the most-visited city, and only once it has
+    /// been visited three times. Ties go to the most recent visit (records
+    /// are sorted newest first). Airbnb keeps gold for a single accolade;
+    /// so does this.
+    private static func goldCode(in records: [DestinationRecord]) -> String? {
+        guard let top = records.map(\.visits).max(), top >= 3 else { return nil }
+        return records.first { $0.visits == top }?.id
+    }
+
     private struct StampCell: View {
         let record: DestinationRecord
+        let index: Int
+        let isGold: Bool
 
-        private var style: StampStyle { StampStyle.forCode(record.airport.code) }
+        private static let diameter: CGFloat = 100
 
-        /// One ink for the whole collection, so the grid reads as one
-        /// document rather than a sticker sheet. Comet's link blue
-        /// (--blue-link), which holds its contrast on both the light and the
-        /// dark flat card.
-        private var ink: Color { MetaStyle.blueLink }
+        private var state: PassportStamp.StampState {
+            guard record.isCollected else { return .uncollected }
+            return isGold ? .gold : .collected
+        }
 
         var body: some View {
-            VStack(alignment: .leading, spacing: 6) {
-                RoundedRectangle(cornerRadius: MetaStyle.cardCornerRadius, style: .continuous)
-                    .fill(MetaStyle.cardBackgroundFlat)
-                    .aspectRatio(1, contentMode: .fit)
-                    .overlay {
-                        if record.isCollected {
-                            StampMark(style: style, ink: ink, record: record)
-                                .rotationEffect(.degrees(style.rotation))
-                                .scaleEffect(0.86)
-                        } else {
-                            unstamped
+            let tilt = PassportStamp.tilt(forIndex: index)
+            VStack(spacing: 0) {
+                PassportStamp(code: record.airport.code, state: state, diameter: Self.diameter)
+                    .rotationEffect(.degrees(tilt))
+                    .scaleEffect(PassportStamp.tiltScale(degrees: tilt))
+                    .overlay(alignment: .bottom) {
+                        if isGold {
+                            MostVisitedPill().offset(y: 8)
                         }
                     }
-                    .overlay(
-                        RoundedRectangle(cornerRadius: MetaStyle.cardCornerRadius, style: .continuous)
-                            .strokeBorder(MetaStyle.divider.opacity(0.6), lineWidth: 0.5)
-                    )
+                    .frame(maxWidth: .infinity)
 
-                VStack(alignment: .leading, spacing: 1) {
+                // Airbnb's caption: 16px under a 120px stamp (scaled to
+                // 13 for this 100pt one), city 14/18 text-primary, date
+                // 12/16 text-secondary (S7, S11).
+                VStack(spacing: 2) {
                     Text(record.airport.city)
-                        .metaMeta(.semibold)
+                        .voyageFont(14, relativeTo: .subheadline)
                         .foregroundStyle(record.isCollected ? MetaStyle.primaryText : MetaStyle.secondaryText)
                         .lineLimit(1)
-                    Text(record.isCollected
-                         ? "\(record.visits) visit\(record.visits == 1 ? "" : "s")"
-                         : "Not yet")
-                        .metaMeta()
+                        .minimumScaleFactor(0.8)
+                    Text(subtitle)
+                        .voyageFont(12, relativeTo: .caption)
+                        .monospacedDigit()
                         .foregroundStyle(MetaStyle.secondaryText)
                         .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                 }
+                .multilineTextAlignment(.center)
+                .padding(.top, isGold ? 22 : 13)
             }
-            .accessibilityElement(children: .combine)
+            .accessibilityElement(children: .ignore)
             .accessibilityLabel(accessibilityLabel)
         }
 
-        /// One silhouette for every unstamped city: a faint die with the
-        /// code, nothing else. Habitica renders every locked achievement
-        /// with the same single asset (`achievement-unearned2x`,
-        /// HabitRPG/habitica-ios AchievementIconView), which is what keeps a
-        /// grid reading as a collection instead of a to-do list.
-        private var unstamped: some View {
-            ZStack {
-                Circle()
-                    .strokeBorder(MetaStyle.disabledIcon, lineWidth: 1.5)
-                Circle()
-                    .strokeBorder(MetaStyle.disabledIcon.opacity(0.7), lineWidth: 1)
-                    .padding(6)
-                Text(record.airport.code)
-                    .voyageFont(15, weight: .bold, design: .monospaced)
-                    .foregroundStyle(MetaStyle.disabledIcon)
-            }
-            .frame(width: 84, height: 84)
+        private var subtitle: String {
+            guard let lastVisit = record.lastVisit else { return "Not yet" }
+            let date = lastVisit.formatted(.dateTime.month(.abbreviated).day())
+            return record.visits > 1 ? "\(date) · ×\(record.visits)" : date
         }
 
         private var accessibilityLabel: String {
@@ -339,6 +337,7 @@ struct PassportView: View {
             return "\(record.airport.city), \(record.airport.code), stamped, "
                 + "\(record.visits) visit\(record.visits == 1 ? "" : "s"), last "
                 + lastVisit.formatted(date: .abbreviated, time: .omitted)
+                + (isGold ? ", most visited" : "")
         }
     }
 
@@ -376,143 +375,5 @@ struct PassportView: View {
             }
         }
         .metaSection(vertical: 14)
-    }
-
-    private static func stampDate(_ date: Date) -> String {
-        date.formatted(.dateTime.day(.twoDigits).month(.abbreviated).year())
-            .uppercased()
-            .replacingOccurrences(of: ",", with: "")
-    }
-}
-
-// MARK: - Stamp design
-
-/// Border treatments borrowed from real immigration stamps: round and oval
-/// dies, square-cornered entry rectangles, and scalloped commemorative marks.
-private enum StampStyle: CaseIterable {
-    case circle, rectangle, oval, scalloped
-
-    /// Deterministic per airport, so a city's stamp never changes between
-    /// visits — the whole point of a collection.
-    static func forCode(_ code: String) -> StampStyle {
-        var hash: UInt64 = 5381
-        for byte in code.utf8 { hash = hash &* 33 &+ UInt64(byte) }
-        return allCases[Int(hash % UInt64(allCases.count))]
-    }
-
-    /// A hand-applied stamp is never quite square to the page.
-    var rotation: Double {
-        switch self {
-        case .circle: return -6
-        case .rectangle: return 3.5
-        case .oval: return -2.5
-        case .scalloped: return 5
-        }
-    }
-
-    var caption: String {
-        switch self {
-        case .circle: return "ADMITTED"
-        case .rectangle: return "ENTRY"
-        case .oval: return "ARRIVAL"
-        case .scalloped: return "CLEARED"
-        }
-    }
-}
-
-/// One inked arrival mark. Ink sits slightly transparent and the border is
-/// drawn, never filled, so stamps read as pressed onto the page.
-private struct StampMark: View {
-    let style: StampStyle
-    let ink: Color
-    let record: PassportView.DestinationRecord
-
-    var body: some View {
-        ZStack {
-            border
-            VStack(spacing: 2) {
-                Image(systemName: "airplane")
-                    .voyageFont(9, weight: .bold)
-                    .rotationEffect(.degrees(-45))
-                Text(record.airport.code)
-                    .voyageFont(20, weight: .black, design: .monospaced)
-                    .kerning(1)
-                Text(record.airport.city.uppercased())
-                    .voyageFont(7, weight: .heavy)
-                    .kerning(0.5)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-                    .padding(.horizontal, 6)
-                Rectangle()
-                    .fill(ink.opacity(0.5))
-                    .frame(width: 34, height: 0.8)
-                    .padding(.vertical, 1)
-                Text(record.lastVisit.map(Self.shortDate) ?? "")
-                    .voyageFont(8, weight: .bold, design: .monospaced)
-                Text(record.visits > 1 ? "\(style.caption) ×\(record.visits)" : style.caption)
-                    .voyageFont(6, weight: .heavy)
-                    .kerning(0.8)
-            }
-            .foregroundStyle(ink.opacity(0.88))
-            .padding(.horizontal, 8)
-        }
-        .frame(width: 112, height: 112)
-    }
-
-    @ViewBuilder private var border: some View {
-        switch style {
-        case .circle:
-            ZStack {
-                Circle().strokeBorder(ink.opacity(0.75), lineWidth: 2.5)
-                Circle().strokeBorder(ink.opacity(0.4), lineWidth: 1).padding(6)
-            }
-        case .rectangle:
-            // Schengen convention: square corners mark an entry.
-            ZStack {
-                Rectangle().strokeBorder(ink.opacity(0.75), lineWidth: 2.5)
-                Rectangle().strokeBorder(ink.opacity(0.35), lineWidth: 1).padding(5)
-            }
-            .padding(.vertical, 14)
-        case .oval:
-            ZStack {
-                Ellipse().strokeBorder(ink.opacity(0.75), lineWidth: 2.5)
-                Ellipse().strokeBorder(ink.opacity(0.35), lineWidth: 1).padding(6)
-            }
-            .padding(.vertical, 8)
-        case .scalloped:
-            ZStack {
-                ScallopedBorder(teeth: 22)
-                    .stroke(ink.opacity(0.75), lineWidth: 2)
-                Circle().strokeBorder(ink.opacity(0.35), lineWidth: 1).padding(10)
-            }
-        }
-    }
-
-    private static func shortDate(_ date: Date) -> String {
-        date.formatted(.dateTime.day(.twoDigits).month(.abbreviated).year(.twoDigits))
-            .uppercased()
-            .replacingOccurrences(of: ",", with: "")
-    }
-}
-
-/// A commemorative die: a circle with a wavy edge.
-private struct ScallopedBorder: Shape {
-    let teeth: Int
-
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        let centre = CGPoint(x: rect.midX, y: rect.midY)
-        let base = min(rect.width, rect.height) / 2 - 2
-        let steps = teeth * 8
-
-        for step in 0...steps {
-            let angle = Double(step) / Double(steps) * 2 * .pi
-            let wave = 1 + 0.045 * cos(angle * Double(teeth))
-            let point = CGPoint(x: centre.x + cos(angle) * base * wave,
-                                y: centre.y + sin(angle) * base * wave)
-            if step == 0 { path.move(to: point) } else { path.addLine(to: point) }
-        }
-        path.closeSubpath()
-        return path
     }
 }
