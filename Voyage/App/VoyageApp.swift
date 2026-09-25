@@ -33,6 +33,11 @@ struct VoyageApp: App {
         if RecorderDemoLogbook.isEnabled, let demo = try? RecorderDemoLogbook.makeContainer() {
             return demo
         }
+        #if DEBUG
+        if ReplayDemo.isEnabled, let demo = try? ReplayDemo.makeContainer() {
+            return demo
+        }
+        #endif
         // `-VoyageEmptyLogbook`: a fresh in-memory logbook, for captures of
         // first-launch states on a simulator whose real store has history.
         if ProcessInfo.processInfo.arguments.contains("-VoyageEmptyLogbook"),

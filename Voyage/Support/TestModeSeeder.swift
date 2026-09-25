@@ -96,3 +96,24 @@ enum TestModeSeeder {
         return calendar.date(byAdding: .hour, value: hour, to: day)
     }
 }
+
+#if DEBUG
+/// `-VoyageReplayDemo`: launches straight into "Replay this week" over the
+/// seeded demo history, in an in-memory store (never the real logbook), so
+/// the trip replay can be screen-recorded without driving the UI.
+enum ReplayDemo {
+    static var isEnabled: Bool {
+        ProcessInfo.processInfo.arguments.contains("-VoyageReplayDemo")
+    }
+
+    @MainActor
+    static func makeContainer() throws -> ModelContainer {
+        let container = try ModelContainer(
+            for: LogbookEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        TestModeSeeder.seed(into: container.mainContext)
+        return container
+    }
+}
+#endif
