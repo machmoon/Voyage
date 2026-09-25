@@ -250,21 +250,65 @@ enum BriefingRules {
 
     /// The captain's note, or `nil` when it breaks a rule. `nil` means the
     /// flight carries on with its recorded announcements and nothing else.
+    ///
+    /// The model often ignores "two short sentences" and writes a whole
+    /// multi-line cruise announcement, with altitude, weather and a sign-off
+    /// around the one sentence that matters. Rather than lose the note, each
+    /// sentence is judged on its own: sentences that break a rule are dropped,
+    /// the rest are kept in order up to two, and the result still has to
+    /// name a bag.
     static func captainLine(_ raw: String, request: BriefingRequest) -> String? {
-        var line = tidy(raw)
-        // A model sometimes signs the announcement; the card already says who
-        // it is from.
+        let kept = sentences(in: raw)
+            .map(unsigned)
+            .filter { sentence in
+                !sentence.isEmpty
+                    && !containsEmoji(sentence)
+                    && !sentence.localizedCaseInsensitiveContains("ladies and gentlemen")
+                    && numbersAreGrounded(sentence, in: request.bags)
+            }
+        // The first sentence about the traveler's work, then the sentence
+        // after it, or the one before it when the work comes last.
+        guard let anchor = kept.firstIndex(where: { mentionsABag($0, bags: request.bags) }) else { return nil }
+        let partner = anchor + 1 < kept.count ? anchor + 1 : anchor - 1
+        let pair = kept.indices.contains(partner)
+            ? [min(anchor, partner), max(anchor, partner)].map { kept[$0] }
+            : [kept[anchor]]
+        let line = pair.map(terminated).joined(separator: " ")
+        if line.count <= maximumCaptainLength { return line }
+        let alone = terminated(kept[anchor])
+        return alone.count <= maximumCaptainLength ? alone : nil
+    }
+
+    private static func terminated(_ sentence: String) -> String {
+        guard let last = sentence.last, !".?".contains(last) else { return sentence }
+        return sentence + "."
+    }
+
+    /// Splits model text into tidied sentences at line breaks and at ". ",
+    /// "? " or "! " boundaries.
+    static func sentences(in raw: String) -> [String] {
+        var result: [String] = []
+        for rawLine in raw.split(whereSeparator: \.isNewline) {
+            var current = ""
+            for character in rawLine {
+                current.append(character)
+                if ".?!".contains(character) {
+                    result.append(current)
+                    current = ""
+                }
+            }
+            result.append(current)
+        }
+        return result.map(tidy).filter { !$0.isEmpty && $0.contains(where: \.isLetter) }
+    }
+
+    /// A model sometimes signs the announcement; the card already says who
+    /// it is from.
+    static func unsigned(_ sentence: String) -> String {
+        var line = sentence
         for prefix in ["Captain:", "Captain here:", "PA:"] where line.hasPrefix(prefix) {
             line = String(line.dropFirst(prefix.count)).trimmingCharacters(in: .whitespaces)
         }
-        guard !line.isEmpty,
-              line.count <= maximumCaptainLength,
-              !containsEmoji(line),
-              !line.localizedCaseInsensitiveContains("ladies and gentlemen"),
-              numbersAreGrounded(line, in: request.bags),
-              mentionsABag(line, bags: request.bags)
-        else { return nil }
-        if let last = line.last, !".?".contains(last) { line.append(".") }
         return line
     }
 

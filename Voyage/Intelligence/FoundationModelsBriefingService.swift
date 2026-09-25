@@ -55,8 +55,9 @@ final class FoundationModelsBriefingService: FlightBriefingService, @unchecked S
     /// the same bags give the same plan, which is what a traveler expects
     /// from something that looks like a schedule.
     private static let planOptions = GenerationOptions(sampling: .greedy)
-    /// A little variety for the captain, but not much.
-    private static let captainOptions = GenerationOptions(temperature: 0.4)
+    /// A little variety for the captain, but not much, and a token cap so a
+    /// full cruise announcement cannot come back in place of a note.
+    private static let captainOptions = GenerationOptions(temperature: 0.4, maximumResponseTokens: 80)
 
     static var availability: IntelligenceAvailability {
         let model = SystemLanguageModel.default

@@ -100,6 +100,24 @@ final class FlightBriefingTests: XCTestCase {
                                                                            cruiseMinutes: 60)))
     }
 
+    /// The note that was dropped on the simulator: a whole cruise announcement
+    /// over several lines, with invented numbers around the useful sentence.
+    func testMultiLineAnnouncementKeepsTheSentenceAboutTheWork() {
+        let raw = """
+        Good afternoon, this is your captain speaking.
+        We've reached our cruising altitude of 35,000 feet and should arrive in Denver in about 2 hours.
+        Your first task is problem set 4, first half. Enjoy the flight!
+        """
+        XCTAssertEqual(BriefingRules.captainLine(raw, request: request),
+                       "Your first task is problem set 4, first half. Enjoy the flight.")
+    }
+
+    func testGreetingBeforeTheTaskIsKept() {
+        XCTAssertEqual(BriefingRules.captainLine("We're level over the Rockies. Problem set 4 is first.",
+                                                 request: request),
+                       "We're level over the Rockies. Problem set 4 is first.")
+    }
+
     func testDigitRunsAreWholeNumbers() {
         XCTAssertEqual(BriefingRules.digitRuns(in: "pages 12-140, set 4"), ["12", "140", "4"])
         // "14" is not grounded by "140".
