@@ -1,6 +1,6 @@
 # Voyage App Store copy — proposed September 11, 2026
 
-Status: 1.4 (build 10) submitted September 16, 2026, waiting for review: the flight map opens by default and stays covered until MapKit finishes drawing, so no grey tiles. 1.3 (build 9) is live. The "What's new" is in `build/submit_update.py`.
+Status: 1.5 (build 11) submitted September 25, 2026, waiting for review: an on-device Apple Intelligence flight plan and captain's note, and a new four-page onboarding. 1.4 (build 10) is live. The "What's new" is in `build/submit_update.py`.
 
 ## Positioning
 
