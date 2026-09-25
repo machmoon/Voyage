@@ -25,10 +25,17 @@ final class OnboardingUITests: XCTestCase {
         // Screen 1, hello, with real block times
         XCTAssertTrue(app.staticTexts["I made studying feel like a flight."].waitForExistence(timeout: 10))
         capture(app, name: "onboarding-1-hello")
-        app.buttons["Continue"].tap()
+        // The first page's card and button fade in over the globe; a tap
+        // before they settle is swallowed.
+        let next = app.buttons["Continue"]
+        XCTAssertTrue(next.waitForExistence(timeout: 5))
+        _ = XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "isHittable == true"),
+                                                           object: next)], timeout: 5)
+        sleep(2)
+        next.tap()
 
         // Screen 2, the boarding pass you can tear
-        XCTAssertTrue(app.staticTexts["Tear your pass to take off."].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Tear your pass to take off."].waitForExistence(timeout: 10))
         let stub = app.buttons["onboarding-tear-stub"]
         XCTAssertTrue(stub.waitForExistence(timeout: 5))
         stub.tap()
