@@ -2,9 +2,13 @@ import PhotosUI
 import SwiftData
 import SwiftUI
 
-/// A collectible record of every Voyage destination, presented as the document
-/// it is imitating: a navy cover, a cream biodata page with a machine-readable
-/// zone, and a page of inked arrival stamps that differ city by city.
+/// A collectible record of every Voyage destination.
+///
+/// Laid out as a profile page in the Meta (Facebook Comet) design language:
+/// a cover, an overlapping round photo, a bold name with a stats line, detail
+/// rows, and then full-bleed sections on the wash for the stamps and the
+/// endorsements. Tokens and their sources are in `MetaStyle.swift`
+/// (DESIGN-NOTES).
 struct PassportView: View {
     @Query(sort: \LogbookEntry.date, order: .reverse) private var entries: [LogbookEntry]
 
@@ -58,102 +62,100 @@ struct PassportView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 20) {
-                passportBook
+            VStack(spacing: MetaStyle.sectionGap) {
+                profileHeader
                 stampPage
                 if !endorsedEntries.isEmpty {
                     endorsementsPage
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 14)
-            .padding(.bottom, 28)
+            .padding(.bottom, 24)
         }
-        .background(Color(.systemGroupedBackground).ignoresSafeArea())
+        .background(MetaStyle.webWash.ignoresSafeArea())
     }
 
-    // MARK: Pilot card
+    // MARK: Profile header
 
-    /// The page opens on a card, the way FocusFlight opens its club page on a
-    /// membership card over one thin progress bar with two numbers under it.
-    /// Here the card is the pilot certificate: photo, rating, member since.
-    private var passportBook: some View {
-        VStack(spacing: 14) {
-            HStack(spacing: 6) {
-                Image(systemName: "airplane")
-                    .font(.caption2.weight(.semibold))
-                Text(memberLine)
-                    .font(.footnote)
-                Spacer()
-                if streak >= 2 {
-                    Text("\(streak)-day streak")
-                        .font(.footnote.weight(.semibold))
-                        .monospacedDigit()
+    private static let coverHeight: CGFloat = 132
+    private static let photoDiameter: CGFloat = 112
+    /// The card-colored ring Comet draws round a profile photo where it
+    /// overlaps the cover.
+    private static let photoRing: CGFloat = 4
+
+    /// The page opens on the pilot, the way a profile opens on its owner:
+    /// cover, photo, name (the rating), one stats line, detail rows, and the
+    /// one progress bar toward the next rating.
+    private var profileHeader: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            cover
+            photoPicker
+                .padding(.top, -Self.photoDiameter / 2 - Self.photoRing)
+                .padding(.leading, MetaStyle.gutter)
+
+            VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(rating.current.title)
+                        .metaTitle()
+                        .foregroundStyle(MetaStyle.primaryText)
+                    statsLine
                 }
+
+                detailRows
+
+                progressLine
             }
-            .foregroundStyle(.secondary)
-
-            pilotCard
-
-            progressLine
+            .padding(.horizontal, MetaStyle.gutter)
+            .padding(.top, 10)
+            .padding(.bottom, 16)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(MetaStyle.cardBackground)
     }
 
-    private var memberLine: String {
-        guard let memberSince else { return "No flights yet" }
-        let days = max(1, Calendar.current.dateComponents([.day], from: memberSince, to: .now).day ?? 0)
-        return days == 1 ? "First flight today" : "Flying for \(days) days"
+    /// An empty cover, in the pale highlight blue, with a faint globe where a
+    /// cover photo would go.
+    private var cover: some View {
+        ZStack(alignment: .topTrailing) {
+            Rectangle().fill(MetaStyle.highlightBackground)
+            Image(systemName: "globe.americas.fill")
+                .font(.system(size: 150))
+                .foregroundStyle(MetaStyle.deemphasizedButtonText.opacity(0.12))
+                .offset(x: 24, y: -18)
+                .accessibilityHidden(true)
+        }
+        .frame(height: Self.coverHeight)
+        .clipped()
     }
 
-    private var pilotCard: some View {
-        HStack(spacing: 16) {
-            PhotosPicker(selection: $photoItem, matching: .images) {
+    private var photoPicker: some View {
+        PhotosPicker(selection: $photoItem, matching: .images) {
+            ZStack(alignment: .bottomTrailing) {
                 ZStack {
-                    Circle().fill(.white.opacity(0.10))
+                    Circle().fill(MetaStyle.wash)
                     if let photo {
                         Image(uiImage: photo)
                             .resizable()
                             .scaledToFill()
                     } else {
                         Image(systemName: "person.fill")
-                            .font(.system(size: 26))
-                            .foregroundStyle(.white.opacity(0.55))
+                            .font(.system(size: 52))
+                            .foregroundStyle(MetaStyle.cardBackground)
                     }
                 }
-                .frame(width: 64, height: 64)
+                .frame(width: Self.photoDiameter, height: Self.photoDiameter)
                 .clipShape(Circle())
-                .overlay(Circle().strokeBorder(.white.opacity(0.25), lineWidth: 1))
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(photo == nil ? "Add a passport photo" : "Change passport photo")
+                .padding(Self.photoRing)
+                .background(MetaStyle.cardBackground, in: Circle())
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text("VOYAGE AIR")
-                    .font(.caption2.weight(.semibold))
-                    .kerning(1.2)
-                    .foregroundStyle(Theme.passportFoil.opacity(0.7))
-                Text(rating.current.title)
-                    .font(.system(.title2, design: .serif, weight: .semibold))
-                    .foregroundStyle(.white)
-                Text("\(collectedCount) of \(records.count) cities · \(completedEntries.count) landings")
-                    .font(.footnote)
-                    .foregroundStyle(.white.opacity(0.65))
-                    .monospacedDigit()
+                // The camera badge on the photo's lower edge.
+                MetaIconCircle(systemName: "camera.fill", diameter: 32)
+                    .padding(3)
+                    .background(MetaStyle.cardBackground, in: Circle())
+                    .offset(x: -4, y: -4)
             }
-            Spacer(minLength: 0)
         }
-        .padding(20)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            LinearGradient(colors: [Theme.passportCover, Color(hex: "0E1424")],
-                           startPoint: .topLeading, endPoint: .bottomTrailing),
-            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(.white.opacity(0.08), lineWidth: 1)
-        )
-        .shadow(color: .black.opacity(0.18), radius: 14, y: 6)
+        .buttonStyle(.plain)
+        .accessibilityLabel(photo == nil ? "Add a passport photo" : "Change passport photo")
         .onChange(of: photoItem) { _, item in
             guard let item else { return }
             Task {
@@ -166,6 +168,47 @@ struct PassportView: View {
         }
     }
 
+    /// Bold counts in a gray line, the way a profile shows "1.2K friends".
+    private var statsLine: some View {
+        (Text("\(collectedCount)").fontWeight(.semibold).foregroundColor(MetaStyle.primaryText)
+         + Text(" of \(records.count) cities · ")
+         + Text("\(completedEntries.count)").fontWeight(.semibold).foregroundColor(MetaStyle.primaryText)
+         + Text(" landings"))
+            .metaBody()
+            .monospacedDigit()
+            .foregroundStyle(MetaStyle.secondaryText)
+    }
+
+    /// Profile "Details" rows: a gray glyph and one line of 15pt text.
+    private var detailRows: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            detailRow("airplane", memberLine)
+            if streak >= 2 {
+                detailRow("flame.fill", "\(streak)-day streak")
+            }
+        }
+    }
+
+    private func detailRow(_ symbol: String, _ text: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: symbol)
+                .metaBody(.semibold)
+                .foregroundStyle(MetaStyle.secondaryIcon)
+                .frame(width: 20)
+                .accessibilityHidden(true)
+            Text(text)
+                .metaBody()
+                .monospacedDigit()
+                .foregroundStyle(MetaStyle.primaryText)
+        }
+    }
+
+    private var memberLine: String {
+        guard let memberSince else { return "No flights yet" }
+        let days = max(1, Calendar.current.dateComponents([.day], from: memberSince, to: .now).day ?? 0)
+        return days == 1 ? "First flight today" : "Flying for \(days) days"
+    }
+
     /// One bar, two numbers: total time on the left, what is left to the
     /// next rating on the right.
     @ViewBuilder
@@ -173,78 +216,54 @@ struct PassportView: View {
         let total = LogbookStats.totalFocusSeconds(entries)
         if let next = rating.next, let open = rating.firstOpenRequirement {
             VStack(spacing: 8) {
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        Capsule().fill(Theme.passportCover.opacity(0.10))
-                        Capsule().fill(Theme.accent)
-                            .frame(width: max(4, geo.size.width * open.fraction))
-                    }
-                }
-                .frame(height: 4)
+                MetaProgressBar(fraction: open.fraction, height: 6)
                 HStack(alignment: .firstTextBaseline) {
                     VStack(alignment: .leading, spacing: 1) {
                         Text(PilotRatings.hoursText(total))
-                            .font(.headline).monospacedDigit()
-                        Text("Total time").font(.caption).foregroundStyle(.secondary)
+                            .metaHeadline()
+                            .monospacedDigit()
+                            .foregroundStyle(MetaStyle.primaryText)
+                        Text("Total time")
+                            .metaMeta()
+                            .foregroundStyle(MetaStyle.secondaryText)
                     }
                     Spacer()
                     VStack(alignment: .trailing, spacing: 1) {
                         Text(open.remainingText)
-                            .font(.headline).monospacedDigit()
-                        Text("To \(next.title)").font(.caption).foregroundStyle(.secondary)
+                            .metaHeadline()
+                            .monospacedDigit()
+                            .foregroundStyle(MetaStyle.primaryText)
+                        Text("To \(next.title)")
+                            .metaMeta()
+                            .foregroundStyle(MetaStyle.secondaryText)
                     }
                 }
             }
-            .padding(.horizontal, 4)
+            .padding(.top, 2)
         }
     }
 
     // MARK: Stamp page
 
+    /// A three-across grid of square tiles with a name and a count under
+    /// each, the way a profile's friends and photos sections are drawn.
     private var stampPage: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .firstTextBaseline) {
-                // The page furniture is ordinary UI and scales. Only the
-                // stamps themselves are a scale drawing.
-                Text("Arrival stamps")
-                    .voyageFont(15, weight: .bold, design: .serif)
-                    .foregroundStyle(Theme.passportCover)
-                Spacer()
-                // One earned count in the header, the way Habitica's
-                // achievement sections carry a single earned-only chip
-                // (HabitRPG/habitica-ios, AchievementHeaderView).
-                Text("\(collectedCount) of \(records.count)")
-                    .voyageFont(11, weight: .semibold)
-                    .monospacedDigit()
-                    .foregroundStyle(Theme.passportCover)
-                    .padding(.horizontal, 9)
-                    .frame(height: 22)
-                    .background(Theme.passportCover.opacity(0.08), in: Capsule())
-            }
+        VStack(alignment: .leading, spacing: 12) {
+            MetaSectionHeader(title: "Arrival stamps",
+                              trailing: "\(collectedCount) of \(records.count)")
 
             LazyVGrid(
-                columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)],
-                spacing: 10
+                columns: Array(repeating: GridItem(.flexible(), spacing: 8, alignment: .top), count: 3),
+                spacing: 14
             ) {
                 ForEach(records) { record in
                     StampCell(record: record)
                 }
             }
-            // Each cell is a fixed 112pt die with 6pt to 8pt type inside it.
+            // Each tile holds a fixed 112pt die with 6pt to 8pt type inside it.
             .dynamicTypeSize(...DynamicTypeSize.xLarge)
         }
-        .padding(16)
-        .background(
-            // A passport page, complete with the faint guilloche tint real
-            // documents print to make forgery harder.
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Theme.passportPaper)
-                .overlay {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .strokeBorder(Theme.passportCover.opacity(0.10), lineWidth: 1)
-                }
-        )
-        .shadow(color: .black.opacity(0.10), radius: 10, y: 4)
+        .metaSection(vertical: 14)
     }
 
     private struct StampCell: View {
@@ -252,27 +271,44 @@ struct PassportView: View {
 
         private var style: StampStyle { StampStyle.forCode(record.airport.code) }
 
-        /// One ink for the whole collection. This used to read
-        /// `record.airport.accentHex` directly, which put the raw per-airport
-        /// palette (nine hues, from hot pink to gold) on one page and made the
-        /// grid read as stickers. `Airport.accentColor` exists precisely to
-        /// stop that and says so in `Theme.swift`; this cell was going around
-        /// it. Cities are told apart here by die shape, caption and code,
-        /// which is how a real passport does it. Per-city color is kept for
-        /// the arrival moment alone.
-        private var ink: Color { Theme.passportInk }
+        /// One ink for the whole collection, so the grid reads as one
+        /// document rather than a sticker sheet. Comet's link blue
+        /// (--blue-link), which holds its contrast on both the light and the
+        /// dark flat card.
+        private var ink: Color { MetaStyle.blueLink }
 
         var body: some View {
-            ZStack {
-                if record.isCollected {
-                    StampMark(style: style, ink: ink, record: record)
-                        .rotationEffect(.degrees(style.rotation))
-                } else {
-                    unstamped
+            VStack(alignment: .leading, spacing: 6) {
+                RoundedRectangle(cornerRadius: MetaStyle.cardCornerRadius, style: .continuous)
+                    .fill(MetaStyle.cardBackgroundFlat)
+                    .aspectRatio(1, contentMode: .fit)
+                    .overlay {
+                        if record.isCollected {
+                            StampMark(style: style, ink: ink, record: record)
+                                .rotationEffect(.degrees(style.rotation))
+                                .scaleEffect(0.86)
+                        } else {
+                            unstamped
+                        }
+                    }
+                    .overlay(
+                        RoundedRectangle(cornerRadius: MetaStyle.cardCornerRadius, style: .continuous)
+                            .strokeBorder(MetaStyle.divider.opacity(0.6), lineWidth: 0.5)
+                    )
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(record.airport.city)
+                        .metaMeta(.semibold)
+                        .foregroundStyle(record.isCollected ? MetaStyle.primaryText : MetaStyle.secondaryText)
+                        .lineLimit(1)
+                    Text(record.isCollected
+                         ? "\(record.visits) visit\(record.visits == 1 ? "" : "s")"
+                         : "Not yet")
+                        .metaMeta()
+                        .foregroundStyle(MetaStyle.secondaryText)
+                        .lineLimit(1)
                 }
             }
-            .frame(maxWidth: .infinity)
-            .frame(height: 126)
             .accessibilityElement(children: .combine)
             .accessibilityLabel(accessibilityLabel)
         }
@@ -285,15 +321,15 @@ struct PassportView: View {
         private var unstamped: some View {
             ZStack {
                 Circle()
-                    .strokeBorder(Theme.passportCover.opacity(0.14), lineWidth: 1.5)
+                    .strokeBorder(MetaStyle.disabledIcon, lineWidth: 1.5)
                 Circle()
-                    .strokeBorder(Theme.passportCover.opacity(0.10), lineWidth: 1)
+                    .strokeBorder(MetaStyle.disabledIcon.opacity(0.7), lineWidth: 1)
                     .padding(6)
                 Text(record.airport.code)
                     .voyageFont(15, weight: .bold, design: .monospaced)
-                    .foregroundStyle(Theme.passportCover.opacity(0.22))
+                    .foregroundStyle(MetaStyle.disabledIcon)
             }
-            .frame(width: 104, height: 104)
+            .frame(width: 84, height: 84)
         }
 
         private var accessibilityLabel: String {
@@ -314,40 +350,32 @@ struct PassportView: View {
         entries.filter { $0.endorsement != nil }
     }
 
-    /// The endorsements page follows a real logbook: one dated line per
-    /// sign-off, printed under the stamps rather than as a card of its own.
+    /// One Comet list cell per sign-off: gray icon circle, the endorsement on
+    /// the first line, the route that earned it under it.
     private var endorsementsPage: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Endorsements")
-                .voyageFont(15, weight: .bold, design: .serif)
-                .foregroundStyle(Theme.passportCover)
+        VStack(alignment: .leading, spacing: 4) {
+            MetaSectionHeader(title: "Endorsements")
+                .padding(.bottom, 4)
             ForEach(endorsedEntries) { entry in
                 if let rating = entry.endorsement {
-                    HStack(spacing: 10) {
-                        Text(PilotRatings.endorsementLine(for: rating, on: entry.date))
-                            .voyageFont(11, weight: .semibold, design: .monospaced)
-                            .foregroundStyle(Theme.passportInk)
-                        Spacer()
-                        Text("\(entry.originCode) to \(entry.destinationCode)")
-                            .voyageFont(9, weight: .semibold)
-                            .kerning(0.6)
-                            .foregroundStyle(Theme.passportCover.opacity(0.45))
+                    HStack(spacing: 12) {
+                        MetaIconCircle(systemName: "checkmark.seal.fill")
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(PilotRatings.endorsementLine(for: rating, on: entry.date))
+                                .metaBody(.semibold)
+                                .foregroundStyle(MetaStyle.primaryText)
+                            Text("\(entry.originCode) to \(entry.destinationCode)")
+                                .metaMeta()
+                                .foregroundStyle(MetaStyle.secondaryText)
+                        }
+                        Spacer(minLength: 0)
                     }
+                    .frame(minHeight: MetaStyle.listCellMinHeight)
                     .accessibilityElement(children: .combine)
                 }
             }
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Theme.passportPaper)
-                .overlay {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .strokeBorder(Theme.passportCover.opacity(0.10), lineWidth: 1)
-                }
-        )
-        .shadow(color: .black.opacity(0.10), radius: 10, y: 4)
+        .metaSection(vertical: 14)
     }
 
     private static func stampDate(_ date: Date) -> String {
