@@ -75,18 +75,18 @@ final class E2EWalkthroughUITests: XCTestCase {
         denyAllSystemAlerts(for: 3)
         capture(app, "e2e-02-onboarding-page2")
 
+        // Four pages; Continue until the last page's Start flying appears.
         let start = app.buttons["Start flying"]
-        if start.waitForExistence(timeout: 5) {
-            start.tap()
-        } else {
+        var continues = 0
+        while !start.waitForExistence(timeout: 2), continues < 4 {
             let cont = app.buttons["Continue"]
             require(cont, "Continue or Start flying on onboarding", timeout: 5)
             cont.tap()
             settle(1)
-            let start2 = app.buttons["Start flying"]
-            require(start2, "Start flying on the last onboarding page", timeout: 8)
-            start2.tap()
+            continues += 1
         }
+        require(start, "Start flying on the last onboarding page", timeout: 8)
+        start.tap()
 
         denyAllSystemAlerts(for: 8)
         require(app.staticTexts["VOYAGE"], "the VOYAGE home header after onboarding", timeout: 25)

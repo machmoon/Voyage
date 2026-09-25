@@ -10,6 +10,9 @@ struct SettingsView: View {
     @Query private var entries: [LogbookEntry]
     @State private var hasSeededData = false
     @State private var isWritingFeedback = false
+    /// Read once when Settings opens; Apple Intelligence state changes in the
+    /// Settings app, which reopening this screen picks up.
+    @State private var intelligence = IntelligenceAvailability.current
 
     /// Installed English voices, best first.
     private var paVoices: [AVSpeechSynthesisVoice] {
@@ -198,6 +201,23 @@ struct SettingsView: View {
                     Text("Flight Focus")
                 } footer: {
                     Text("Add Voyage to an iOS Focus Filter, then enable that Focus before boarding. Voyage only asks for Focus access after you configure this integration.")
+                }
+
+                if intelligence.offersSetting {
+                    Section {
+                        Toggle(isOn: Binding(
+                            get: { settings.onDeviceIntelligenceEnabled },
+                            set: { settings.onDeviceIntelligenceEnabled = $0 }
+                        )) {
+                            Label("Flight plan and captain's note", systemImage: "sparkles")
+                        }
+                        .disabled(intelligence != .available)
+                        .accessibilityIdentifier("settings-apple-intelligence")
+                    } header: {
+                        Text("Apple Intelligence")
+                    } footer: {
+                        Text(intelligence.settingsFootnote)
+                    }
                 }
 
                 Section {

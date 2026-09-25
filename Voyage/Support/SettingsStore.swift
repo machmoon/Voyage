@@ -99,6 +99,13 @@ final class SettingsStore {
         didSet { defaults.set(flightFocusRemindersEnabled, forKey: "flightFocusRemindersEnabled") }
     }
 
+    /// On-device Apple Intelligence for the flight plan and the captain's
+    /// note at cruise. Only offered where the model can run; off means every
+    /// flight is exactly what it is without Apple Intelligence.
+    var onDeviceIntelligenceEnabled: Bool {
+        didSet { defaults.set(onDeviceIntelligenceEnabled, forKey: "onDeviceIntelligenceEnabled") }
+    }
+
     /// The in-cruise beverage cart (hydration reminders).
     var cabinServiceEnabled: Bool {
         didSet { defaults.set(cabinServiceEnabled, forKey: "cabinServiceEnabled") }
@@ -200,6 +207,7 @@ final class SettingsStore {
         defaults.set(originWasSensed, forKey: "hasResolvedOriginFromLocation")
         flightFocusRemindersEnabled = defaults.object(forKey: "flightFocusRemindersEnabled") as? Bool ?? true
         cabinServiceEnabled = defaults.object(forKey: "cabinServiceEnabled") as? Bool ?? true
+        onDeviceIntelligenceEnabled = defaults.object(forKey: "onDeviceIntelligenceEnabled") as? Bool ?? true
         hasCompletedOnboarding = defaults.bool(forKey: "hasCompletedOnboarding")
         lastSeat = defaults.string(forKey: "lastSeat")
         lastSeatAircraftRaw = defaults.string(forKey: "lastSeatAircraft")

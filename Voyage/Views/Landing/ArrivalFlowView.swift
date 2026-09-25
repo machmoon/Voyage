@@ -1475,7 +1475,8 @@ private extension View {
 /// arrival, inside a keyline with corner register ticks. It is not a clean
 /// vector badge: the keyline doubles and wobbles, the ink is uneven, and the
 /// whole mark multiplies into the paper instead of sitting on top of it.
-private struct ArrivalCachet: View {
+/// Internal rather than private so onboarding can show the real stamp.
+struct ArrivalCachet: View {
     let code: String
     let city: String
     let dateText: String
