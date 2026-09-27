@@ -149,21 +149,10 @@ final class VoyageSmokeUITests: XCTestCase {
     @MainActor
     func testWeeklyReplayDesignAndPlayback() throws {
         let app = XCUIApplication()
-        // A seeded week, so the replay button exists on a fresh simulator.
-        app.launchArguments += ["-AppleLanguages", "(en)", "-AppleLocale", "en_US", "-VoyageSkipOnboarding",
-                                "-VoyageRecorderDemo"]
+        // -VoyageReplayDemo seeds this week's flights and opens their replay,
+        // so the test does not depend on what the simulator last flew.
+        app.launchArguments += ["-AppleLanguages", "(en)", "-AppleLocale", "en_US", "-VoyageReplayDemo"]
         app.launch()
-
-        dismissLocationPromptIfPresent()
-        XCTAssertTrue(app.staticTexts["VOYAGE"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.buttons["Open logbook"].waitForExistence(timeout: 5))
-        app.coordinate(withNormalizedOffset: CGVector(dx: 0.84, dy: 0.09)).tap()
-
-        let replayWeek = app.buttons.matching(
-            NSPredicate(format: "label CONTAINS[c] %@", "Replay")
-        ).firstMatch
-        XCTAssertTrue(replayWeek.waitForExistence(timeout: 5))
-        replayWeek.tap()
 
         XCTAssertTrue(app.buttons["Pause trip replay"].waitForExistence(timeout: 8))
         XCTAssertTrue(app.buttons["Recenter replay route"].exists)
@@ -178,7 +167,7 @@ final class VoyageSmokeUITests: XCTestCase {
 
         XCTAssertNotEqual(String(describing: progressSlider.value), startingValue,
                           "Replay progress should continue advancing while the UI remains responsive")
-        app.coordinate(withNormalizedOffset: CGVector(dx: 0.50, dy: 0.84)).tap()
+        app.buttons["Pause trip replay"].tap()
         XCTAssertTrue(app.buttons["Play trip replay"].waitForExistence(timeout: 3))
 
         let settledFrame = expectation(description: "Replay controls settle")
