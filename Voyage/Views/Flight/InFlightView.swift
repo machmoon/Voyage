@@ -35,6 +35,14 @@ struct InFlightView: View {
     @ObservedObject private var sceneryAvailability = WorldSceneryAvailability.shared
     @Environment(\.dynamicTypeSize) private var typeSize
 
+    // MARK: On-device briefing
+    //
+    // Apple Intelligence's plan and captain's note for this leg. `nil`, or a
+    // briefing with nothing in it, leaves this screen exactly as it is without
+    // Apple Intelligence: the bag tags, and the recorded PA.
+    @State private var briefing: FlightBriefing?
+    @State private var showsFlightPlan = false
+
     // MARK: Study-map warm-up
     //
     // The map card is mounted while it is on screen, and warmed ahead of first
@@ -124,12 +132,22 @@ struct InFlightView: View {
                     .transition(.opacity)
                 }
 
+                if session.serviceCue == nil, let briefing, briefing.isCaptainNoteVisible,
+                   let line = briefing.captainLine {
+                    CaptainNoteCard(line: line) {
+                        withAnimation(.smooth(duration: 0.3)) { briefing.dismissCaptainNote() }
+                    }
+                    .padding(.top, 18)
+                    .transition(.opacity)
+                }
+
                 // At accessibility sizes this column is already at the edge of
                 // the screen, and the cue pushes the ambient furniture off the
                 // bottom, taking the card with it. The cue is transient and the
                 // pill and the intentions strip are not, so for the ninety
                 // seconds a card is up they stand down.
-                let crowded = typeSize.isAccessibilitySize && session.serviceCue != nil
+                let crowded = typeSize.isAccessibilitySize
+                    && (session.serviceCue != nil || briefing?.isCaptainNoteVisible == true)
 
                 if showInfoPill && !crowded && !pureMode {
                     flightInfoPill
@@ -137,7 +155,16 @@ struct InFlightView: View {
                         .transition(.scale(scale: 0.9).combined(with: .opacity))
                 }
 
-                if !session.intentions.isEmpty && !crowded {
+                if let plan = briefing?.plan, session.phase < .descent, !crowded {
+                    FlightPlanStrip(plan: plan, bags: session.intentions,
+                                    cruiseMinute: cruiseMinute(for: plan)) {
+                        showsFlightPlan = true
+                    }
+                    .padding(.top, 16)
+                    .opacity(pureMode ? 0 : 1)
+                    .allowsHitTesting(!pureMode)
+                    .transition(.opacity)
+                } else if !session.intentions.isEmpty && !crowded {
                     intentionsStrip
                         .padding(.top, 16)
                         .opacity(pureMode ? 0 : 1)
@@ -201,6 +228,47 @@ struct InFlightView: View {
                 withAnimation(.easeInOut(duration: 0.3)) { refreshMapWarmup() }
                 try? await Task.sleep(for: .milliseconds(250))
             }
+        }
+        .task(id: session.legIndex) {
+            // Starts after the rip, during takeoff and climb, so nothing about
+            // departing waits on it. The factory returns nil below iOS 26,
+            // without Apple Intelligence, or with the setting off.
+            let schedule = session.phaseSchedule
+            let request = BriefingRequest(
+                bags: session.intentions,
+                originCity: session.currentLeg.origin.city,
+                destinationCity: session.currentLeg.destination.city,
+                cruiseMinutes: Int((schedule.descentStart - schedule.climbEnd) / 60)
+            )
+            let next = FlightBriefing(request: request, service: BriefingServiceFactory.make())
+            briefing = next
+            next.prewarm()
+            await next.prepare()
+        }
+        .onChange(of: session.now) { _, now in
+            guard let briefing else { return }
+            let wasVisible = briefing.isCaptainNoteVisible
+            withAnimation(.smooth(duration: 0.4)) {
+                briefing.update(phase: session.phase, now: now)
+            }
+            if briefing.isCaptainNoteVisible, !wasVisible { Haptics.softTick() }
+        }
+        .sheet(isPresented: $showsFlightPlan) {
+            if let plan = briefing?.plan {
+                FlightPlanSheet(plan: plan, bags: session.intentions,
+                                cruiseMinute: cruiseMinute(for: plan),
+                                destinationCity: session.currentLeg.destination.city)
+            }
+        }
+    }
+
+    /// Minutes into cruise for the plan strip: negative before the top of
+    /// climb, the plan's end once cruise is over.
+    private func cruiseMinute(for plan: FlightPlan) -> Double {
+        switch session.phase {
+        case .takeoffRoll, .climb: return -1
+        case .cruise: return session.phaseElapsed / 60
+        case .descent, .landing: return Double(plan.totalMinutes)
         }
     }
 
