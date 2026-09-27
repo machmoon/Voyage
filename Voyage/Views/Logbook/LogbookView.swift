@@ -44,12 +44,12 @@ struct LogbookView: View {
                     PassportView()
                 }
             }
-            // The picker strip sat on the plain background while both tabs use
-            // the grouped one, which drew a visible seam under the title bar.
-            .background(Color(.systemGroupedBackground).ignoresSafeArea())
+            // One warm page under the bar, the picker and both tabs, the way
+            // ramp.com sets a section on --grayLight (#f4f2f0). See RampDesign.swift.
+            .background(Ramp.page.ignoresSafeArea())
             .navigationTitle("Logbook")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(Color(.systemGroupedBackground), for: .navigationBar)
+            .toolbarBackground(Ramp.page, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -64,6 +64,8 @@ struct LogbookView: View {
                     Button("Done") { dismiss() }
                 }
             }
+            // The app accent, the same as every other sheet.
+            .tint(Theme.tint)
         }
         .fullScreenCover(item: $replaySelection) { selection in
             FlightReplayView(entries: selection.entries, title: selection.title)
@@ -76,6 +78,7 @@ struct LogbookView: View {
                 Section {
                     LogbookStorageWarning()
                 }
+                .listRowBackground(Ramp.surface)
             }
 
             Section {
@@ -88,8 +91,9 @@ struct LogbookView: View {
                 NavigationLink { FlightDataRecorderView() } label: { recorderRow }
                     .accessibilityIdentifier("open-recorder")
             }
+            .listRowBackground(Ramp.surface)
 
-            Section("Flights") {
+            Section {
                 if entries.isEmpty {
                     ContentUnavailableView(
                         "No flights yet",
@@ -101,29 +105,62 @@ struct LogbookView: View {
                         entryRow(entry)
                     }
                 }
+            } header: {
+                // A ramp.com table header: body-xs in --text-hushed, sentence
+                // case, no tracking.
+                HStack {
+                    Text("Flights")
+                    Spacer()
+                    Text("Time")
+                        .accessibilityHidden(true)
+                }
+                .voyageFont(Ramp.TypeScale.bodyXS)
+                .foregroundStyle(Ramp.hushed)
+                .textCase(nil)
+                .padding(.trailing, 44)
             }
+            .listRowBackground(Ramp.surface)
+            // Row rules are Airbnb's divider (#EBEBEB / #2C2C2C), one step
+            // lighter than the card hairline (#DDDDDD), as client.css splits
+            // --palette-bg-divider from --palette-border-secondary.
+            .listRowSeparatorTint(Ramp.divider)
         }
+        .scrollContentBackground(.hidden)
+        .background(Ramp.page)
+        .environment(\.defaultMinListRowHeight, 56)
     }
 
     // MARK: Recorder row
 
     /// Entry point to the flight data recorder. The caption states where the
     /// recorder stands rather than promising insight it may not have.
+    ///
+    /// Laid out like an Airbnb feature callout: a 48-grid two-tone glyph
+    /// (IcFeatureGraphUpAlt48, see LogbookGlyphs.swift) on a 12pt tile
+    /// (client.css `--corner-radius-medium`), a 16/20 semibold title and a
+    /// 14/18 secondary line (client.css title / body scale).
+    ///
+    /// Deviation, stated: Airbnb's 20% layer is the outline color at .2. On
+    /// the grey tile that is grey on grey, so the area under the line is the
+    /// accent at 25% instead: a tint fill under an ink stroke.
     private var recorderRow: some View {
-        HStack(spacing: 13) {
-            Image(systemName: "waveform.path.ecg.rectangle")
-                .font(.system(size: 19))
-                .foregroundStyle(Theme.accent)
-                .frame(width: 26)
+        HStack(spacing: 14) {
+            InsightsGlyph(line: Ramp.ink, area: Theme.tint, areaOpacity: 0.25)
+                .frame(width: 30, height: 30)
+                .frame(width: 48, height: 48)
+                .background(Ramp.tile, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             VStack(alignment: .leading, spacing: 2) {
                 Text("Insights")
-                    .font(.subheadline.weight(.semibold))
+                    .voyageFont(16, weight: .semibold)
+                    .kerning(-0.16)
+                    .foregroundStyle(Ramp.ink)
                 Text(recorderCaption)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .voyageFont(Ramp.TypeScale.bodyS)
+                    .foregroundStyle(Ramp.hushed)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 8)
     }
 
     private var recorderCaption: String {
@@ -140,8 +177,11 @@ struct LogbookView: View {
 
     // MARK: Status card
 
+    /// Laid out like a balance card on ramp.com: a hushed label, one large
+    /// number in regular weight (headline-xl), a hushed caption, then the
+    /// single filled call to action, in the app accent (rounded-md).
     private var statusCard: some View {
-        VStack(spacing: 16) {
+        VStack(alignment: .leading, spacing: 24) {
             // The rating card. One rating at a time, one row per requirement,
             // the way MyFlightbook lays out a rating
             // (MyFlightbook.Web/Areas/mvc/Views/Training/_ratingsProgressList.cshtml):
@@ -149,15 +189,23 @@ struct LogbookView: View {
             // ProgressDisplay text for Count and Time items.
             // One number, one line under it. Hours is the number a student
             // pilot watches; the rating, landings and airports are its caption.
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Total focus time")
+                    .voyageFont(Ramp.TypeScale.bodyS)
+                    .foregroundStyle(Ramp.hushed)
+                // Airbnb sets its large numerals in MEDIUM weight with -2%
+                // tracking (the 4.98 hero: 100px / 500 / -2px, read live off
+                // airbnb.com/rooms/…; "Guest favorite" 22px / 500 / -0.44px).
                 Text(PilotRatings.hoursText(LogbookStats.totalFocusSeconds(entries)))
-                    .voyageFont(38, weight: .semibold)
+                    .voyageFont(Ramp.TypeScale.headlineXL, weight: .medium)
+                    .kerning(-0.8)
                     .monospacedDigit()
+                    .foregroundStyle(Ramp.ink)
                 let landings = entries.filter(\.completed)
                 let streak = LogbookStats.streakDays(entries)
                 Text("\(rating.current.title) · \(landings.count) landings\(streak >= 2 ? " · \(streak)-day streak" : "")")
-                    .font(.subheadline)
-                    .opacity(0.72)
+                    .voyageFont(Ramp.TypeScale.bodyM)
+                    .foregroundStyle(Ramp.hushed)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -165,14 +213,18 @@ struct LogbookView: View {
             // implied by the rating name, and a list of checks is clutter.
             let openRequirements = rating.nextRequirements.filter { !$0.isSatisfied }
             if !openRequirements.isEmpty, let next = rating.next {
-                VStack(spacing: 10) {
+                VStack(spacing: 12) {
                     Text("Toward \(next.title)")
-                        .font(.caption.weight(.semibold))
-                        .opacity(0.72)
+                        .voyageFont(Ramp.TypeScale.bodyXS)
+                        .foregroundStyle(Ramp.hushed)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     ForEach(openRequirements) { requirement in
                         requirementRow(requirement)
                     }
+                }
+                .padding(.top, 16)
+                .overlay(alignment: .top) {
+                    Rectangle().fill(Ramp.rule).frame(height: 1)
                 }
             }
 
@@ -183,44 +235,40 @@ struct LogbookView: View {
             } label: {
                 HStack(spacing: 10) {
                     Image(systemName: "play.fill")
-                        .voyageFont(11, weight: .black)
+                        .voyageFont(11, weight: .bold)
                     VStack(alignment: .leading, spacing: 1) {
                         Text("Replay this week")
-                            .font(.subheadline.weight(.bold))
+                            .voyageFont(Ramp.TypeScale.bodyM, weight: .semibold)
+                            .kerning(-0.15)
                         Text(weekEntries.isEmpty
                              ? "No completed flights yet"
                              : "\(weekEntries.count) flight\(weekEntries.count == 1 ? "" : "s") · \(Int(LogbookStats.totalMiles(weekEntries)).formatted()) miles")
-                            .font(.caption2.weight(.medium))
-                            .opacity(0.68)
+                            .voyageFont(Ramp.TypeScale.bodyXS)
+                            // Full white: 5.15:1 on AccentFill #2F66DE.
+                            // At 85% it would drop to 4.19:1, under 4.5:1
+                            // for 12pt, so the size carries the hierarchy.
                     }
                     Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.caption.weight(.bold))
-                        .opacity(0.6)
+                    Image(systemName: "arrow.right")
+                        .voyageFont(Ramp.TypeScale.bodyS, weight: .medium)
                 }
-                .foregroundStyle(.white)
-                .padding(.horizontal, 14)
+                .foregroundStyle(Color.white)
+                .padding(.horizontal, 16)
                 // minHeight, not height: the label inside is two lines of
                 // scaling text and a fixed 54 clipped it from AX2 up.
                 .frame(minHeight: 54)
-                .background(Theme.accent.opacity(weekEntries.isEmpty ? 0.12 : 0.22),
-                            in: RoundedRectangle(cornerRadius: 15, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 15, style: .continuous)
-                        .strokeBorder(Theme.accent.opacity(weekEntries.isEmpty ? 0.12 : 0.34), lineWidth: 1)
-                )
             }
-            .buttonStyle(.plain)
+            .buttonStyle(AccentFillButtonStyle())
             .disabled(weekEntries.isEmpty)
             .accessibilityLabel("Replay \(weekEntries.count) flights from this week")
             }
         }
-        .foregroundStyle(.white)
-        .padding(20)
-        .background(Theme.surfaceDark, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .padding(.horizontal, Ramp.Space.cardH)
+        .padding(.vertical, Ramp.Space.cardV)
+        .background(Ramp.surface, in: RoundedRectangle(cornerRadius: Ramp.Radius.card, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .strokeBorder(.white.opacity(0.08), lineWidth: 1)
+            RoundedRectangle(cornerRadius: Ramp.Radius.card, style: .continuous)
+                .strokeBorder(Ramp.rule, lineWidth: 1)
         )
     }
 
@@ -230,34 +278,35 @@ struct LogbookView: View {
     /// way MyFlightbook's ratings progress list marks completed items.
     private func requirementRow(_ requirement: RatingRequirement) -> some View {
         let showsCheck = requirement.kind == .achieveOnce || requirement.isSatisfied
-        return VStack(spacing: 5) {
+        return VStack(spacing: 6) {
             HStack(spacing: 8) {
                 if showsCheck {
+                    // ramp.com/pricing marks an included feature with a filled
+                    // check_circle in #5AB570.
                     Image(systemName: requirement.isSatisfied ? "checkmark.circle.fill" : "circle")
-                        .voyageFont(12, weight: .semibold)
-                        .foregroundStyle(requirement.isSatisfied ? Theme.accent : .white.opacity(0.4))
+                        .voyageFont(14)
+                        .foregroundStyle(requirement.isSatisfied ? Ramp.positive : Ramp.hushed)
                 }
                 Text(requirement.title)
-                    .font(.subheadline)
-                    .opacity(requirement.isSatisfied ? 0.6 : 0.9)
+                    .voyageFont(Ramp.TypeScale.bodyS)
+                    .foregroundStyle(requirement.isSatisfied ? Ramp.hushed : Ramp.ink)
                 Spacer(minLength: 8)
                 if !showsCheck {
                     Text(requirement.progressText)
-                        .font(.caption)
-                        .monospacedDigit()
-                        .opacity(0.75)
+                        .voyageFont(Ramp.TypeScale.bodyXS, design: .monospaced)
+                        .foregroundStyle(Ramp.hushed)
                 }
             }
             if !showsCheck {
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
-                        Capsule().fill(.white.opacity(0.12))
+                        Capsule().fill(Ramp.track)
                         Capsule()
-                            .fill(Theme.accent)
+                            .fill(Ramp.mark)
                             .frame(width: geo.size.width * requirement.fraction)
                     }
                 }
-                .frame(height: 5)
+                .frame(height: 4)
             }
         }
         .accessibilityElement(children: .ignore)
@@ -270,58 +319,60 @@ struct LogbookView: View {
 
     // MARK: Entry row
 
+    /// A ramp.com transaction line: a leading tile, name over a hushed date,
+    /// and the amount (here, focus time) right-aligned in tabular figures.
+    /// The tile is a ticket (LogbookGlyphs.swift, after IcSystemTicket32):
+    /// the shape carries the meaning, so the old "ADMITTED" caption is gone.
     private func entryRow(_ entry: LogbookEntry) -> some View {
-        HStack(spacing: 14) {
-            // Mini stamp for a landing; a plain tile for a flight that
-            // stopped early, since there is no stamp to draw.
-            VStack(spacing: 1) {
-                Text(entry.destinationCode)
-                    .voyageFont(13, weight: .black, design: .monospaced)
-                if entry.completed {
-                    Text("ADMITTED")
-                        .voyageFont(5.5, weight: .heavy)
-                        .kerning(0.5)
-                }
-            }
-            .foregroundStyle(entry.completed ? entry.destination.accentColor : .secondary)
-            // The mini stamp is a scale drawing, so it is capped rather than
-            // grown: a stamp that doubles in size pushes the route and the
-            // miles off the row. Same call WordPress-iOS makes on its fixed
-            // cards (Modules/Sources/JetpackStats/Cards/TopListCard.swift).
-            .frame(width: 58, height: 44)
-            .dynamicTypeSize(...DynamicTypeSize.xxLarge)
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .strokeBorder(entry.completed ? entry.destination.accentColor : Color(.systemGray4),
-                                  lineWidth: 1.5)
-            )
-            .rotationEffect(.degrees(-4))
-            .opacity(entry.completed ? 1 : 0.6)
+        HStack(spacing: 12) {
+            // Fixed geometry with its own 13pt code, so it does not grow with
+            // Dynamic Type: a tile that doubles in size pushes the route and
+            // the time off the row. Same call WordPress-iOS makes on its
+            // fixed cards (Modules/Sources/JetpackStats/Cards/TopListCard.swift).
+            TicketTile(code: entry.destinationCode, landed: entry.completed)
 
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 5) {
+                    // Airbnb's card title: 15px / 500 / #222222 (live
+                    // computed style of a search result card).
                     Text("\(entry.originCode) → \(entry.destinationCode)")
-                        .font(.subheadline.weight(.semibold))
+                        .voyageFont(Ramp.TypeScale.bodyM, weight: .medium)
+                        .foregroundStyle(Ramp.ink)
                     if let via = entry.connectionCode {
                         Text("via \(via)")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
+                            .voyageFont(Ramp.TypeScale.bodyXS)
+                            .foregroundStyle(Ramp.hushed)
                     }
                 }
-                // Date and length. Flight number, seat, bags and miles are
-                // on the receipt and the stamp, not repeated on every row.
-                Text("\(entry.date.formatted(.dateTime.month(.abbreviated).day())) · \(entry.focusSeconds.shortDurationText)\(entry.completed ? "" : " · Stopped early")")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                // Date, and the outcome when it was not a landing. Flight
+                // number, seat, bags and miles are on the receipt and the
+                // stamp, not repeated on every row.
+                Text("\(entry.date.formatted(.dateTime.month(.abbreviated).day()))\(entry.completed ? "" : " · Stopped early")")
+                    .voyageFont(Ramp.TypeScale.bodyXS)
+                    // Stopped early reads from the grey ticket and the words;
+                    // the caption stays secondary text. (Ramp's #E96516 was
+                    // 3.2:1 on white, under AA for 12pt.) Airbnb lets neutrals
+                    // do this work and keeps color for the one accent.
+                    .foregroundStyle(Ramp.hushed)
             }
 
-            Spacer()
+            Spacer(minLength: 8)
 
-            if entry.completed {
-                LogbookShareButton(entry: entry)
+            Text(entry.focusSeconds.shortDurationText)
+                .voyageFont(Ramp.TypeScale.bodyM)
+                .monospacedDigit()
+                .foregroundStyle(entry.completed ? Ramp.ink : Ramp.hushed)
+
+            Group {
+                if entry.completed {
+                    LogbookShareButton(entry: entry)
+                } else {
+                    Color.clear
+                }
             }
+            .frame(width: 30)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 6)
         // The row itself replays the flight. One control per row, the
         // share glyph, instead of two.
         .contentShape(Rectangle())
@@ -334,6 +385,21 @@ struct LogbookView: View {
             guard entry.completed else { return }
             replaySelection = ReplaySelection(entries: [entry], title: "Flight \(entry.flightNumber)")
         }
+    }
+}
+
+/// The Logbook's one filled action: `Theme.accentFill` behind white text,
+/// Ramp's 6pt `rounded-md` corner. Pressed dims the fill, as
+/// `VoyageAccentButtonStyle` does.
+struct AccentFillButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(Theme.accentFill.opacity(configuration.isPressed ? 0.85 : 1),
+                        in: RoundedRectangle(cornerRadius: Ramp.Radius.button, style: .continuous))
+            .opacity(isEnabled ? 1 : 0.5)
+            .animation(.easeInOut(duration: 0.3), value: configuration.isPressed)
     }
 }
 
@@ -379,8 +445,9 @@ private struct LogbookShareButton: View {
 
     private var icon: some View {
         Image(systemName: "square.and.arrow.up")
-            .font(.body.weight(.semibold))
-            .foregroundStyle(Theme.accent)
+            .voyageFont(Ramp.TypeScale.bodyM, weight: .regular)
+            .foregroundStyle(Ramp.ink)
+            .frame(width: 30, height: 30)
     }
 }
 
