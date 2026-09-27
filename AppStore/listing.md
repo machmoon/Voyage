@@ -1,6 +1,6 @@
 # Voyage App Store copy — proposed September 11, 2026
 
-Status: 1.5 (build 11) submitted September 25, 2026, waiting for review: an on-device Apple Intelligence flight plan and captain's note, and a new four-page onboarding. 1.4 (build 10) is live. The "What's new" is in `build/submit_update.py`.
+Status: 1.5 (build 12) submitted September 27, 2026, waiting for review. It replaces build 11, whose review was withdrawn, and adds the logbook and passport redesign, the bag tag, study unlocks, trip replay without grey tiles and the Home streak to the Apple Intelligence flight plan and new onboarding. 1.4 (build 10) is live. The "What's new" is in `build/submit_update.py`.
 
 ## Positioning
 
