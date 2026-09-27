@@ -42,7 +42,7 @@ struct LayoverLoungeView: View {
                     .kerning(3)
             }
             .font(.system(size: 13, weight: .heavy))
-            .foregroundStyle(Theme.loungeGold)
+            .foregroundStyle(Theme.accent)
 
             Text("Welcome to \(connection.city)")
                 .font(.title2.bold())
@@ -107,11 +107,11 @@ struct LayoverLoungeView: View {
         } label: {
             Label("Board connecting flight", systemImage: "airplane.departure")
                 .font(.headline)
-                .foregroundStyle(.black)
+                .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
                 .background(
-                    session.isFinalCall ? Color.red : Theme.loungeGold,
+                    session.isFinalCall ? Theme.destructive : Theme.accent,
                     in: RoundedRectangle(cornerRadius: 18, style: .continuous)
                 )
         }

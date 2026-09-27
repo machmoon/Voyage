@@ -525,7 +525,7 @@ final class LayoutReportingMapView: MKMapView {
     }
 }
 
-private final class RouteLine: MKPolyline {
+final class RouteLine: MKPolyline {
     private(set) var color: UIColor = .white
     private(set) var width: CGFloat = 3
 
@@ -542,7 +542,7 @@ private final class PlaneAnnotation: NSObject, MKAnnotation {
     var hasPosition = false
 }
 
-private final class AirportAnnotation: NSObject, MKAnnotation {
+final class AirportAnnotation: NSObject, MKAnnotation {
     let airport: Airport
     var filled: Bool
     var coordinate: CLLocationCoordinate2D { airport.coordinate }
@@ -596,7 +596,7 @@ private final class PlaneMarkerView: MKAnnotationView {
 }
 
 /// Airport dot with its code underneath.
-private final class AirportDotView: MKAnnotationView {
+final class AirportDotView: MKAnnotationView {
     static let reuseID = "airport"
     private static let dotSize: CGFloat = 14
     private let dot = UIView()

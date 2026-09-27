@@ -596,7 +596,7 @@ private struct InFlightRulesPage: View {
                     .font(.system(size: 26, weight: .heavy, design: .monospaced))
                     .foregroundStyle(Theme.accent)
                     .frame(width: 64, alignment: .leading)
-                CardText("Leave the app for more than 30 seconds and your flight diverts. That's the whole trick. It's easier to stay when there's a plane to land.")
+                CardText("Leave the app for more than 30 seconds and your flight stops early. That's the whole trick. It's easier to stay when there's a plane to land.")
             }
             .accessibilityElement(children: .combine)
 

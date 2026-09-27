@@ -40,6 +40,61 @@ enum Theme {
     static let accent = Color(hex: "5E8FFF")
     static let destructive = Color(hex: "E65F5C")
 
+    // MARK: Adaptive color (light and dark)
+    //
+    // `accent` above is the value for the always-dark surfaces (globe, window,
+    // boarding, arrival). Surfaces that follow the system appearance, which
+    // today means the Logbook sheet, use the tokens below instead. They are
+    // the same hue: `tint` is `accent` in dark mode and a deeper step of it in
+    // light mode, because 5E8FFF on white is 3.07:1 and fails text contrast.
+    //
+    // Where the values live follows Apple's samples: the accent is the asset
+    // catalog's `AccentColor`, wired through
+    // ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME (apple/sample-food-truck,
+    // `App/Assets.xcassets/AccentColor.colorset`; apple/sample-backyard-birds,
+    // `Multiplatform/Assets.xcassets/AccentColor.colorset`), neutrals are
+    // system semantic colors (Food Truck `TruckView.swift:50`
+    // `Color(uiColor: .systemGroupedBackground)`), and the few custom colors
+    // are Color Sets with light, dark and Increase Contrast variants, as the
+    // HIG asks ("add a Color Set asset ... specify the bright and dim
+    // variants", developer.apple.com/design/human-interface-guidelines/dark-mode).
+    //
+    // Contrast (WCAG 2 relative luminance), full table in the color review:
+    //   tint        2F66DE light: 5.15:1 on white, 4.62:1 on F2F2F7
+    //               5E8FFF dark:  5.55:1 on 1C1C1E, 4.55:1 on 2C2C2E
+    //   accentFill  2F66DE both:  white text on it 5.15:1
+    //   stampInk    4268A8 / 9FB6E6: 5.56:1 on white, 6.84:1 on 2C2C2E
+    //   positive    1F7F37 / 30D158: 5.06:1 on white, 6.89:1 on 2C2C2E
+
+    /// The accent on adaptive surfaces: text, icons, strokes, progress fills,
+    /// selection. Also the app-wide system tint (the `AccentColor` asset).
+    static let tint = Color("AccentColor")
+    /// Behind white text: the one filled primary action on an adaptive
+    /// surface. The light `tint` in both appearances, so the label stays
+    /// above 4.5:1 in dark mode, where 5E8FFF under white is only 3.07:1.
+    static let accentFill = Color("AccentFill")
+    /// Passport stamps. A quieter tone of the accent hue (the paper
+    /// passport's `passportInk` in light mode), so a page of stamps reads as
+    /// a document, not as a page of buttons.
+    static let stampInk = Color("StampInk")
+    /// Done, met, landed. The only green in the Logbook.
+    static let positive = Color("Positive")
+
+    /// Page behind grouped content (system grouped background).
+    static let groupedBackground = Color(uiColor: .systemGroupedBackground)
+    /// Cards and rows on that page.
+    static let groupedSurface = Color(uiColor: .secondarySystemGroupedBackground)
+    static let label = Color(uiColor: .label)
+    static let secondaryLabel = Color(uiColor: .secondaryLabel)
+    static let tertiaryLabel = Color(uiColor: .tertiaryLabel)
+    static let separator = Color(uiColor: .separator)
+    /// Icon tiles and quiet control backgrounds.
+    static let quietFill = Color(uiColor: .tertiarySystemFill)
+    /// Progress track under a `tint` fill.
+    static let track = Color(uiColor: .systemFill)
+    /// Not yet collected, not landed: opaque grey, not faded ink.
+    static let inactive = Color(uiColor: .systemGray2)
+
     /// The kicker above a moment that is not an action: "PASSPORT CONTROL",
     /// lounge headers, arrival captions. Was an amber (`E5B567`), which made it
     /// a second brand color on functional UI. It is the accent now.
@@ -59,14 +114,6 @@ enum Theme {
 
     /// Unified dark surfaces — one family across in-flight, arrival, divert, logbook.
     static let surfaceWarm = surfaceDark
-
-    /// Lounge gold. Unused in the tree today, but `LayoverLoungeView` is being
-    /// rewritten and hard-codes `E8B23A` twice, so this stays available rather
-    /// than being deleted out from under that work. It is now an explicit gold
-    /// rather than an alias of `statusAmber`, which is the accent: a token
-    /// named "gold" must not quietly resolve to blue. The design note stands
-    /// that the lounge should move to `accent` and `destructive`.
-    static let loungeGold = Color(hex: "E5B567")
 
     static let cardBackground = Color(.secondarySystemGroupedBackground)
     static let nightSkyTop = Color(hex: "080C14")

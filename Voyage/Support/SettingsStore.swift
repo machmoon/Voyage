@@ -236,6 +236,7 @@ final class SettingsStore {
             "-VoyageHomeAirport",
             "-VoyageRecorderDemo",
             "-VoyageEmptyLogbook",
+            "-VoyageLoyaltyStarter",
             "-VoyageDemoFlight"
         ]
         if arguments.contains(where: onboardingSkipFlags.contains) {

@@ -201,11 +201,16 @@ struct GlobeAirportPin: View {
     let airport: Airport
     let role: GlobeRoute.PinRole
 
+    /// The annotation is centred on this stack, so the code gets an invisible
+    /// twin on the other side of the dot. Without it a code above the dot
+    /// pushed the dot a label's height south of its airport, onto its
+    /// neighbour (YVR's dot sat on SEA's).
     var body: some View {
+        let above = GlobeRoute.labelSitsAbove(airport)
         VStack(spacing: 3) {
-            if GlobeRoute.labelSitsAbove(airport) { GlobeAirportCode(airport: airport) }
+            GlobeAirportCode(airport: airport).opacity(above ? 1 : 0).accessibilityHidden(!above)
             GlobePinDot(role: role)
-            if !GlobeRoute.labelSitsAbove(airport) { GlobeAirportCode(airport: airport) }
+            GlobeAirportCode(airport: airport).opacity(above ? 0 : 1).accessibilityHidden(above)
         }
     }
 }

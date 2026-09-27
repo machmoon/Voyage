@@ -200,12 +200,12 @@ struct InFlightView: View {
         .animation(.smooth(duration: 0.35), value: pureMode)
         .statusBarHidden()
         .confirmationDialog("Leave this flight?", isPresented: $showExitConfirm, titleVisibility: .visible) {
-            Button("Divert and end the session", role: .destructive) {
+            Button("End flight early", role: .destructive) {
                 session.abandonFlight()
             }
             Button("Keep flying", role: .cancel) {}
         } message: {
-            Text("Diverting ends the session here. You keep the miles for legs you completed.")
+            Text("The flight is logged as stopped early. You keep the miles for legs you completed.")
         }
         .task {
             // Departure curtain already played during boarding. Fade the window

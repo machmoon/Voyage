@@ -49,6 +49,16 @@ final class FlightSession {
     /// Frequent-flyer tier at booking time; drives cosmetic unlocks only.
     let tier: FlyerTier
     var isPremiumCabin: Bool { tier >= .silver }
+    /// Landed flights in the logbook at booking time. The front row of the
+    /// premium cabin opens after the first one, ahead of Silver
+    /// (`LoyaltyProgram.premiumSeatAccess`).
+    var landedFlights: Int = 0
+
+    /// Whether a seat in `row` of the current aircraft can be booked.
+    func premiumSeatAccess(row: Int) -> PremiumSeatAccess {
+        LoyaltyProgram.premiumSeatAccess(row: row, plan: aircraft.cabinPlan,
+                                         tier: tier, landedFlights: landedFlights)
+    }
     var hasPremiumChime: Bool { tier == .platinum }
     var hasSunsetScene: Bool { tier >= .gold }
     var hasAuroraScene: Bool { tier == .platinum }

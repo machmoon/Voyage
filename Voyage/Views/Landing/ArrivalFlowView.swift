@@ -222,6 +222,11 @@ private struct BaggageClaimView: View {
 
     @State private var claimed: Set<Int> = []
 
+    private var claimPlate: BagTagLicensePlate {
+        BagTagLicensePlate.make(flightNumber: session.itinerary.legs[0].flightNumber,
+                                seat: session.seat, bookedAt: session.bookedAt)
+    }
+
     var body: some View {
         ZStack {
             Theme.surfaceDark.ignoresSafeArea()
@@ -237,6 +242,13 @@ private struct BaggageClaimView: View {
                     Text("Carousel 3 · claim what you finished")
                         .font(.subheadline)
                         .foregroundStyle(.white.opacity(0.55))
+                    // The claim check peeled off the bag tag at check-in
+                    // (`CheckBagView`). Recomputed, not stored: the plate is
+                    // a pure function of the booking.
+                    Text("Claim check \(claimPlate.printed)")
+                        .font(.caption.weight(.semibold).monospaced())
+                        .foregroundStyle(.white.opacity(0.45))
+                        .accessibilityLabel("Claim check \(claimPlate.spoken)")
                 }
                 .padding(.top, 40)
 
