@@ -288,6 +288,7 @@ struct HomeView: View {
                         // get the location glyph either.
                         glyph: settings.originIsFromLocation ? "location.fill" : "airplane.departure",
                         trailing: ratingLine,
+                        streak: streakLine,
                         showsChevron: false
                     )
                 }
@@ -307,11 +308,17 @@ struct HomeView: View {
     /// At accessibility text sizes the line does not fit beside the Logbook
     /// pill even scaled, so the trailing miles are dropped before the city is
     /// truncated (QA/e2e-ax-01-home.png: "San Fra… · 1,475 mi").
+    /// The streak outlasts the rating when space runs out: it is the number a
+    /// student protects day to day (the chip removed in 944a511 said so too).
     private func originLine(glyph: String,
                             trailing: String?,
+                            streak: String? = nil,
                             showsChevron: Bool) -> some View {
         ViewThatFits(in: .horizontal) {
-            originLineContent(glyph: glyph, trailing: trailing, showsChevron: showsChevron)
+            originLineContent(glyph: glyph,
+                              trailing: [streak, trailing].compactMap { $0 }.joined(separator: " · ").nilIfEmpty,
+                              showsChevron: showsChevron)
+            originLineContent(glyph: glyph, trailing: streak ?? trailing, showsChevron: showsChevron)
             originLineContent(glyph: glyph, trailing: nil, showsChevron: showsChevron)
             originLineContent(glyph: glyph, trailing: nil, showsChevron: showsChevron, codeOnly: true)
         }
@@ -352,6 +359,8 @@ struct HomeView: View {
     /// change of the logbook, not per body evaluation: the rating folds
     /// every entry, and Home redraws on every clock tick.
     @State private var ratingLine: String?
+    /// "3-day streak", from two days up. Same once-per-change rule.
+    @State private var streakLine: String?
 
     private struct LogbookKey: Equatable {
         let count: Int
@@ -364,6 +373,8 @@ struct HomeView: View {
 
     private func refreshRatingLine() {
         ratingLine = entries.isEmpty ? nil : RatingProgress.evaluate(entries: entries).summaryLine
+        let streak = LogbookStats.streakDays(entries)
+        streakLine = streak >= 2 ? "\(streak)-day streak" : nil
         standing = LoyaltyStanding(entries: entries)
     }
 
@@ -746,4 +757,8 @@ struct HomeView: View {
         Haptics.success()
         onDepart(session)
     }
+}
+
+private extension String {
+    var nilIfEmpty: String? { isEmpty ? nil : self }
 }

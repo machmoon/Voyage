@@ -186,6 +186,9 @@ enum BriefingRules {
     static let maximumSteps = 6
     static let maximumActionLength = 60
     static let maximumCaptainLength = 200
+    /// A step the model sizes below this is filler ("Open chapter 9",
+    /// "Close chapter 9") and is dropped while its bag has another step.
+    static let minimumStepMinutes = 10
 
     /// Cleans a line of model text into the owner's house style: straight
     /// whitespace, no wrapping quotes, no em or en dashes, no exclamation marks.
@@ -244,6 +247,20 @@ enum BriefingRules {
             .map { $0.count > 4 && $0.hasSuffix("s") ? String($0.dropLast()) : $0 }
     }
 
+    /// Stricter than `mentionsABag`: the text keeps what makes this task this
+    /// task. Every number in the bag survives, and so do at least half of its
+    /// words. A simulator run turned "Finish problem set 4" into "Solve the
+    /// problems", which shares a word but has lost the set.
+    static func keepsTask(_ text: String, bag: String) -> Bool {
+        let textDigits = Set(digitRuns(in: text))
+        guard digitRuns(in: bag).allSatisfy(textDigits.contains) else { return false }
+        let content = words(in: bag)
+        guard !content.isEmpty else { return true }
+        let textWords = Set(words(in: text))
+        let kept = content.filter(textWords.contains).count
+        return kept * 2 >= content.count
+    }
+
     static func containsEmoji(_ text: String) -> Bool {
         text.unicodeScalars.contains { $0.properties.isEmojiPresentation }
     }
@@ -264,11 +281,16 @@ enum BriefingRules {
                 !sentence.isEmpty
                     && !containsEmoji(sentence)
                     && !sentence.localizedCaseInsensitiveContains("ladies and gentlemen")
+                    // The instructions forbid it and the model still wrote
+                    // "You are now in cruising altitude."
+                    && !sentence.localizedCaseInsensitiveContains("altitude")
                     && numbersAreGrounded(sentence, in: request.bags)
             }
         // The first sentence about the traveler's work, then the sentence
         // after it, or the one before it when the work comes last.
-        guard let anchor = kept.firstIndex(where: { mentionsABag($0, bags: request.bags) }) else { return nil }
+        guard let anchor = kept.firstIndex(where: { sentence in
+            request.bags.contains { keepsTask(sentence, bag: $0) }
+        }) else { return nil }
         let partner = anchor + 1 < kept.count ? anchor + 1 : anchor - 1
         let pair = kept.indices.contains(partner)
             ? [min(anchor, partner), max(anchor, partner)].map { kept[$0] }
@@ -332,12 +354,18 @@ enum BriefingRules {
                   action.count <= maximumActionLength,
                   !containsEmoji(action),
                   numbersAreGrounded(action, in: [request.bags[bag]]),
-                  // A step that shares no word with its own bag is about
-                  // something else: an echoed example, or another bag.
-                  mentionsABag(action, bags: [request.bags[bag]]),
+                  // A step that loses its bag's numbers or most of its words
+                  // is about something else: an echoed example, another bag,
+                  // or a vaguer paraphrase of this one.
+                  keepsTask(action, bag: request.bags[bag]),
                   seen.insert(action.lowercased()).inserted
             else { continue }
             kept.append((bag, action, max(1, draft.minutes)))
+        }
+        // Filler steps go while their bag keeps a real one.
+        kept = kept.filter { item in
+            item.weight >= minimumStepMinutes
+                || !kept.contains { $0.bag == item.bag && $0.weight >= minimumStepMinutes }
         }
 
         // Every bag the traveler packed stays in the plan, in their words when

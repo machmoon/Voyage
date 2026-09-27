@@ -115,14 +115,6 @@ enum Theme {
     /// Unified dark surfaces — one family across in-flight, arrival, divert, logbook.
     static let surfaceWarm = surfaceDark
 
-    /// Lounge gold. Unused in the tree today, but `LayoverLoungeView` is being
-    /// rewritten and hard-codes `E8B23A` twice, so this stays available rather
-    /// than being deleted out from under that work. It is now an explicit gold
-    /// rather than an alias of `statusAmber`, which is the accent: a token
-    /// named "gold" must not quietly resolve to blue. The design note stands
-    /// that the lounge should move to `accent` and `destructive`.
-    static let loungeGold = Color(hex: "E5B567")
-
     static let cardBackground = Color(.secondarySystemGroupedBackground)
     static let nightSkyTop = Color(hex: "080C14")
     static let nightSkyBottom = Color(hex: "172239")

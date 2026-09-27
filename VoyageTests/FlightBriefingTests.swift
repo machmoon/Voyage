@@ -128,7 +128,7 @@ final class FlightBriefingTests: XCTestCase {
 
     func testPlanFitsTheCruiseWindowExactlyInFiveMinuteSteps() throws {
         let drafts = [
-            DraftStep(bag: 1, action: "Warm up with the easy problems", minutes: 20),
+            DraftStep(bag: 1, action: "Warm up on problem set 4", minutes: 20),
             DraftStep(bag: 1, action: "Work the hard problems in set 4", minutes: 40),
             DraftStep(bag: 2, action: "Read chapter 9", minutes: 30),
         ]
@@ -172,6 +172,42 @@ final class FlightBriefingTests: XCTestCase {
         let plan = try XCTUnwrap(BriefingRules.plan(from: drafts, request: request))
         XCTAssertEqual(plan.steps.map(\.action),
                        ["Read chapter 9", "Summarize chapter 9", "Finish problem set 4"])
+    }
+
+    /// The real on-device model on the simulator, 2026-09-27: the problem
+    /// set lost its number, and chapter 9 grew five-minute filler steps.
+    func testVagueParaphrasesAndFillerStepsAreDropped() throws {
+        let drafts = [
+            DraftStep(bag: 1, action: "Solve the problems", minutes: 50),
+            DraftStep(bag: 2, action: "Open chapter 9", minutes: 5),
+            DraftStep(bag: 2, action: "Read chapter 9", minutes: 20),
+            DraftStep(bag: 2, action: "Close chapter 9", minutes: 5),
+        ]
+        let plan = try XCTUnwrap(BriefingRules.plan(from: drafts, request: request))
+        XCTAssertEqual(plan.steps.map(\.action), ["Read chapter 9", "Finish problem set 4"])
+    }
+
+    func testAShortStepStaysWhenItIsTheBagsOnlyStep() throws {
+        let drafts = [DraftStep(bag: 1, action: "Check problem set 4", minutes: 5),
+                      DraftStep(bag: 2, action: "Skim chapter 9", minutes: 30)]
+        let plan = try XCTUnwrap(BriefingRules.plan(from: drafts, request: request))
+        XCTAssertEqual(plan.steps.map(\.action), ["Check problem set 4", "Skim chapter 9"])
+    }
+
+    func testKeepsTaskNeedsTheNumbersAndMostOfTheWords() {
+        XCTAssertTrue(BriefingRules.keepsTask("First pass: Finish problem set 4", bag: "Finish problem set 4"))
+        XCTAssertTrue(BriefingRules.keepsTask("Solve problem set 4", bag: "Finish problem set 4"))
+        XCTAssertFalse(BriefingRules.keepsTask("Solve the problems", bag: "Finish problem set 4"))
+        XCTAssertFalse(BriefingRules.keepsTask("Read chapter 10", bag: "Read chapter 9"))
+        XCTAssertTrue(BriefingRules.keepsTask("Draft the history essay", bag: "Outline the history essay"))
+        XCTAssertFalse(BriefingRules.keepsTask("Write an introduction", bag: "Outline the history essay"))
+    }
+
+    func testCaptainLineDropsAltitudeAndVagueTasks() {
+        let raw = "You are now in cruising altitude. Your first task is to solve the problems."
+        XCTAssertNil(BriefingRules.captainLine(raw, request: request))
+        let good = "We're level on the way to Denver. Finish problem set 4 is first."
+        XCTAssertEqual(BriefingRules.captainLine(good, request: request), good)
     }
 
     func testOutOfRangeBagsDuplicatesAndBlankActionsAreIgnored() throws {
