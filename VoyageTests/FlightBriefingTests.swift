@@ -176,15 +176,16 @@ final class FlightBriefingTests: XCTestCase {
 
     /// The real on-device model on the simulator, 2026-09-27: the problem
     /// set lost its number, and chapter 9 grew five-minute filler steps.
-    func testVagueParaphrasesAndFillerStepsAreDropped() throws {
+    /// With those gone only the bag list is left, which is no plan at all:
+    /// the flight keeps its bag tags.
+    func testVagueParaphrasesAndFillerStepsAreDropped() {
         let drafts = [
             DraftStep(bag: 1, action: "Solve the problems", minutes: 50),
             DraftStep(bag: 2, action: "Open chapter 9", minutes: 5),
             DraftStep(bag: 2, action: "Read chapter 9", minutes: 20),
             DraftStep(bag: 2, action: "Close chapter 9", minutes: 5),
         ]
-        let plan = try XCTUnwrap(BriefingRules.plan(from: drafts, request: request))
-        XCTAssertEqual(plan.steps.map(\.action), ["Read chapter 9", "Finish problem set 4"])
+        XCTAssertNil(BriefingRules.plan(from: drafts, request: request))
     }
 
     func testAShortStepStaysWhenItIsTheBagsOnlyStep() throws {
