@@ -149,10 +149,13 @@ final class BriefingCaptureUITests: XCTestCase {
         if note.waitForExistence(timeout: noteWait) {
             sleep(1)
             capture("inflight-\(name)-captain-note")
+            // The note can stand without a plan: when the rules drop every
+            // step, the bag tags stay (FlightBriefingTests covers it).
             let strip = app.buttons["flight-plan-strip"]
-            XCTAssertTrue(strip.waitForExistence(timeout: 5))
-            openPlanSheet(strip, in: app)
-            capture("inflight-\(name)-flight-plan-sheet")
+            if strip.waitForExistence(timeout: 5) {
+                openPlanSheet(strip, in: app)
+                capture("inflight-\(name)-flight-plan-sheet")
+            }
         } else {
             // No note: the rules dropped it, or there is no model. Without a
             // model this is today's screen, bag tags and all.

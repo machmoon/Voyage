@@ -149,7 +149,9 @@ final class VoyageSmokeUITests: XCTestCase {
     @MainActor
     func testWeeklyReplayDesignAndPlayback() throws {
         let app = XCUIApplication()
-        app.launchArguments += ["-AppleLanguages", "(en)", "-AppleLocale", "en_US", "-VoyageSkipOnboarding"]
+        // A seeded week, so the replay button exists on a fresh simulator.
+        app.launchArguments += ["-AppleLanguages", "(en)", "-AppleLocale", "en_US", "-VoyageSkipOnboarding",
+                                "-VoyageRecorderDemo"]
         app.launch()
 
         dismissLocationPromptIfPresent()
@@ -161,7 +163,7 @@ final class VoyageSmokeUITests: XCTestCase {
             NSPredicate(format: "label CONTAINS[c] %@", "Replay")
         ).firstMatch
         XCTAssertTrue(replayWeek.waitForExistence(timeout: 5))
-        app.coordinate(withNormalizedOffset: CGVector(dx: 0.50, dy: 0.48)).tap()
+        replayWeek.tap()
 
         XCTAssertTrue(app.buttons["Pause trip replay"].waitForExistence(timeout: 8))
         XCTAssertTrue(app.buttons["Recenter replay route"].exists)
