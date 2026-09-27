@@ -134,7 +134,7 @@ struct SeatSelectionView: View {
         let letter = seatID.filter(\.isLetter)
         guard let cabin = plan.cabins.first(where: { $0.rows.contains(row) }),
               (cabin.left + cabin.right).contains(letter),
-              !(cabin.isPremium && !session.isPremiumCabin) else { return false }
+              access(row: row, cabin: cabin).isBookable else { return false }
         return !isTaken(seatID)
     }
 
@@ -224,6 +224,14 @@ struct SeatSelectionView: View {
             flightDeck
             ForEach(Array(plan.cabins.enumerated()), id: \.element.id) { index, cabin in
                 bulkhead(cabin.name.uppercased(), isFirst: index == 0)
+                if cabin.isPremium, let note = premiumCabinNote(cabin) {
+                    Text(note)
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(Theme.seatMapInk.opacity(0.55))
+                        .multilineTextAlignment(.center)
+                        .frame(width: fuselageWidth - edgeInset * 2)
+                        .padding(.bottom, 2)
+                }
                 columnHeaders(cabin)
                 ForEach(cabin.rows, id: \.self) { row in
                     seatRow(row, cabin: cabin)
@@ -233,6 +241,20 @@ struct SeatSelectionView: View {
             // the last of the airframe never tucks under the Continue card.
             Color.clear.frame(height: tailLength + Self.tailClearance)
         }
+    }
+
+    /// One line under a premium cabin that is not fully open, phrased as a
+    /// status benefit: which row opens early and what opens the rest.
+    private func premiumCabinNote(_ cabin: CabinPlan.Cabin) -> String? {
+        guard !session.isPremiumCabin else { return nil }
+        let early = LoyaltyProgram.earlyUpgradeRows(in: plan).sorted()
+        guard let first = early.first else { return nil }
+        let rowText = early.count == 1 ? "Row \(first)" : "Rows \(first)–\(early.last ?? first)"
+        let rest = cabin.rows.count > early.count ? ", the rest at Silver" : ""
+        if session.premiumSeatAccess(row: first) == .earlyUpgrade {
+            return "\(rowText) open early for you\(rest)"
+        }
+        return "\(rowText) opens after your first landing\(rest)"
     }
 
     /// The nose is empty cabin-side. The flight deck is drawn with the nose
@@ -355,7 +377,7 @@ struct SeatSelectionView: View {
                           cabin: CabinPlan.Cabin, width: CGFloat) -> some View {
         let id = displaySeat(row: row, letter: letter)
         let taken = isTaken(id)
-        let locked = cabin.isPremium && !session.isPremiumCabin
+        let seatAccess = access(row: row, cabin: cabin)
 
         if taken {
             // Not a Button: a sold seat is not a control, and leaving it out of
@@ -365,15 +387,21 @@ struct SeatSelectionView: View {
                 .frame(width: width, height: seatDepth)
                 .frame(height: rowPitch)
                 .accessibilityLabel(accessibilityLabel(id: id, cabin: cabin,
-                                                       taken: true, locked: false))
+                                                       taken: true, access: .open))
         } else {
-            seatButton(id: id, cabin: cabin, width: width, locked: locked)
+            seatButton(id: id, cabin: cabin, width: width, access: seatAccess)
         }
     }
 
+    /// Loyalty state of a seat. Only premium rows can be closed.
+    private func access(row: Int, cabin: CabinPlan.Cabin) -> PremiumSeatAccess {
+        cabin.isPremium ? session.premiumSeatAccess(row: row) : .open
+    }
+
     private func seatButton(id: String, cabin: CabinPlan.Cabin,
-                            width: CGFloat, locked: Bool) -> some View {
+                            width: CGFloat, access: PremiumSeatAccess) -> some View {
         let isSelected = selected == id
+        let locked = !access.isBookable
 
         return Button {
             guard !locked else { return }
@@ -417,22 +445,29 @@ struct SeatSelectionView: View {
         .disabled(locked)
         .scaleEffect(isSelected ? 1.06 : 1)
         .animation(.snappy(duration: 0.25), value: isSelected)
-        .accessibilityLabel(accessibilityLabel(id: id, cabin: cabin, taken: false, locked: locked))
+        .accessibilityLabel(accessibilityLabel(id: id, cabin: cabin, taken: false, access: access))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
     /// Premium seats are announced by cabin; every other seat is plain
-    /// "Seat C10", which is also the contract the UI tests select on.
+    /// "Seat C10", which is also the contract the UI tests select on. A
+    /// partly open cabin says which seats are open early and what opens the
+    /// rest, the way a status benefit is phrased ("opens at Silver").
     private func accessibilityLabel(id: String, cabin: CabinPlan.Cabin,
-                                    taken: Bool, locked: Bool) -> String {
+                                    taken: Bool, access: PremiumSeatAccess) -> String {
         let prefix = cabin.isPremium ? "First class seat" : "Seat"
-        if locked { return "\(prefix) \(id), unlock at Silver tier" }
+        switch access {
+        case .lockedUntilSilver: return "\(prefix) \(id), locked, opens at Silver status"
+        case .lockedUntilFirstLanding: return "\(prefix) \(id), locked, opens after your first landed flight"
+        case .earlyUpgrade where !taken: return "\(prefix) \(id), early upgrade seat"
+        case .open, .earlyUpgrade: break
+        }
         if taken { return "\(prefix) \(id), taken" }
         return "\(prefix) \(id)"
     }
 
     /// Sold seats never reach here, so the only dimmed state is a premium seat
-    /// gated behind the tier the traveler has not reached yet.
+    /// the traveler's loyalty standing has not opened yet.
     private func seatColor(cabin: CabinPlan.Cabin, dimmed: Bool, selected: Bool) -> Color {
         if selected { return Theme.seatChosen }
         if dimmed { return Theme.seatTakenFill }
@@ -466,8 +501,10 @@ struct SeatSelectionView: View {
         selected.flatMap { Int($0.filter(\.isNumber)) }
     }
 
-    /// First available (non-taken, non-locked) seat, main cabins first — used
-    /// when the traveler skips seat selection.
+    /// First available (non-taken, non-locked) seat — used when the traveler
+    /// skips seat selection. Early upgrade seats are never auto-assigned: a
+    /// partly open premium cabin is skipped whole, as before, so Skip behaves
+    /// the same until Silver opens the cabin.
     private var defaultSeat: String? {
         for cabin in plan.cabins where !(cabin.isPremium && !session.isPremiumCabin) {
             for row in cabin.rows {
@@ -528,7 +565,11 @@ struct SeatSelectionView: View {
     private func seatPerk(for id: String) -> String {
         guard let row = Int(id.filter(\.isNumber)),
               let cabin = plan.cabin(forRow: row) else { return "Standard seat" }
-        if cabin.isPremium { return "Wider recliner, first to board" }
+        if cabin.isPremium {
+            return session.premiumSeatAccess(row: row) == .earlyUpgrade
+                ? "Early upgrade: wider recliner, first to board"
+                : "Wider recliner, first to board"
+        }
         if plan.exitRows.contains(row) { return "Extra legroom at the exit door" }
         if let wing = plan.wingAnchorRow, (wing...(wing + 3)).contains(row) {
             return "Over the wing, wing in view"
