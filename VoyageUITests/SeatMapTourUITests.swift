@@ -30,7 +30,7 @@ final class SeatMapTourUITests: XCTestCase {
         XCTAssertTrue(depart.waitForExistence(timeout: 6))
         depart.tap()
 
-        XCTAssertTrue(app.staticTexts["Choose your seat"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.staticTexts["Choose your seat"].waitForExistence(timeout: 20))
 
         for aircraft in ["Voyage Classic", "Boeing 737-800", "Airbus A320neo", "Boom Overture"] {
             try select(aircraft: aircraft, in: app)

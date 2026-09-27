@@ -129,6 +129,9 @@ final class BriefingCaptureUITests: XCTestCase {
 
         let fields = app.textFields
         XCTAssertTrue(fields.firstMatch.waitForExistence(timeout: 10))
+        // The bag tag feeds out of the printer for about two seconds; a tap
+        // during the feed lands before the field can take focus.
+        sleep(3)
         fields.element(boundBy: 0).tap()
         fields.element(boundBy: 0).typeText("Finish problem set 4")
         fields.element(boundBy: 1).tap()
