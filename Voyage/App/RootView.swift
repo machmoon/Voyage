@@ -13,7 +13,7 @@ struct RootView: View {
     /// A flight the previous process did not survive, logged on this launch.
     @State private var recoveredFlight: LogbookEntry?
     /// The cold-launch flyover, over whichever screen comes first.
-    @State private var showingFlyover = LaunchFlyoverView.shouldPlay && !Self.debugStampScreenshot
+    @State private var showingFlyover = LaunchFlyoverView.shouldPlay && !Self.debugStampScreenshot && !Self.replayDemo
     /// Held back until the flyover's plane reaches the centre. The first
     /// screen is a MapKit globe, and its first render stalls presentation for
     /// most of a second; mounted any earlier, it hides the flight behind the
@@ -22,7 +22,9 @@ struct RootView: View {
 
     var body: some View {
         ZStack {
-            if !contentMounted {
+            if Self.replayDemo {
+                ReplayDemoLaunchView()
+            } else if !contentMounted {
                 Color.clear
             } else if !settings.hasCompletedOnboarding {
                 OnboardingView {
@@ -169,6 +171,27 @@ struct RootView: View {
             DivertedView(session: session, kind: .missedConnection) {
                 self.session = nil
             }
+        }
+    }
+}
+
+extension RootView {
+    #if DEBUG
+    fileprivate static var replayDemo: Bool { ReplayDemo.isEnabled }
+    #else
+    fileprivate static let replayDemo = false
+    #endif
+}
+
+/// `-VoyageReplayDemo`'s screen: this week's seeded flights, replaying.
+private struct ReplayDemoLaunchView: View {
+    @Query(sort: \LogbookEntry.date) private var entries: [LogbookEntry]
+
+    var body: some View {
+        if entries.isEmpty {
+            Color.black.ignoresSafeArea()
+        } else {
+            FlightReplayView(entries: LogbookStats.completedFlights(entries), title: "This Week")
         }
     }
 }

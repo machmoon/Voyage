@@ -12,6 +12,8 @@ struct FlightReplayView: View {
     private let title: String
     private let flightAPI: any FlightDataProviding
     private let replayRoutes: [[CLLocationCoordinate2D]]
+    /// Each route's ground length in metres, for the follow camera's speed.
+    private let routeLengths: [Double]
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
@@ -20,7 +22,15 @@ struct FlightReplayView: View {
     @State private var progress = 0.0
     @State private var isPlaying = true
     @State private var replaySpeed = 1.0
-    @State private var cameraPosition: MapCameraPosition = .automatic
+    @State private var framing: ReplayFraming?
+    @State private var tiles: WorldSceneryLoadState = .loading
+    @State private var gateCeilingPassed = false
+    /// Playback holds until the whole trip has rendered (see `ReplayCameraPlan`).
+    @State private var mapReady = false
+    /// True once the establishing beat after the gate has passed.
+    @State private var rolling = false
+    @State private var headerMaxY: CGFloat = 0
+    @State private var cardMinY: CGFloat = 0
     @State private var previousClockTick: Date?
     @State private var milestoneText: String?
     @State private var milestoneID = UUID()
@@ -35,6 +45,7 @@ struct FlightReplayView: View {
         title = "Flight \(entry.flightNumber)"
         self.flightAPI = flightAPI
         replayRoutes = Self.makeRoutes(for: [entry], flightAPI: flightAPI)
+        routeLengths = replayRoutes.map(Self.groundLength)
     }
 
     init(entries: [LogbookEntry], title: String, flightAPI: any FlightDataProviding = FlightDataAPI.shared) {
@@ -43,6 +54,7 @@ struct FlightReplayView: View {
         self.title = title
         self.flightAPI = flightAPI
         replayRoutes = Self.makeRoutes(for: completedEntries, flightAPI: flightAPI)
+        routeLengths = replayRoutes.map(Self.groundLength)
     }
 
     private var activeIndex: Int {
@@ -107,6 +119,12 @@ struct FlightReplayView: View {
             replayMap
                 .ignoresSafeArea()
 
+            if !mapReady {
+                mapCover
+                    .ignoresSafeArea()
+                    .transition(.opacity)
+            }
+
             LinearGradient(
                 colors: [Theme.ink.opacity(0.74), .clear, Theme.ink.opacity(0.90)],
                 startPoint: .top,
@@ -117,16 +135,24 @@ struct FlightReplayView: View {
 
             VStack(spacing: 0) {
                 replayHeader
+                    .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: {
+                        headerMaxY = $0
+                    }
                 Spacer()
                 if let milestoneText {
                     milestoneBanner(milestoneText)
                         .padding(.bottom, 10)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
-                if activeEntry != nil {
-                    activityCard
-                } else {
-                    emptyCard
+                Group {
+                    if activeEntry != nil {
+                        activityCard
+                    } else {
+                        emptyCard
+                    }
+                }
+                .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minY } action: {
+                    cardMinY = $0
                 }
             }
             .padding(.horizontal, 18)
@@ -144,6 +170,16 @@ struct FlightReplayView: View {
         .onDisappear { playbackClock.stop() }
         .onChange(of: isPlaying) { _, _ in updatePlaybackClock() }
         .onChange(of: scenePhase) { _, _ in updatePlaybackClock() }
+        .onChange(of: playbackMayStart) { _, mayStart in
+            if mayStart { openGate() }
+        }
+        // The gate waits for a full render, but never longer than the
+        // in-flight map's cover does.
+        .task {
+            try? await Task.sleep(for: .seconds(StudyMapWarmup.tileCoverCeiling))
+            if !Task.isCancelled { gateCeilingPassed = true }
+        }
+
         .alert("Couldn’t export replay", isPresented: Binding(
             get: { exportError != nil },
             set: { if !$0 { exportError = nil } }
@@ -154,43 +190,89 @@ struct FlightReplayView: View {
         }
     }
 
+    /// Real MapKit tiles (standard, muted, dark), drawn by an `MKMapView` so
+    /// replay can wait for a full render and drive the camera per frame. See
+    /// `ReplayMapCanvas` and `ReplayCameraPlan` for why it no longer shows
+    /// MapKit's grey loading grid.
     private var replayMap: some View {
-        Map(position: $cameraPosition, interactionModes: [.pan, .zoom]) {
-            ForEach(Array(replayEntries.enumerated()), id: \.offset) { index, entry in
-                let coordinates = replayRoutes[index]
-                if coordinates.count >= 2 {
-                    MapPolyline(coordinates: coordinates, contourStyle: .geodesic)
-                        .stroke(.white.opacity(0.18),
-                                style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
-                }
+        ReplayMapCanvas(
+            routes: replayRoutes,
+            stops: replayStops,
+            reveal: replayRoutes.indices.map(revealShare(for:)),
+            aircraft: activeSnapshot,
+            following: isPlaying && rolling && progress < 1,
+            progress: progress,
+            legGroundSpeeds: legGroundSpeeds,
+            activeLeg: activeIndex,
+            legRect: routeRect(for: [activeIndex]),
+            framing: framing,
+            focusInsets: UIEdgeInsets(top: headerMaxY, left: 0,
+                                      bottom: max(0, screenHeight - cardMinY), right: 0),
+            reduceMotion: reduceMotion,
+            tilesChanged: { tiles = $0 }
+        )
+    }
 
-                let revealed = revealedCoordinates(for: index)
-                if revealed.count >= 2 {
-                    MapPolyline(coordinates: revealed, contourStyle: .geodesic)
-                        .stroke(Theme.accent,
-                                style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
-                }
+    /// The departure curtain's palette, as on the in-flight map, so the wait
+    /// for the first full render reads as a calm load rather than a grey grid.
+    private var mapCover: some View {
+        LinearGradient(
+            colors: [Color(hex: "0D1531"), Color(hex: "050713")],
+            startPoint: .top, endPoint: .bottom
+        )
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
 
-                Annotation("", coordinate: entry.origin.coordinate) {
-                    milestone(entry.origin.code, reached: progress >= segmentStart(for: index))
-                }
-                .annotationTitles(.hidden)
+    private var screenHeight: CGFloat {
+        (UIApplication.shared.connectedScenes.first as? UIWindowScene)?.screen.bounds.height
+            ?? UIScreen.main.bounds.height
+    }
 
-                Annotation("", coordinate: entry.destination.coordinate) {
-                    milestone(entry.destination.code, reached: progress >= segmentEnd(for: index))
-                }
-                .annotationTitles(.hidden)
-            }
+    private var playbackMayStart: Bool {
+        ReplayCameraPlan.playbackMayStart(
+            tiles: tiles,
+            ceilingPassed: gateCeilingPassed
+        )
+    }
 
-            if let snapshot = activeSnapshot {
-                Annotation("", coordinate: snapshot.coordinate) {
-                    aircraftMarker(course: snapshot.course)
+    /// Lifts the cover on the rendered whole-trip framing, holds it for a beat,
+    /// then lets the clock run and the camera glide into the first flight.
+    private func openGate() {
+        guard !mapReady else { return }
+        withAnimation(motion(.easeInOut(duration: 0.32))) { mapReady = true }
+        previousClockTick = nil
+        let hold = reduceMotion ? 0 : ReplayCameraPlan.establishingHold
+        DispatchQueue.main.asyncAfter(deadline: .now() + hold) {
+            previousClockTick = nil
+            rolling = true
+        }
+    }
+
+    /// Each airport once, filled once the replay has reached it.
+    private var replayStops: [ReplayStop] {
+        var reached: [String: Bool] = [:]
+        var order: [Airport] = []
+        for (index, entry) in replayEntries.enumerated() {
+            for (airport, isReached) in [(entry.origin, progress >= segmentStart(for: index)),
+                                         (entry.destination, progress >= segmentEnd(for: index))] {
+                if let existing = reached[airport.code] {
+                    reached[airport.code] = existing || isReached
+                } else {
+                    reached[airport.code] = isReached
+                    order.append(airport)
                 }
-                .annotationTitles(.hidden)
             }
         }
-        .mapStyle(.standard(elevation: .flat, emphasis: .muted, pointsOfInterest: .excludingAll))
-        .mapControls { MapCompass() }
+        return order.map { ReplayStop(airport: $0, reached: reached[$0.code] ?? false) }
+    }
+
+    /// Per flight, metres of ground the aircraft covers per second of
+    /// wall-clock replay at the current speed.
+    private var legGroundSpeeds: [Double] {
+        guard !replayEntries.isEmpty else { return [] }
+        let segmentSeconds = replayDuration / Double(replayEntries.count)
+        return routeLengths.map { $0 / segmentSeconds * replaySpeed }
     }
 
     private var replayHeader: some View {
@@ -461,27 +543,6 @@ struct FlightReplayView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// `Annotation` centres its content on the coordinate, so the code label
-    /// has to hang off the dot as an overlay. Putting it in the layout frame
-    /// (a VStack) pushes the dot half a label-height off the true position,
-    /// leaving a visible gap between the route line and its station.
-    private func milestone(_ code: String, reached: Bool) -> some View {
-        Circle()
-            .fill(reached ? Theme.accent : Theme.surfaceSubtle)
-            .frame(width: 12, height: 12)
-            .overlay(Circle().strokeBorder(.white, lineWidth: 2))
-            .overlay(alignment: .top) {
-                Text(code)
-                    .font(.system(size: 9, weight: .black, design: .monospaced))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 3)
-                    .background(.black.opacity(0.70), in: Capsule())
-                    .fixedSize()
-                    .alignmentGuide(.top) { $0[.bottom] + 4 }
-            }
-    }
-
     private func milestoneBanner(_ text: String) -> some View {
         HStack(spacing: 9) {
             Image(systemName: "checkmark.seal.fill")
@@ -499,36 +560,11 @@ struct FlightReplayView: View {
         .accessibilityElement(children: .combine)
     }
 
-    private func aircraftMarker(course: Double) -> some View {
-        ZStack {
-            Circle()
-                .fill(Theme.accent.opacity(0.20))
-                .frame(width: 48, height: 48)
-            Circle()
-                .fill(Theme.accent)
-                .frame(width: 30, height: 30)
-            Image(systemName: "airplane")
-                .font(.system(size: 15, weight: .black))
-                .foregroundStyle(.white)
-                // The SF Symbol points east at 0°. The map stays north-up, so
-                // converting true course to screen rotation requires -90°.
-                .rotationEffect(.degrees(course - 90))
-        }
-        .shadow(color: .black.opacity(0.22), radius: 5, y: 2)
-        .accessibilityLabel("Replay aircraft")
-    }
-
-    private func revealedCoordinates(for index: Int) -> [CLLocationCoordinate2D] {
-        let coordinates = replayRoutes[index]
-        guard coordinates.count > 1 else { return coordinates }
-        let reveal: Double
-        if index < activeIndex { reveal = 1 }
-        else if index == activeIndex { reveal = segmentProgress }
-        else { reveal = 0 }
-        guard reveal > 0 else { return [] }
-        let lastIndex = min(coordinates.count - 1,
-                            max(1, Int((Double(coordinates.count - 1) * reveal).rounded(.up))))
-        return Array(coordinates.prefix(lastIndex + 1))
+    /// Share of route `index`'s samples flown so far.
+    private func revealShare(for index: Int) -> Double {
+        if index < activeIndex { return 1 }
+        if index == activeIndex { return segmentProgress }
+        return 0
     }
 
     private func segmentStart(for index: Int) -> Double {
@@ -546,7 +582,7 @@ struct FlightReplayView: View {
         previousClockTick = nil
         milestoneText = nil
         isPlaying = !replayEntries.isEmpty
-        updateCamera()
+        frameWholeTrip()
         Haptics.tap()
     }
 
@@ -583,7 +619,8 @@ struct FlightReplayView: View {
     }
 
     private func advanceReplay(at tick: Date) {
-        guard isPlaying, !replayEntries.isEmpty else {
+        // Held on the whole trip until the map has rendered it.
+        guard isPlaying, rolling, !replayEntries.isEmpty else {
             previousClockTick = nil
             return
         }
@@ -596,12 +633,11 @@ struct FlightReplayView: View {
             let destination = replayEntries[previousIndex].destinationCode
             showMilestone("\(destination) collected · Flight \(previousIndex + 1) complete")
         }
-        followAircraft()
         if progress >= 1 {
             isPlaying = false
             previousClockTick = nil
-            // Pull back to the whole leg so the finished route reads as a shape.
-            updateCamera()
+            // Pull back to the whole trip so the finished routes read as a shape.
+            frameWholeTrip()
             let completion = replayEntries.count == 1
                 ? "Flight replay complete · \(replayEntries[0].destinationCode) collected"
                 : "Week complete · \(replayEntries.count) flights replayed"
@@ -657,37 +693,33 @@ struct FlightReplayView: View {
         }
     }
 
-    /// Keeps the aircraft centred while the replay plays, mirroring the live
-    /// map's Follow mode (`FlightMapView.updateCamera`). Without this the
-    /// camera framed the whole route once and the plane crawled across it.
-    private func followAircraft() {
-        guard isPlaying, let snapshot = activeSnapshot else { return }
-        withAnimation(motion(.smooth(duration: 0.35))) {
-            cameraPosition = .camera(MapCamera(
-                centerCoordinate: snapshot.coordinate,
-                distance: 320_000,
-                heading: 0,
-                pitch: 0
-            ))
-        }
+    /// Frames the active leg: the explicit "recenter" action, and where a
+    /// jump or scrub lands. While playback flies the camera it follows the
+    /// aircraft instead (`ReplayMapCanvas`).
+    private func updateCamera() {
+        requestFraming(routeRect(for: [activeIndex]))
     }
 
-    /// Frames the whole leg. This is the explicit "recenter" action, and where
-    /// playback returns when it stops following.
-    private func updateCamera() {
-        guard replayRoutes.indices.contains(activeIndex) else { return }
-        let coordinates = replayRoutes[activeIndex]
-        guard let first = coordinates.first else { return }
-        var routeRect = MKMapRect(origin: MKMapPoint(first), size: .init(width: 1, height: 1))
-        for coordinate in coordinates.dropFirst() {
-            let point = MKMapPoint(coordinate)
-            routeRect = routeRect.union(MKMapRect(origin: point, size: .init(width: 1, height: 1)))
-        }
-        let horizontalPadding = max(routeRect.size.width * 0.24, 24_000)
-        let verticalPadding = max(routeRect.size.height * 0.30, 24_000)
-        routeRect = routeRect.insetBy(dx: -horizontalPadding, dy: -verticalPadding)
-        withAnimation(motion(.smooth(duration: 0.45))) {
-            cameraPosition = .rect(routeRect)
+    private func frameWholeTrip() {
+        requestFraming(routeRect(for: Array(replayRoutes.indices)))
+    }
+
+    private func requestFraming(_ rect: MKMapRect) {
+        guard !rect.isNull else { return }
+        framing = ReplayFraming(id: (framing?.id ?? 0) + 1, rect: rect)
+    }
+
+    private func routeRect(for indices: [Int]) -> MKMapRect {
+        indices.filter(replayRoutes.indices.contains).flatMap { replayRoutes[$0] }
+            .reduce(MKMapRect.null) { rect, coordinate in
+                let point = MKMapPoint(coordinate)
+                return rect.union(MKMapRect(x: point.x, y: point.y, width: 1, height: 1))
+            }
+    }
+
+    private static func groundLength(_ coordinates: [CLLocationCoordinate2D]) -> Double {
+        zip(coordinates, coordinates.dropFirst()).reduce(0) { total, pair in
+            total + MKMapPoint(pair.0).distance(to: MKMapPoint(pair.1))
         }
     }
 
