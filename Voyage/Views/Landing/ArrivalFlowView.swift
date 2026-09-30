@@ -544,6 +544,9 @@ private struct StampView: View {
     /// them keeps the stamp moment clean instead of stacking a form under it.
     @State private var stamped = false
     @State private var revealed = false
+    /// The logbook after this landing, for the tier-up card.
+    @Query private var loggedEntries: [LogbookEntry]
+    @State private var tierUp: MilesProgress?
     /// The rating this landing completed, read back off the saved entry
     /// after baggage claim. Printed under the cachet on its own beat.
     @State private var endorsement: PilotRating?
@@ -601,6 +604,9 @@ private struct StampView: View {
             }
         }
         .onAppear { runStampSequence() }
+        .sheet(item: $tierUp) { progress in
+            TierUpCard(progress: progress)
+        }
         .onChange(of: shareCaption) { _, _ in
             // Persisting is cheap and wants to be immediate; drawing the card
             // is not, so it waits for a pause in typing.
@@ -706,6 +712,16 @@ private struct StampView: View {
             try? await Task.sleep(for: .milliseconds(950))
             withAnimation(.smooth(duration: 0.45)) {
                 revealed = true
+            }
+            // Post-reward resetting (Kivetz et al. 2006): a landing that
+            // crossed a tier shows the new perk, then straight away the next
+            // tier's bar with the surplus already on it.
+            let after = MilesProgress(entries: loggedEntries)
+            if session.logEntry?.completed == true, after.tier > session.tier {
+                try? await Task.sleep(for: .milliseconds(600))
+                tierUp = after
+                Haptics.upgrade()
+                CabinAudioEngine.shared.playChime(premium: true)
             }
             await askForReviewIfEarned()
         }

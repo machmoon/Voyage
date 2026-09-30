@@ -69,6 +69,11 @@ final class VoyageMilesTests: XCTestCase {
         XCTAssertEqual(progress.bonusFraction, 0)
     }
 
+    func testCarryOverLineNeverReadsZeroAfterATierUp() {
+        let progress = MilesProgress(flownMiles: 15_820, bonusMiles: 500, tier: .gold)
+        XCTAssertEqual(progress.carryOverLine, "Platinum: 820 of 25,000 already")
+    }
+
     func testPlatinumHasNoGap() {
         let progress = MilesProgress(flownMiles: 60_000, bonusMiles: 500, tier: .platinum)
         XCTAssertEqual(progress.remaining, 0)

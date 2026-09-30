@@ -246,6 +246,7 @@
 		D9F03FA5FBAE43273A7FFE79 /* DivertedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEADBF54A9BE3BC765AB6B39 /* DivertedView.swift */; };
 		DB6E0FBC7A8C23F896FCA196 /* NinetySecondTourUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80DF8DC44A094F25C9BF7BDB /* NinetySecondTourUITests.swift */; };
 		DBF239438B2E3B6CECE84E8C /* captain_landed_raleigh-durham.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 11487234A9EE6620ACB08159 /* captain_landed_raleigh-durham.m4a */; };
+		DBF8B82A465228D1B1E7F014 /* TierUpCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB491DB016BF47CBC5A1058F /* TierUpCard.swift */; };
 		DC3D19079E2863BF42B343D2 /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2383FDD5245C999AB4D11CFA /* Haptics.swift */; };
 		DD885F176036C2ABA717CCCA /* CabinServiceCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 338276021CD9CD3DF47FB347 /* CabinServiceCard.swift */; };
 		DE89D9530FEA6A54A0BCC59B /* E2EWalkthroughUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40E479A32A9C1A390407B447 /* E2EWalkthroughUITests.swift */; };
@@ -515,6 +516,7 @@
 		B95FC7EE99A7EB1A1CB608F3 /* ActivityStaleDateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityStaleDateTests.swift; sourceTree = "<group>"; };
 		B9EDD1957010314B223AF200 /* SoundEffectsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundEffectsTests.swift; sourceTree = "<group>"; };
 		BAD8B69CF65E78B46148736E /* AppFeedback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppFeedback.swift; sourceTree = "<group>"; };
+		BB491DB016BF47CBC5A1058F /* TierUpCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TierUpCard.swift; sourceTree = "<group>"; };
 		BBF5EEF22F534CB2D783D7DE /* crew_landed_toronto.m4a */ = {isa = PBXFileReference; path = crew_landed_toronto.m4a; sourceTree = "<group>"; };
 		BC2722D2607D1446EB0D8DD9 /* BoardingFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardingFlowView.swift; sourceTree = "<group>"; };
 		BD46A76F6878B9E0B74707A6 /* captain_landed_miami.m4a */ = {isa = PBXFileReference; path = captain_landed_miami.m4a; sourceTree = "<group>"; };
@@ -609,6 +611,7 @@
 				6A557502C604D2FB850EAF5A /* FirstClassPaywall.swift */,
 				AAAFFCBE6A86B914CA6768F9 /* FlightManualView.swift */,
 				0707536CE1EE6501FCA203AD /* MembershipCardView.swift */,
+				BB491DB016BF47CBC5A1058F /* TierUpCard.swift */,
 				DCE9238C19A5B1E78A5DEE0B /* UpgradeOfferSheet.swift */,
 			);
 			path = Membership;
@@ -1530,6 +1533,7 @@
 				78844768A6356EB0F9DB5566 /* TaskBagTagView.swift in Sources */,
 				4D31525631FD4FC74A1A1AF1 /* TestModeSeeder.swift in Sources */,
 				2A6D2CD0EC832A9D6BD443E8 /* Theme.swift in Sources */,
+				DBF8B82A465228D1B1E7F014 /* TierUpCard.swift in Sources */,
 				96AC30BF0A697D72EE75C2CE /* UpgradeOfferSheet.swift in Sources */,
 				B08A7359BD48DB86E4BC534C /* VoyageAPIClient.swift in Sources */,
 				D59281AE250FEE4F8D4E047A /* VoyageApp.swift in Sources */,

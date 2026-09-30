@@ -40,7 +40,9 @@ enum VoyageMiles {
 
 /// Where a traveler stands on the way to the next tier, folded once for the
 /// Home card, the upgrade sheet and the membership card.
-struct MilesProgress: Equatable {
+struct MilesProgress: Equatable, Identifiable {
+    var id: String { "\(tier.rawValue)-\(Int(statusMiles))" }
+
     let flownMiles: Double
     let bonusMiles: Double
     let tier: FlyerTier
@@ -96,6 +98,13 @@ struct MilesProgress: Equatable {
     /// a tier-up. Post-reward resetting (Kivetz et al. 2006): the bar never
     /// shows zero right after a reward.
     var carriedOver: Double { max(0, statusMiles - tier.threshold) }
+
+    /// "Gold: 820 of 10,000 already", the next bar right after a tier-up.
+    var carryOverLine: String? {
+        guard let next else { return nil }
+        let span = next.threshold - tier.threshold
+        return "\(next.rawValue): \(MilesFormat.number(carriedOver)) of \(MilesFormat.number(span)) already"
+    }
 
     /// "1,240 miles to Silver", "Almost Silver", "Platinum. Top of the program."
     var headline: String {
