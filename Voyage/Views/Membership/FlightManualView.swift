@@ -22,7 +22,7 @@ struct FlightManualView: View {
                         .foregroundStyle(Theme.textSecondary)
                         .padding(.bottom, 4)
                     ForEach(Array(FlightManual.findings.enumerated()), id: \.element.id) { index, finding in
-                        FindingCard(finding: finding) { openURL = IdentifiedURL(url: finding.url) }
+                        ManualFindingCard(finding: finding) { openURL = IdentifiedURL(url: finding.url) }
                             .opacity(appeared ? 1 : 0)
                             .offset(y: appeared ? 0 : 18)
                             .animation(.spring(response: 0.5, dampingFraction: 0.85)
@@ -68,7 +68,7 @@ struct FlightManualView: View {
     }
 }
 
-private struct FindingCard: View {
+private struct ManualFindingCard: View {
     let finding: FlightManual.Finding
     let openCitation: () -> Void
 
