@@ -214,6 +214,55 @@ jobs:
           fi
           ls -la shipaton-media
           exit $STATUS
+      - name: Record the flight beat
+        # A second recording for the video's flight: miles card, if-then plan,
+        # bag tags, the torn pass, a demo-length leg, baggage claim, customs and
+        # the Flight Manual. Reinstalled first so it flies as a free traveler,
+        # not the Voyage First member the purchase above just made.
+        if: always()
+        run: |
+          mkdir -p shipaton-flight
+          xcrun simctl uninstall "$UDID" com.patrickliu.voyage || true
+          xcrun simctl install "$UDID" build/dd/Build/Products/Debug-iphonesimulator/Voyage.app
+          xcrun simctl privacy "$UDID" grant location com.patrickliu.voyage || true
+          xcrun simctl privacy "$UDID" grant location-always com.patrickliu.voyage || true
+          python3 -c 'import time; print("%.3f" % time.time())' > shipaton-flight/record-start.txt
+          xcrun simctl io "$UDID" recordVideo --codec=h264 --force shipaton-flight/flight-raw.mp4 &
+          REC=$!
+          sleep 2
+          set +e
+          TEST_RUNNER_SHIPATON_CAPTURE_DIR="$PWD/shipaton-flight" xcodebuild test-without-building \
+            -project Voyage.xcodeproj -scheme Voyage \
+            -destination "id=$UDID" \
+            -derivedDataPath build/dd \
+            -only-testing:VoyageUITests/ShipatonFlightUITests \
+            -resultBundlePath shipaton-flight/ShipatonFlight.xcresult
+          STATUS=$?
+          sleep 1
+          kill -INT $REC
+          wait $REC
+          if [ -f shipaton-flight/flight-start.txt ] && [ -f shipaton-flight/flight-end.txt ]; then
+            read START DURATION < <(python3 -c "
+          r=float(open('shipaton-flight/record-start.txt').read()); a=float(open('shipaton-flight/flight-start.txt').read()); b=float(open('shipaton-flight/flight-end.txt').read())
+          s=max(0.0, a-r-0.5); print('%.2f %.2f' % (s, b-a+1.5))")
+            avconvert --source shipaton-flight/flight-raw.mp4 --preset PresetPassthrough \
+              --output shipaton-flight/flight.mp4 --start "$START" --duration "$DURATION" --replace \
+              || cp shipaton-flight/flight-raw.mp4 shipaton-flight/flight.mp4
+          else
+            cp shipaton-flight/flight-raw.mp4 shipaton-flight/flight.mp4
+          fi
+          rm -f shipaton-flight/flight-raw.mp4
+          ls -la shipaton-flight
+          exit 0
+      - name: Upload the flight beat
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shipaton-flight
+          path: |
+            shipaton-flight/*.mp4
+            shipaton-flight/*.png
+          if-no-files-found: warn
       - name: Compact copies for the repo
         # A phone-sized mp4 (avconvert ships with macOS) and JPEG stills, small
         # enough to commit under docs/shipaton/media; the full-resolution
