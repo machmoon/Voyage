@@ -18,7 +18,7 @@ struct FlightReceiptView: View {
     var bagCodesLine: String? = nil
     let viaCode: String?
 
-    static func bagCodesLine(codes: [String], completed: [Bool]) -> String? {
+    static func makeBagCodesLine(codes: [String], completed: [Bool]) -> String? {
         guard !codes.isEmpty else { return nil }
         return codes.enumerated().map { index, code in
             let done = index < completed.count && completed[index]
@@ -38,7 +38,7 @@ struct FlightReceiptView: View {
         self.caption = caption?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
         intentionsTotal = session.intentions.count
         intentionsCompleted = session.logEntry?.intentionsCompleted.filter(\.self).count ?? 0
-        bagCodesLine = Self.bagCodesLine(codes: session.logEntry?.tagCodes ?? [],
+        bagCodesLine = Self.makeBagCodesLine(codes: session.logEntry?.tagCodes ?? [],
                                          completed: session.logEntry?.intentionsCompleted ?? [])
         viaCode = session.itinerary.connection?.code
     }
@@ -55,7 +55,7 @@ struct FlightReceiptView: View {
         caption = entry.shareCaption
         intentionsTotal = entry.intentions.count
         intentionsCompleted = zip(entry.intentions, entry.intentionsCompleted).filter(\.1).count
-        bagCodesLine = Self.bagCodesLine(codes: entry.tagCodes, completed: entry.intentionsCompleted)
+        bagCodesLine = Self.makeBagCodesLine(codes: entry.tagCodes, completed: entry.intentionsCompleted)
         viaCode = entry.connectionCode
     }
 
