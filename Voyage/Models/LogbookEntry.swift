@@ -175,7 +175,14 @@ final class LogbookEntry {
     }
 }
 
-/// Frequent-flyer status, computed from lifetime completed miles.
+/// Frequent-flyer status, computed from status miles: the flown distance plus
+/// the 500-mile welcome bonus (`VoyageMiles`).
+///
+/// Every threshold sits 500 above the original 5,000 / 15,000 / 40,000, so
+/// the welcome bonus changes how progress *looks* (a card that starts with
+/// stamps on it, Nunes & Drèze 2006) without changing anyone's tier: a
+/// traveler with any logbook entry has the bonus, and m + 500 crosses a
+/// new threshold exactly where m crossed the old one.
 enum FlyerTier: String, CaseIterable, Identifiable, Comparable {
     case member = "Member"
     case silver = "Silver"
@@ -187,9 +194,9 @@ enum FlyerTier: String, CaseIterable, Identifiable, Comparable {
     var threshold: Double {
         switch self {
         case .member: return 0
-        case .silver: return 5_000
-        case .gold: return 15_000
-        case .platinum: return 40_000
+        case .silver: return 5_500
+        case .gold: return 15_500
+        case .platinum: return 40_500
         }
     }
 
@@ -214,7 +221,7 @@ enum FlyerTier: String, CaseIterable, Identifiable, Comparable {
     var perkDescription: String {
         switch self {
         case .member: return "Economy cabin"
-        case .silver: return "Business-class seats"
+        case .silver: return "First-class seats"
         case .gold: return "Sunset window scenes"
         case .platinum: return "Aurora red-eyes & first-class chime"
         }
@@ -231,7 +238,7 @@ enum LogbookStats {
     /// Both stay, permanently: dropping miles would demote a traveler who
     /// reached Platinum by miles before ratings existed.
     static func tier(_ entries: [LogbookEntry]) -> FlyerTier {
-        let byMiles = FlyerTier.tier(forMiles: totalMiles(entries))
+        let byMiles = FlyerTier.tier(forMiles: VoyageMiles.statusMiles(entries))
         let byRating = RatingProgress.evaluate(entries: entries).current.cosmeticTier
         return max(byMiles, byRating)
     }

@@ -5,14 +5,16 @@ import SwiftData
 @MainActor
 final class FlyerTierTests: XCTestCase {
 
+    /// Thresholds sit 500 above the original 5,000 / 15,000 / 40,000 so the
+    /// 500-mile welcome bonus changes how progress looks, not anyone's tier.
     func testTierThresholds() {
         XCTAssertEqual(FlyerTier.tier(forMiles: 0), .member)
-        XCTAssertEqual(FlyerTier.tier(forMiles: 4_999), .member)
-        XCTAssertEqual(FlyerTier.tier(forMiles: 5_000), .silver)
-        XCTAssertEqual(FlyerTier.tier(forMiles: 14_999), .silver)
-        XCTAssertEqual(FlyerTier.tier(forMiles: 15_000), .gold)
-        XCTAssertEqual(FlyerTier.tier(forMiles: 39_999), .gold)
-        XCTAssertEqual(FlyerTier.tier(forMiles: 40_000), .platinum)
+        XCTAssertEqual(FlyerTier.tier(forMiles: 5_499), .member)
+        XCTAssertEqual(FlyerTier.tier(forMiles: 5_500), .silver)
+        XCTAssertEqual(FlyerTier.tier(forMiles: 15_499), .silver)
+        XCTAssertEqual(FlyerTier.tier(forMiles: 15_500), .gold)
+        XCTAssertEqual(FlyerTier.tier(forMiles: 40_499), .gold)
+        XCTAssertEqual(FlyerTier.tier(forMiles: 40_500), .platinum)
         XCTAssertEqual(FlyerTier.tier(forMiles: 100_000), .platinum)
     }
 
