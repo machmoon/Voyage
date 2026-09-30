@@ -177,6 +177,7 @@
 		8E743E20A577052BEAAAC9D8 /* StudyCoachSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FD32186AF1A70DAF0ABAA98 /* StudyCoachSection.swift */; };
 		8F3E92CC9FB45784EFCBF85D /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0FF1BED67E63D4365884E3C /* HomeView.swift */; };
 		8F801ADDFF480B8A0CDCE918 /* Membership.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9673E64355BF2C19CC13775 /* Membership.swift */; };
+		92D25EB1B324113E7900DE7C /* ShipatonFlightUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0BDD8B1F6977D5ABD45957 /* ShipatonFlightUITests.swift */; };
 		958655BEA69867587AC74A4A /* FlightManualView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAFFCBE6A86B914CA6768F9 /* FlightManualView.swift */; };
 		96AC30BF0A697D72EE75C2CE /* UpgradeOfferSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCE9238C19A5B1E78A5DEE0B /* UpgradeOfferSheet.swift */; };
 		98273EE2ED4F02F6F3EA706D /* captain_layover_regina.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 0F8AFBE9EFBCB5E93699E0D5 /* captain_layover_regina.m4a */; };
@@ -222,6 +223,7 @@
 		BE9AA8546F6A8F7E93F04228 /* crew_preview.m4a in Resources */ = {isa = PBXBuildFile; fileRef = F44071B8E0327A74FF5D7D50 /* crew_preview.m4a */; };
 		BEEC020E7B00A161632E72BC /* VoyageSmokeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B08FC90B909634E033DBB2B /* VoyageSmokeUITests.swift */; };
 		BFB5FD2F181C241870577433 /* FlightPostView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4622E9976475575ABB598CDC /* FlightPostView.swift */; };
+		C2BB1ADF4A8EEAAFBB80E6D0 /* RedesignCaptureUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6614C142F7A822926BE8BECD /* RedesignCaptureUITests.swift */; };
 		C3D0DA87C3A260120110D617 /* crew_landed_raleigh-durham.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 39BF15532E3111871FE32A10 /* crew_landed_raleigh-durham.m4a */; };
 		C67FA72B89B0F962AD2DDFE0 /* LoyaltyProgram.swift in Sources */ = {isa = PBXBuildFile; fileRef = 249CC56FE35BB1FBA3B5CC85 /* LoyaltyProgram.swift */; };
 		C6A224EEDC8399DCCF214A22 /* OnboardingUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF9D0F0A8DEEE9D163BE0277 /* OnboardingUITests.swift */; };
@@ -421,6 +423,7 @@
 		62627218B7DFDACAA05958B7 /* BagTagView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BagTagView.swift; sourceTree = "<group>"; };
 		64ED0633A31C9F28D72F2C48 /* VoyageAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoyageAPIClient.swift; sourceTree = "<group>"; };
 		654D54193C21CA54CA1A4136 /* captain_descent_raleigh-durham.m4a */ = {isa = PBXFileReference; path = "captain_descent_raleigh-durham.m4a"; sourceTree = "<group>"; };
+		6614C142F7A822926BE8BECD /* RedesignCaptureUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedesignCaptureUITests.swift; sourceTree = "<group>"; };
 		668FF95FA41782B6DD89C9AE /* FeedbackSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackSheet.swift; sourceTree = "<group>"; };
 		66C90DE9B3A81CF67A2ED3A5 /* FlightScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightScheduler.swift; sourceTree = "<group>"; };
 		66E594E5CF2E444CC76F7A15 /* captain_descent_san-francisco.m4a */ = {isa = PBXFileReference; path = "captain_descent_san-francisco.m4a"; sourceTree = "<group>"; };
@@ -516,6 +519,7 @@
 		B95FC7EE99A7EB1A1CB608F3 /* ActivityStaleDateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityStaleDateTests.swift; sourceTree = "<group>"; };
 		B9EDD1957010314B223AF200 /* SoundEffectsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundEffectsTests.swift; sourceTree = "<group>"; };
 		BAD8B69CF65E78B46148736E /* AppFeedback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppFeedback.swift; sourceTree = "<group>"; };
+		BB0BDD8B1F6977D5ABD45957 /* ShipatonFlightUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShipatonFlightUITests.swift; sourceTree = "<group>"; };
 		BB491DB016BF47CBC5A1058F /* TierUpCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TierUpCard.swift; sourceTree = "<group>"; };
 		BBF5EEF22F534CB2D783D7DE /* crew_landed_toronto.m4a */ = {isa = PBXFileReference; path = crew_landed_toronto.m4a; sourceTree = "<group>"; };
 		BC2722D2607D1446EB0D8DD9 /* BoardingFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardingFlowView.swift; sourceTree = "<group>"; };
@@ -631,10 +635,12 @@
 				80DF8DC44A094F25C9BF7BDB /* NinetySecondTourUITests.swift */,
 				DF9D0F0A8DEEE9D163BE0277 /* OnboardingUITests.swift */,
 				B36A674EB82F814C49CC6650 /* RecorderScreenshotUITests.swift */,
+				6614C142F7A822926BE8BECD /* RedesignCaptureUITests.swift */,
 				9C6FBB0F4116077FBF34D6A5 /* ScreenshotTourUITests.swift */,
 				6B4B0BB4DDA53541AF9E921B /* SeatMapTourUITests.swift */,
 				0A0FE05364955A8866252542 /* SFOWindowWorldUITests.swift */,
 				8502C7C5CB584104FE286430 /* ShipatonDemoUITests.swift */,
+				BB0BDD8B1F6977D5ABD45957 /* ShipatonFlightUITests.swift */,
 				2B08FC90B909634E033DBB2B /* VoyageSmokeUITests.swift */,
 			);
 			path = VoyageUITests;
@@ -1427,10 +1433,12 @@
 				DB6E0FBC7A8C23F896FCA196 /* NinetySecondTourUITests.swift in Sources */,
 				C6A224EEDC8399DCCF214A22 /* OnboardingUITests.swift in Sources */,
 				55F23693CF9EF21785BD3E99 /* RecorderScreenshotUITests.swift in Sources */,
+				C2BB1ADF4A8EEAAFBB80E6D0 /* RedesignCaptureUITests.swift in Sources */,
 				A9129418EED5173845FA52B8 /* SFOWindowWorldUITests.swift in Sources */,
 				C7FDAF2BD88333F514059BF5 /* ScreenshotTourUITests.swift in Sources */,
 				19EB6951B3D0FE183843B6DB /* SeatMapTourUITests.swift in Sources */,
 				9CE94DEA7D90C30A2F70446C /* ShipatonDemoUITests.swift in Sources */,
+				92D25EB1B324113E7900DE7C /* ShipatonFlightUITests.swift in Sources */,
 				BEEC020E7B00A161632E72BC /* VoyageSmokeUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1681,7 +1689,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 12;
+				CURRENT_PROJECT_VERSION = 13;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1695,7 +1703,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.5;
+				MARKETING_VERSION = 1.6;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1819,7 +1827,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 12;
+				CURRENT_PROJECT_VERSION = 13;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -1839,7 +1847,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.5;
+				MARKETING_VERSION = 1.6;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
