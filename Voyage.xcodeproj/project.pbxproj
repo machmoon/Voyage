@@ -16,6 +16,7 @@
 		032D7F92BC8E892B6FCCE829 /* WindowSceneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4639BD8F909C425C8B7EC5D /* WindowSceneView.swift */; };
 		0377876D10F2AA8927F1BBBE /* crew_descent_seattle.m4a in Resources */ = {isa = PBXBuildFile; fileRef = FF8C7489C463F4523EA7D5F8 /* crew_descent_seattle.m4a */; };
 		03C101EBF053D4C8E1B49DA8 /* crew_landed_regina.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 9A165B73007A3BD7DF568A7A /* crew_landed_regina.m4a */; };
+		0502810D3DBC9A6D92ADF82C /* OneSignalInAppMessages in Frameworks */ = {isa = PBXBuildFile; productRef = F17B717E8860D97D80BAFC26 /* OneSignalInAppMessages */; };
 		05426DFD9E8A8129F4B17A7F /* captain_landed_los-angeles.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 8F8C967F7B680DFEE8371514 /* captain_landed_los-angeles.m4a */; };
 		07081E57D6E66D161AC72A74 /* RouteCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84CD44E3543F506A3749B2CE /* RouteCatalog.swift */; };
 		07342AC9822B7C289DF846C1 /* LoyaltyCaptureUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A919135A73C063F6C1B3CE94 /* LoyaltyCaptureUITests.swift */; };
@@ -112,11 +113,13 @@
 		56DC41BC5BA08949265D9C15 /* crew_landed_miami.m4a in Resources */ = {isa = PBXBuildFile; fileRef = B145332E2371200EB461070D /* crew_landed_miami.m4a */; };
 		56FF23C161103D50E1408D29 /* crew_landed_los-angeles.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 12E458668041C9519447B5BB /* crew_landed_los-angeles.m4a */; };
 		573E37E770BDDA9B063AAA69 /* crew_layover_new-york.m4a in Resources */ = {isa = PBXBuildFile; fileRef = B15AC396FD3E4ECE3FCFC968 /* crew_layover_new-york.m4a */; };
+		5A8A9299EBBA4EE50386AC2B /* OneSignalFramework in Frameworks */ = {isa = PBXBuildFile; productRef = B349126D9459DCE4FC50F23A /* OneSignalFramework */; };
 		5A9781BA132793585B048488 /* SFOAirportWorldData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D73111F4672CFB7C953DCD /* SFOAirportWorldData.swift */; };
 		5B2C7F00477E7536E11EB8A9 /* StartupGlobeGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B52995320B0ADDC04BC4692B /* StartupGlobeGate.swift */; };
 		5B3C88C7C436A0DE9D421053 /* crew_finalcall_raleigh-durham.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 8C5C70CC4052CFAD39B33D3D /* crew_finalcall_raleigh-durham.m4a */; };
 		5CDB0B64658060333ACE3551 /* LocationManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1545C3C05BB4E989996E11EC /* LocationManagerTests.swift */; };
 		5D29901E080702153EC4FF2C /* captain_finalcall_seattle.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 52B08EF860955B29A30B1D09 /* captain_finalcall_seattle.m4a */; };
+		5D4BA98C4A019E8A516CE153 /* PushEngagementTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D3423C6ACFFBCD524CD82A5 /* PushEngagementTests.swift */; };
 		5E4059C7A6871E4AE6967802 /* ArrivalFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40BDCC51D903FA09B7B40B74 /* ArrivalFlowView.swift */; };
 		5EF401491EEC75BE5036D307 /* captain_finalcall_regina.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 1C5605B00A8994113D8123E0 /* captain_finalcall_regina.m4a */; };
 		5FE76A4299766FC88A5D0BA6 /* captain_midpoint_miami.m4a in Resources */ = {isa = PBXBuildFile; fileRef = E8AD096EF2E77C0ABB1D8286 /* captain_midpoint_miami.m4a */; };
@@ -214,6 +217,7 @@
 		B3CE3D47A00CDA957DE780C3 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E56316EB70D85A66C9B618B3 /* SettingsView.swift */; };
 		B4970D3315854BE625BC7717 /* captain_midpoint_san-francisco.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 8EB6C0907262DAFAE144A0CC /* captain_midpoint_san-francisco.m4a */; };
 		B5B809E54AD1A7F0B224C055 /* DeparturePlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = B868737FEB3F677F4B0ED94C /* DeparturePlan.swift */; };
+		B5D0557876ED79D91EC7B991 /* PushEngagement.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5865AD8DF439226FC686A141 /* PushEngagement.swift */; };
 		B7664D42A73AF6A21FAACC4B /* PilotRatingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C27E2A5E4DBC77E8C75FC1AF /* PilotRatingsTests.swift */; };
 		BAE28233263100BCC5A3266C /* captain_descent_san-francisco.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 66E594E5CF2E444CC76F7A15 /* captain_descent_san-francisco.m4a */; };
 		BBF37A9F92223494A89CE28B /* captain_landed_regina.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 68992329ADA6E0D2215DDF7E /* captain_landed_regina.m4a */; };
@@ -385,6 +389,7 @@
 		3C70DC94325C931FE057F890 /* StudyCoach.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyCoach.swift; sourceTree = "<group>"; };
 		3D082301D455543C4F246FCE /* captain_landed_seattle.m4a */ = {isa = PBXFileReference; path = captain_landed_seattle.m4a; sourceTree = "<group>"; };
 		3D29534C6DDDDDE775788062 /* ReplayCameraPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReplayCameraPlan.swift; sourceTree = "<group>"; };
+		3D3423C6ACFFBCD524CD82A5 /* PushEngagementTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushEngagementTests.swift; sourceTree = "<group>"; };
 		3E30BFA907F67EA8F525E70D /* LogbookExportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogbookExportTests.swift; sourceTree = "<group>"; };
 		3F61809C8110A2240CB552C8 /* crew_descent_vancouver.m4a */ = {isa = PBXFileReference; path = crew_descent_vancouver.m4a; sourceTree = "<group>"; };
 		40BDCC51D903FA09B7B40B74 /* ArrivalFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArrivalFlowView.swift; sourceTree = "<group>"; };
@@ -413,6 +418,7 @@
 		55AC9A9549FAC8C00EAA0616 /* LogbookStorageWarning.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogbookStorageWarning.swift; sourceTree = "<group>"; };
 		55B9B6BE95604DDC4F1D7B8F /* crew_layover_vancouver.m4a */ = {isa = PBXFileReference; path = crew_layover_vancouver.m4a; sourceTree = "<group>"; };
 		56D4D40BAD9F85F05F7C581A /* FlightMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightMapView.swift; sourceTree = "<group>"; };
+		5865AD8DF439226FC686A141 /* PushEngagement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushEngagement.swift; sourceTree = "<group>"; };
 		58EAE6B722B2E664C16999C5 /* captain_midpoint_regina.m4a */ = {isa = PBXFileReference; path = captain_midpoint_regina.m4a; sourceTree = "<group>"; };
 		591C58B45FD8B32DF107C9F0 /* captain_layover_san-francisco.m4a */ = {isa = PBXFileReference; path = "captain_layover_san-francisco.m4a"; sourceTree = "<group>"; };
 		5B3E3EA3614B21EB239A8785 /* CabinServicePlanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CabinServicePlanner.swift; sourceTree = "<group>"; };
@@ -438,6 +444,7 @@
 		6A557502C604D2FB850EAF5A /* FirstClassPaywall.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirstClassPaywall.swift; sourceTree = "<group>"; };
 		6B4B0BB4DDA53541AF9E921B /* SeatMapTourUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeatMapTourUITests.swift; sourceTree = "<group>"; };
 		6CB0E8E2B49F73535A03C4E3 /* FlightSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightSession.swift; sourceTree = "<group>"; };
+		6DE2DCE88158D88ECE067EBA /* Voyage.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Voyage.entitlements; sourceTree = "<group>"; };
 		6FD32186AF1A70DAF0ABAA98 /* StudyCoachSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyCoachSection.swift; sourceTree = "<group>"; };
 		70B261169A7B09AB85EFC180 /* FlightDataRecorderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightDataRecorderView.swift; sourceTree = "<group>"; };
 		70EE26938771E82CCE4CF44F /* FlightActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightActivity.swift; sourceTree = "<group>"; };
@@ -603,6 +610,8 @@
 			files = (
 				01A353D6336B3640D6A27001 /* RevenueCat in Frameworks */,
 				4411262B912C442B03CADA25 /* RevenueCatUI in Frameworks */,
+				5A8A9299EBBA4EE50386AC2B /* OneSignalFramework in Frameworks */,
+				0502810D3DBC9A6D92ADF82C /* OneSignalInAppMessages in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -697,6 +706,7 @@
 				896418F2BD5C90838D03F3DB /* LoyaltyProgramTests.swift */,
 				3783C99C7CB2EF0AB22EC48F /* MembershipTests.swift */,
 				C27E2A5E4DBC77E8C75FC1AF /* PilotRatingsTests.swift */,
+				3D3423C6ACFFBCD524CD82A5 /* PushEngagementTests.swift */,
 				7CD17548DAFEE7A39239C324 /* ReplayCameraPlanTests.swift */,
 				FF3BFC67E078E4199B9419D6 /* RouteCatalogTests.swift */,
 				CE7C38C4A1700E1751034581 /* RoutePlannerTests.swift */,
@@ -1081,6 +1091,7 @@
 				10566A414E4D9EAE24BC0E96 /* MapWarmer.swift */,
 				C9673E64355BF2C19CC13775 /* Membership.swift */,
 				9A844250B231FB1AC590FFA5 /* PassportPhotoStore.swift */,
+				5865AD8DF439226FC686A141 /* PushEngagement.swift */,
 				20210B8E1FFC3A5D9C63C341 /* RampDesign.swift */,
 				CA71C0325864048E6EDDA32D /* RecorderDemoLogbook.swift */,
 				3D29534C6DDDDDE775788062 /* ReplayCameraPlan.swift */,
@@ -1090,6 +1101,7 @@
 				7C0EDF5B41D51CA232306FEE /* StudyMapWarmup.swift */,
 				4117C4E6EEA3358F00D1B5B4 /* TestModeSeeder.swift */,
 				98D80A40384AA0FD2BE7D690 /* Theme.swift */,
+				6DE2DCE88158D88ECE067EBA /* Voyage.entitlements */,
 				64ED0633A31C9F28D72F2C48 /* VoyageAPIClient.swift */,
 				E29771D86F89BBD9C6ADB9A2 /* VoyageClock.swift */,
 				F2D217AFDB4461EF35491CB0 /* WeatherService.swift */,
@@ -1154,6 +1166,8 @@
 			packageProductDependencies = (
 				6D053422FEA504B3490A8084 /* RevenueCat */,
 				14DBF3374C28188756EEE0BE /* RevenueCatUI */,
+				B349126D9459DCE4FC50F23A /* OneSignalFramework */,
+				F17B717E8860D97D80BAFC26 /* OneSignalInAppMessages */,
 			);
 			productName = Voyage;
 			productReference = 2395A0E623392E6DA9E44EF0 /* Voyage.app */;
@@ -1211,6 +1225,7 @@
 			mainGroup = 58AD12399E967C64671DB42A;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				C80A501482FFD88647A86CE8 /* XCRemoteSwiftPackageReference "OneSignal-XCFramework" */,
 				E9F9C094B6AC34F010374EE4 /* XCRemoteSwiftPackageReference "purchases-ios-spm" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -1406,6 +1421,7 @@
 				47864DFD7E0F46C7660116B5 /* LoyaltyProgramTests.swift in Sources */,
 				7C9E2463626AE9E88A259B33 /* MembershipTests.swift in Sources */,
 				B7664D42A73AF6A21FAACC4B /* PilotRatingsTests.swift in Sources */,
+				5D4BA98C4A019E8A516CE153 /* PushEngagementTests.swift in Sources */,
 				55153B902A4694833BE33E8F /* ReplayCameraPlanTests.swift in Sources */,
 				87603F97599BDD9EBA2488DE /* RouteCatalogTests.swift in Sources */,
 				2AB8D241BA72ABEF44132012 /* RoutePlannerTests.swift in Sources */,
@@ -1514,6 +1530,7 @@
 				75851D7A4CD16A7979B8C57B /* PassportStamp.swift in Sources */,
 				3573E8F27242AF37FB6A92BF /* PassportView.swift in Sources */,
 				61110BA43DD5F1BD341EFAC2 /* PilotRatings.swift in Sources */,
+				B5D0557876ED79D91EC7B991 /* PushEngagement.swift in Sources */,
 				68A40B9919F476C5D3627376 /* RampDesign.swift in Sources */,
 				6C4CB85B98BC15BB86423990 /* RealWorldSceneView.swift in Sources */,
 				2635C6D98348BF8F3626F340 /* RealWorldTwinView.swift in Sources */,
@@ -1582,6 +1599,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Voyage/Support/Voyage.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Distribution";
 				CODE_SIGN_STYLE = Manual;
 				DEVELOPMENT_TEAM = 3QQL2XA4VS;
@@ -1592,6 +1610,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				ONESIGNAL_APP_ID = ONESIGNAL_APP_ID_NOT_SET;
 				PRODUCT_BUNDLE_IDENTIFIER = com.patrickliu.voyage;
 				PROVISIONING_PROFILE_SPECIFIER = Voyage;
 				REVENUECAT_API_KEY = REVENUECAT_API_KEY_NOT_SET;
@@ -1689,7 +1708,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 13;
+				CURRENT_PROJECT_VERSION = 14;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1740,6 +1759,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Voyage/Support/Voyage.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 3QQL2XA4VS;
@@ -1750,6 +1770,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				ONESIGNAL_APP_ID = ONESIGNAL_APP_ID_NOT_SET;
 				PRODUCT_BUNDLE_IDENTIFIER = com.patrickliu.voyage;
 				REVENUECAT_API_KEY = test_LlloIJeXyDjIqWpcwNZexxJvRHW;
 				SDKROOT = iphoneos;
@@ -1827,7 +1848,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 13;
+				CURRENT_PROJECT_VERSION = 14;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -1910,6 +1931,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		C80A501482FFD88647A86CE8 /* XCRemoteSwiftPackageReference "OneSignal-XCFramework" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/OneSignal/OneSignal-XCFramework";
+			requirement = {
+				kind = exactVersion;
+				version = 5.7.0;
+			};
+		};
 		E9F9C094B6AC34F010374EE4 /* XCRemoteSwiftPackageReference "purchases-ios-spm" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/RevenueCat/purchases-ios-spm";
@@ -1930,6 +1959,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = E9F9C094B6AC34F010374EE4 /* XCRemoteSwiftPackageReference "purchases-ios-spm" */;
 			productName = RevenueCat;
+		};
+		B349126D9459DCE4FC50F23A /* OneSignalFramework */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C80A501482FFD88647A86CE8 /* XCRemoteSwiftPackageReference "OneSignal-XCFramework" */;
+			productName = OneSignalFramework;
+		};
+		F17B717E8860D97D80BAFC26 /* OneSignalInAppMessages */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C80A501482FFD88647A86CE8 /* XCRemoteSwiftPackageReference "OneSignal-XCFramework" */;
+			productName = OneSignalInAppMessages;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

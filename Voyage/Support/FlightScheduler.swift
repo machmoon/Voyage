@@ -78,7 +78,9 @@ final class FlightScheduler: NSObject, UNUserNotificationCenterDelegate {
 
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: [Self.notificationID])
-        center.requestAuthorization(options: [.alert, .sound]) { granted, _ in
+        // The app's one notification prompt: OneSignal's when push is
+        // configured, the system's otherwise (`PushEngagement`).
+        PushEngagement.requestPermission { granted in
             DispatchQueue.main.async { self.notificationsDenied = !granted }
             guard granted else { return }
             let content = UNMutableNotificationContent()

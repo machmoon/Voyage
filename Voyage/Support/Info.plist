@@ -22,6 +22,8 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>RevenueCatAPIKey</key>
 	<string>$(REVENUECAT_API_KEY)</string>
+	<key>OneSignalAppID</key>
+	<string>$(ONESIGNAL_APP_ID)</string>
 	<key>VoyageAPIBaseURL</key>
 	<string>https://voyage-digital-twin.machmoon.workers.dev</string>
 	<key>UILaunchScreen</key>

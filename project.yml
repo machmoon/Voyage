@@ -21,13 +21,23 @@ packages:
   RevenueCat:
     url: https://github.com/RevenueCat/purchases-ios-spm
     exactVersion: 5.91.0
+  # OneSignal for push campaigns, Journeys and in-app messages. Pinned
+  # exactly, like RevenueCat. OneSignal-XCFramework is the repository that
+  # "hosts the OneSignal iOS SDK as an XCFramework based Swift Package"
+  # (its README; OneSignal-iOS-SDK's MIGRATION_GUIDE.md points SPM users at
+  # it), and its Package.swift at 5.7.0 names the two products below.
+  # Without an App ID (`ONESIGNAL_APP_ID`) the SDK is linked but never
+  # initialised; see Voyage/Support/PushEngagement.swift.
+  OneSignal:
+    url: https://github.com/OneSignal/OneSignal-XCFramework
+    exactVersion: 5.7.0
 settings:
   base:
     SWIFT_VERSION: "5.0"
     MARKETING_VERSION: "1.6"
     # App Store Connect: 1.3 (9) is live. 1.4 ships as build 10.
     # Increment this shared app/widget build number for each upload.
-    CURRENT_PROJECT_VERSION: "13"
+    CURRENT_PROJECT_VERSION: "14"
     GENERATE_INFOPLIST_FILE: false
 targets:
   Voyage:
@@ -60,6 +70,10 @@ targets:
         product: RevenueCat
       - package: RevenueCat
         product: RevenueCatUI
+      - package: OneSignal
+        product: OneSignalFramework
+      - package: OneSignal
+        product: OneSignalInAppMessages
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.patrickliu.voyage
@@ -70,6 +84,16 @@ targets:
         # products exist, then the `appl_…` key. Any value without one of
         # those prefixes leaves the SDK unconfigured and hides Voyage First.
         REVENUECAT_API_KEY: REVENUECAT_API_KEY_NOT_SET
+        # OneSignal App ID (a UUID, public by design: it ships in every app
+        # that uses OneSignal), read by PushEngagement through Info.plist
+        # (OneSignalAppID). Anything that is not a UUID, including this
+        # placeholder, leaves the SDK uninitialised: no prompt, no tags.
+        # Paste the ID from OneSignal > Settings > Keys & IDs here.
+        ONESIGNAL_APP_ID: ONESIGNAL_APP_ID_NOT_SET
+        # Push Notifications capability (aps-environment). The Release
+        # profile "Voyage" must be regenerated with Push enabled on the App
+        # ID before the next archive; see docs/shipaton/ONESIGNAL.md.
+        CODE_SIGN_ENTITLEMENTS: Voyage/Support/Voyage.entitlements
         DEVELOPMENT_TEAM: "3QQL2XA4VS"
         INFOPLIST_FILE: Voyage/Support/Info.plist
         TARGETED_DEVICE_FAMILY: "1"

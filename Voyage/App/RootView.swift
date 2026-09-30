@@ -67,11 +67,19 @@ struct RootView: View {
         .onChange(of: sessionStageKey, initial: true) { _, _ in
             let travelling = session.map { [.inFlight, .layover].contains($0.stage) } ?? false
             UIApplication.shared.isIdleTimerDisabled = travelling
+            if session?.stage == .arrived { PushEngagement.recordLanding() }
+            PushEngagement.sync(context: modelContext, scheduled: scheduler.scheduled)
+        }
+        // A departure scheduled, boarded or cancelled moves the traveler in
+        // or out of the OneSignal segments built on it.
+        .onChange(of: scheduler.scheduled) { _, scheduled in
+            PushEngagement.sync(context: modelContext, scheduled: scheduled)
         }
         .onChange(of: scenePhase) { _, newPhase in
             session?.handleScenePhase(newPhase)
             if newPhase == .active {
                 scheduler.pruneExpired()
+                PushEngagement.sync(context: modelContext, scheduled: scheduler.scheduled)
                 sweepOrphanedActivity()
                 if !Self.debugStampScreenshot {
                     Task { await FocusIntegration.shared.refresh() }

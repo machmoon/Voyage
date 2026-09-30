@@ -4,6 +4,9 @@ import os
 
 @main
 struct VoyageApp: App {
+    /// OneSignal initialises in `didFinishLaunchingWithOptions`; a no-op
+    /// without an App ID and under XCTest. See `PushEngagement`.
+    @UIApplicationDelegateAdaptor(VoyageAppDelegate.self) private var appDelegate
     private let modelContainer: ModelContainer
     /// True when the on-disk logbook could not be opened and the app is
     /// running on an in-memory store. Everything saved this launch is lost on
