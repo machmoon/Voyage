@@ -151,12 +151,16 @@ final class ShipatonDemoUITests: XCTestCase {
         add(attachment)
     }
 
+    /// CI grants location up front (`simctl privacy … grant location`), so
+    /// this only matters on a local simulator. It never taps a button it has
+    /// not just seen hittable: the prompt can vanish between the query and
+    /// the tap, and a failed tap would fail the whole recording.
     @MainActor
     private func dismissLocationPromptIfPresent() {
         let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
-        for label in ["Allow While Using App", "Allow Once"] {
-            let button = springboard.buttons[label]
-            if button.waitForExistence(timeout: 2) { button.tap(); return }
-        }
+        let allow = springboard.buttons.matching(NSPredicate(
+            format: "label IN %@", ["Allow While Using App", "Allow Once"])).firstMatch
+        guard allow.waitForExistence(timeout: 3), allow.isHittable else { return }
+        allow.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
     }
 }

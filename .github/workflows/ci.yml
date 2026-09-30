@@ -166,6 +166,9 @@ jobs:
           xcrun simctl boot "$UDID"
           xcrun simctl bootstatus "$UDID" -b
           xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --cellularBars 4 --wifiBars 3 || true
+          # No permission prompt over the recording.
+          xcrun simctl privacy "$UDID" grant location com.patrickliu.voyage || true
+          xcrun simctl privacy "$UDID" grant location-always com.patrickliu.voyage || true
       - name: Build for testing
         run: |
           xcodebuild build-for-testing \
@@ -192,6 +195,30 @@ jobs:
           wait $REC
           ls -la shipaton-media
           exit $STATUS
+      - name: Compact copies for the repo
+        # A phone-sized mp4 (avconvert ships with macOS) and JPEG stills, small
+        # enough to commit under docs/shipaton/media; the full-resolution
+        # originals stay in the shipaton-demo artifact.
+        if: always()
+        run: |
+          mkdir -p shipaton-compact
+          if [ -f shipaton-media/shipaton-demo.mp4 ]; then
+            avconvert --source shipaton-media/shipaton-demo.mp4 --preset Preset960x540 \
+              --output shipaton-compact/shipaton-demo-540p.mp4 --replace || true
+          fi
+          for f in shipaton-media/*.png; do
+            [ -f "$f" ] || continue
+            sips -Z 1280 -s format jpeg -s formatOptions 72 "$f" \
+              --out "shipaton-compact/$(basename "${f%.png}").jpg" >/dev/null
+          done
+          ls -la shipaton-compact
+      - name: Upload compact media
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shipaton-demo-compact
+          path: shipaton-compact
+          if-no-files-found: warn
       - name: Upload video and screenshots
         if: always()
         uses: actions/upload-artifact@v4
