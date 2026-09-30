@@ -44,6 +44,7 @@ final class ShipatonDemoUITests: XCTestCase {
         dismissLocationPromptIfPresent()
         pause(2)
         save("shipaton-00-home")
+        dismissLocationPromptIfPresent()
         lax.tap()
         let depart = app.buttons["depart-now"]
         XCTAssertTrue(depart.waitForExistence(timeout: 8))
@@ -170,8 +171,9 @@ final class ShipatonDemoUITests: XCTestCase {
     @MainActor
     private func dismissLocationPromptIfPresent() {
         let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        // Location, and the Focus-status prompt FocusIntegration raises.
         let allow = springboard.buttons.matching(NSPredicate(
-            format: "label IN %@", ["Allow While Using App", "Allow Once"])).firstMatch
+            format: "label IN %@", ["Allow While Using App", "Allow Once", "Allow"])).firstMatch
         guard allow.waitForExistence(timeout: 3), allow.isHittable else { return }
         allow.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
     }
