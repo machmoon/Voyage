@@ -217,6 +217,19 @@ final class TaskBagTagTests: XCTestCase {
         XCTAssertTrue(BagTagStyle.livery.requiresVoyageFirst)
     }
 
+    /// Every paid stock is also earned free by flying: priority at Gold,
+    /// livery at Platinum. Voyage First only opens them early.
+    func testPaidStockIsEarnedByStatus() {
+        XCTAssertTrue(BagTagStyle.standard.isUnlocked(tier: .member, isFirstMember: false))
+        XCTAssertFalse(BagTagStyle.priority.isUnlocked(tier: .silver, isFirstMember: false))
+        XCTAssertTrue(BagTagStyle.priority.isUnlocked(tier: .gold, isFirstMember: false))
+        XCTAssertFalse(BagTagStyle.livery.isUnlocked(tier: .gold, isFirstMember: false))
+        XCTAssertTrue(BagTagStyle.livery.isUnlocked(tier: .platinum, isFirstMember: false))
+        for style in BagTagStyle.allCases {
+            XCTAssertTrue(style.isUnlocked(tier: .member, isFirstMember: true))
+        }
+    }
+
     @MainActor
     func testUnclaimedBagsRideTheNextFlight() {
         func entry(_ intentions: [String], _ done: [Bool]) -> LogbookEntry {

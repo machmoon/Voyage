@@ -231,8 +231,8 @@ enum FlyerTier: String, CaseIterable, Identifiable, Comparable {
         switch self {
         case .member: return "Economy cabin"
         case .silver: return "First-class seats"
-        case .gold: return "Sunset window scenes"
-        case .platinum: return "Aurora red-eyes & first-class chime"
+        case .gold: return "Sunset scenes & priority bag tags"
+        case .platinum: return "Aurora, livery tags & first-class chime"
         }
     }
 }

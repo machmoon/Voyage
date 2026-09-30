@@ -124,7 +124,7 @@ enum FlightManual {
         "No dark patterns: the paywall never appears during a flight, at launch or in onboarding, and closing it costs nothing.",
         "Easy cancel: Settings, Voyage First, Manage opens RevenueCat's Customer Center, where you can cancel in two taps.",
         "The trial reminder is real: when a free trial starts, Voyage schedules a notification two days before it ends.",
-        "Paid perks are cosmetic only: Voyage First buys the seat and the tag stock, never miles, tiers, routes or anything you need to study.",
+        "Every paid perk is also earned free by flying: First seats at Silver, priority tags at Gold, livery tags at Platinum. Voyage First only gets you there now, and never buys miles, tiers, routes or anything you need to study.",
     ]
 
     // swiftlint:disable line_length
@@ -157,10 +157,6 @@ enum FlightManual {
                 copy: "People slow down right after a reward. So your next tier starts with your extra miles already on it.",
                 citation: "Kivetz, Urminsky & Zheng, 2006, Journal of Marketing Research",
                 url: URL(string: "https://home.uchicago.edu/ourminsky/Goal-Gradient_Illusionary_Goal_Progress.pdf")!),
-        Finding(mechanic: "Weather delays", symbol: "cloud.bolt.rain.fill",
-                copy: "A streak you can see keeps you going, and being able to repair a broken one softens the blow. So every five days in a row earn a weather delay, and a missed day spends one instead of resetting. Earned, never sold.",
-                citation: "Silverman & Barasch, 2023, Journal of Consumer Research",
-                url: URL(string: "https://academic.oup.com/jcr/article-abstract/49/6/1095/6623414")!),
         Finding(mechanic: "Anything to declare?", symbol: "doc.text.fill",
                 copy: "Writing down what you just learned, without your notes, beat rereading it when students were tested two days and a week later. That is the customs card after landing.",
                 citation: "Roediger & Karpicke, 2006, Psychological Science",

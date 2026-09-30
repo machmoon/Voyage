@@ -35,7 +35,7 @@ struct UpgradeOfferSheet: View {
                 flyFirstCard
                     .opacity(appeared ? 1 : 0)
                     .offset(y: appeared ? 0 : 24)
-                Text("Status can't be bought. Voyage First only buys the seat, never miles or tiers.")
+                Text("Status can't be bought. Every perk is earned free by flying; Voyage First only gets you there now.")
                     .font(.footnote)
                     .foregroundStyle(Theme.textSecondary)
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -93,7 +93,7 @@ struct UpgradeOfferSheet: View {
 
     private var earnCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            cardLabel("EARN IT", trailing: "free, always")
+            cardLabel("EARN IT FREE AT SILVER", trailing: "free, always")
             if progress.next != nil {
                 Text(progress.headline + ".")
                     .font(.system(size: 20, weight: .semibold))
@@ -129,13 +129,14 @@ struct UpgradeOfferSheet: View {
 
     private var flyFirstCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            cardLabel("FLY FIRST TODAY", trailing: "Voyage First")
-            Text("Any seat up front, on every flight.")
+            cardLabel("FLY VOYAGE FIRST NOW", trailing: "skip the climb")
+            Text("Everything status earns, today.")
                 .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(Theme.textPrimary)
             VStack(alignment: .leading, spacing: 6) {
-                perk("carseat.right.fill", "Every First seat on every aircraft")
-                perk("tag.fill", "Priority bag tags and carrier liveries")
+                perk("carseat.right.fill", "Every First seat now, free at Silver")
+                perk("tag.fill", "Priority tags now, free at Gold")
+                perk("paintpalette.fill", "Livery tags now, free at Platinum")
                 perk("heart.fill", "Keeps Voyage free and open source")
             }
             HStack(spacing: 10) {

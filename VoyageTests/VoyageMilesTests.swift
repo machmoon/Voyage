@@ -109,7 +109,7 @@ final class VoyageMilesTests: XCTestCase {
 final class FlightManualTests: XCTestCase {
     /// Every card cites a source a reader can open.
     func testEveryFindingHasACitationAndAnHTTPSLink() {
-        XCTAssertEqual(FlightManual.findings.count, 10)
+        XCTAssertEqual(FlightManual.findings.count, 9)
         XCTAssertEqual(FlightManual.ethics.count, 4)
         for finding in FlightManual.findings {
             XCTAssertEqual(finding.url.scheme, "https", finding.mechanic)

@@ -231,7 +231,11 @@ struct BagTagContent {
 
 /// Tag stock. Standard is free, always. Priority (a red PRIORITY band and a
 /// FIRST routing block, like the tags carriers issue premium passengers) and
-/// carrier livery are Voyage First additions; nothing free moves behind them.
+/// carrier livery are earned by flying: priority at Gold, livery at
+/// Platinum, the way an airline hands priority tags to its elite tiers.
+/// Voyage First opens both early; nothing free moves behind it (Pat,
+/// 2026-09-30: "if you fly a ton you can unlock more features... I don't want
+/// the entire app to be a paywall").
 enum BagTagStyle: String, CaseIterable, Identifiable {
     case standard, priority, livery
 
@@ -245,6 +249,21 @@ enum BagTagStyle: String, CaseIterable, Identifiable {
         }
     }
 
+    /// The status tier that opens this stock for free.
+    var earnedAt: FlyerTier {
+        switch self {
+        case .standard: return .member
+        case .priority: return .gold
+        case .livery: return .platinum
+        }
+    }
+
+    /// Locked only when neither status nor Voyage First opens it.
+    func isUnlocked(tier: FlyerTier, isFirstMember: Bool) -> Bool {
+        tier >= earnedAt || isFirstMember
+    }
+
+    /// True when a free traveler below `earnedAt` would need Voyage First.
     var requiresVoyageFirst: Bool { self != .standard }
 }
 
