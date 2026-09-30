@@ -61,7 +61,12 @@ Every free feature stays free. On top of it, Voyage runs like an airline loyalty
 
 - **One bag tag per task.** Each task prints its own tag with a three-letter code ("Organic chem problem set" is OCP). At arrival the bags come round Carousel 3 and you tear the claim stub on what you finished. Unclaimed bags are mishandled and ride your next flight.
 - **Voyage Miles.** Miles are the real distance you flew. A 500-mile welcome bonus arrives with your first torn pass (every threshold sits 500 higher, so nobody's tier changed), and the Home card shows the gap to Silver as a flight you can book: "1,240 miles to Silver. SFO–LAX (1h 25m) twice gets you there."
+- **Weather delays.** Every five days flown in a row bank a weather delay (up to two, shown as umbrella chips). A missed day spends one automatically: the flight was delayed, not cancelled. Earned, never sold.
+- **An if-then plan.** Scheduling a departure writes one line, prefilled from the time and where you'll be: "When it's 7:00 PM at the library, I'll board VOY 212 to Seattle." The boarding call and the pass read it back.
+- **Anything to declare?** After landing, an optional customs card asks for three quick recalls, from memory. Retrieval beat rereading at two days and a week in the study it comes from.
 - **Voyage First** (optional subscription, through RevenueCat). Tap a First seat you haven't earned and an upgrade offer shows both ways to the front: earn it with miles, free forever, or fly Voyage First today. It opens every First seat and adds priority and carrier-livery bag tags. It never adds miles, moves a tier, or appears during a flight. Status can't be bought.
+
+How Voyage First is sold: no dark patterns (no paywall mid-flight, at launch or in onboarding), easy cancel (Settings → Voyage First → Manage opens RevenueCat's Customer Center), a real trial reminder (a local notification two days before a free trial ends), and cosmetic perks only.
 
 Your logbook stays on the device. Voyage has no analytics and no ads. Its one third-party SDK is RevenueCat, which handles the optional Voyage First membership and sees only an anonymous app user ID and purchase records, never your logbook. Details are in [PRIVACY.md](PRIVACY.md).
 

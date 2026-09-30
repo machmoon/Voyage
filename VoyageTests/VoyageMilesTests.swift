@@ -104,12 +104,115 @@ final class VoyageMilesTests: XCTestCase {
 final class FlightManualTests: XCTestCase {
     /// Every card cites a source a reader can open.
     func testEveryFindingHasACitationAndAnHTTPSLink() {
-        XCTAssertEqual(FlightManual.findings.count, 8)
+        XCTAssertEqual(FlightManual.findings.count, 10)
+        XCTAssertEqual(FlightManual.ethics.count, 4)
         for finding in FlightManual.findings {
             XCTAssertEqual(finding.url.scheme, "https", finding.mechanic)
             XCTAssertTrue(finding.citation.contains(","), finding.mechanic)
             XCTAssertFalse(finding.copy.isEmpty)
         }
         XCTAssertEqual(Set(FlightManual.findings.map(\.id)).count, FlightManual.findings.count)
+    }
+}
+
+@MainActor
+final class WeatherDelayStreakTests: XCTestCase {
+    private var calendar: Calendar = {
+        var c = Calendar(identifier: .gregorian)
+        c.timeZone = TimeZone(secondsFromGMT: 0)!
+        return c
+    }()
+    private let today = Date(timeIntervalSince1970: 1_790_000_000)
+
+    private func flights(daysAgo: [Int]) -> [LogbookEntry] {
+        daysAgo.map { n in
+            LogbookEntry(date: calendar.date(byAdding: .day, value: -n, to: today)!,
+                         originCode: "SFO", destinationCode: "LAX", flightNumber: "VOY 1", seat: "C1",
+                         miles: 1, focusSeconds: 60, completed: true)
+        }
+    }
+
+    /// Ten straight days, then a miss: the tokens earned at day 5 and 10
+    /// cover it, one token spent.
+    func testMissedDayConsumesOneToken() {
+        let days = Array(2...11) + [0]   // 11..2 flown, yesterday (1) missed, today flown
+        let streak = LogbookStats.streak(flights(daysAgo: days), calendar: calendar, now: today)
+        XCTAssertEqual(streak.days, 11)
+        XCTAssertEqual(streak.delaysUsed, 1)
+        XCTAssertEqual(streak.tokens, 1)
+        XCTAssertFalse(streak.delayedYesterday)
+    }
+
+    func testNoTokenNoGrace() {
+        // Four days flown earns nothing, so the miss resets.
+        let streak = LogbookStats.streak(flights(daysAgo: [0, 2, 3, 4, 5]), calendar: calendar, now: today)
+        XCTAssertEqual(streak.days, 1)
+        XCTAssertEqual(streak.tokens, 0)
+    }
+
+    func testTokensAreCapped() {
+        let streak = LogbookStats.streak(flights(daysAgo: Array(0..<30)), calendar: calendar, now: today)
+        XCTAssertEqual(streak.days, 30)
+        XCTAssertEqual(streak.tokens, LogbookStats.delayCap)
+    }
+
+    /// One token covers one day: a two-day gap with one token still resets.
+    func testNoDoubleUse() {
+        let flown = Array(3...7) + [0]   // five days (one token), then 2 and 1 missed
+        let streak = LogbookStats.streak(flights(daysAgo: flown), calendar: calendar, now: today)
+        XCTAssertEqual(streak.days, 1)
+        XCTAssertEqual(streak.delaysUsed, 0)
+        XCTAssertEqual(streak.tokens, 0)
+    }
+
+    func testTwoTokensCoverTwoDays() {
+        let flown = Array(3...12) + [0]  // ten days (two tokens), then 2 and 1 missed
+        let streak = LogbookStats.streak(flights(daysAgo: flown), calendar: calendar, now: today)
+        XCTAssertEqual(streak.days, 11)
+        XCTAssertEqual(streak.delaysUsed, 2)
+        XCTAssertEqual(streak.tokens, 0)
+    }
+
+    func testYesterdayCoveredShowsTheDelayUntilToday() {
+        let streak = LogbookStats.streak(flights(daysAgo: Array(2...6)), calendar: calendar, now: today)
+        XCTAssertEqual(streak.days, 5)
+        XCTAssertTrue(streak.delayedYesterday)
+        XCTAssertEqual(streak.line, "5-day streak · weather delay")
+    }
+
+    func testTodayInProgressIsNotAMiss() {
+        let streak = LogbookStats.streak(flights(daysAgo: [1, 2]), calendar: calendar, now: today)
+        XCTAssertEqual(streak.days, 2)
+        XCTAssertEqual(streak.delaysUsed, 0)
+    }
+
+    func testNoFlightsIsNoStreak() {
+        XCTAssertEqual(LogbookStats.streak([], calendar: calendar, now: today), .none)
+    }
+}
+
+final class DeparturePlanTests: XCTestCase {
+    func testSentenceIsPrefilledFromTimeAndPlace() {
+        let utc = TimeZone(secondsFromGMT: 0)!
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = utc
+        let seven = calendar.date(from: DateComponents(year: 2026, month: 9, day: 30, hour: 19))!
+        let sentence = DeparturePlan.sentence(departure: seven, place: .library, flightNumber: "VOY 212",
+                                              destination: Airport.byCode("SEA"), timeZone: utc)
+        XCTAssertTrue(sentence.hasPrefix("When it's 7:00"), sentence)
+        XCTAssertTrue(sentence.hasSuffix("PM at the library, I'll board VOY 212 to \(Airport.byCode("SEA").city)."), sentence)
+    }
+
+    func testReminderReadsThePlanBack() {
+        XCTAssertEqual(DeparturePlan.reminderBody(plan: "When lunch ends, I'll board."),
+                       "Your plan: When lunch ends, I'll board. Departs in 10 minutes.")
+        XCTAssertTrue(DeparturePlan.reminderBody(plan: "  ").hasPrefix("Your flight departs"))
+        XCTAssertTrue(DeparturePlan.reminderBody(plan: nil).hasPrefix("Your flight departs"))
+    }
+
+    func testOlderScheduledFlightsStillDecode() throws {
+        let json = #"{"destinationCode":"LAX","departure":0}"#.data(using: .utf8)!
+        let flight = try JSONDecoder().decode(ScheduledFlight.self, from: json)
+        XCTAssertNil(flight.plan)
     }
 }

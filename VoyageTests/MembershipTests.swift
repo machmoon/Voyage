@@ -129,4 +129,15 @@ final class MembershipTests: XCTestCase {
         XCTAssertEqual(Membership.forcedStatus(arguments: ["-VoyageFirstFree"]), .economy)
         XCTAssertNil(Membership.forcedStatus(arguments: ["-VoyageShortFlights"]))
     }
+
+    func testTrialReminderFiresTwoDaysBeforeARenewingTrialEnds() {
+        let now = Date(timeIntervalSince1970: 1_790_000_000)
+        let end = now.addingTimeInterval(7 * 86_400)
+        XCTAssertEqual(TrialReminder.fireDate(isTrial: true, willRenew: true, expiresAt: end, now: now),
+                       end.addingTimeInterval(-2 * 86_400))
+        XCTAssertNil(TrialReminder.fireDate(isTrial: true, willRenew: false, expiresAt: end, now: now))
+        XCTAssertNil(TrialReminder.fireDate(isTrial: false, willRenew: true, expiresAt: end, now: now))
+        XCTAssertNil(TrialReminder.fireDate(isTrial: true, willRenew: true,
+                                            expiresAt: now.addingTimeInterval(86_400), now: now))
+    }
 }

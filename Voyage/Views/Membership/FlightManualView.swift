@@ -28,6 +28,21 @@ struct FlightManualView: View {
                             .animation(.spring(response: 0.5, dampingFraction: 0.85)
                                 .delay(0.04 * Double(index)), value: appeared)
                     }
+                    VStack(alignment: .leading, spacing: 8) {
+                        Label("How Voyage First is sold", systemImage: "checkmark.shield.fill")
+                            .font(.headline)
+                            .foregroundStyle(Theme.textPrimary)
+                        ForEach(FlightManual.ethics, id: \.self) { line in
+                            Text("· " + line)
+                                .font(.subheadline)
+                                .foregroundStyle(Theme.textPrimary.opacity(0.85))
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .padding(16)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Theme.surfaceElevated, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .accessibilityIdentifier("flight-manual-ethics")
                     Text(FlightManual.footer)
                         .font(.footnote)
                         .foregroundStyle(Theme.textSecondary)
@@ -104,6 +119,14 @@ enum FlightManual {
 
     static let footer = "These are findings from specific studies, not promises about your grades."
 
+    /// How Voyage First is sold. Each line is something the code does.
+    static let ethics: [String] = [
+        "No dark patterns: the paywall never appears during a flight, at launch or in onboarding, and closing it costs nothing.",
+        "Easy cancel: Settings, Voyage First, Manage opens RevenueCat's Customer Center, where you can cancel in two taps.",
+        "The trial reminder is real: when a free trial starts, Voyage schedules a notification two days before it ends.",
+        "Paid perks are cosmetic only: Voyage First buys the seat and the tag stock, never miles, tiers, routes or anything you need to study.",
+    ]
+
     // swiftlint:disable line_length
     static let findings: [Finding] = [
         Finding(mechanic: "The boarding pass", symbol: "ticket.fill",
@@ -118,6 +141,10 @@ enum FlightManual {
                 copy: "Naming exactly what you'll do, and when, is one of the most reliable tricks in motivation research. Across 94 tests, it had a medium-to-large effect.",
                 citation: "Gollwitzer & Sheeran, 2006, Advances in Experimental Social Psychology",
                 url: URL(string: "https://www.researchgate.net/publication/37367696_Implementation_Intentions_and_Goal_Achievement_A_Meta-Analysis_of_Effects_and_Processes")!),
+        Finding(mechanic: "The if-then plan", symbol: "calendar.badge.clock",
+                copy: "When you schedule a departure you write one line: when and where you'll board. Plans shaped \"when X happens, I'll do Y\" had a medium-to-large effect (d = .65) across 94 tests. The boarding call reads yours back.",
+                citation: "Gollwitzer & Sheeran, 2006, Advances in Experimental Social Psychology",
+                url: URL(string: "https://www.researchgate.net/publication/37367696_Implementation_Intentions_and_Goal_Achievement_A_Meta-Analysis_of_Effects_and_Processes")!),
         Finding(mechanic: "The welcome bonus", symbol: "gift.fill",
                 copy: "A loyalty card with two stamps already on it gets finished more often than a shorter blank one, even when the work is identical. Your 500 miles are those two stamps.",
                 citation: "Nunes & Drèze, 2006, Journal of Consumer Research",
@@ -130,10 +157,14 @@ enum FlightManual {
                 copy: "People slow down right after a reward. So your next tier starts with your extra miles already on it.",
                 citation: "Kivetz, Urminsky & Zheng, 2006, Journal of Marketing Research",
                 url: URL(string: "https://home.uchicago.edu/ourminsky/Goal-Gradient_Illusionary_Goal_Progress.pdf")!),
-        Finding(mechanic: "Your streak", symbol: "flame.fill",
-                copy: "A streak you can see keeps you going, and being able to repair a broken one softens the blow.",
+        Finding(mechanic: "Weather delays", symbol: "cloud.bolt.rain.fill",
+                copy: "A streak you can see keeps you going, and being able to repair a broken one softens the blow. So every five days in a row earn a weather delay, and a missed day spends one instead of resetting. Earned, never sold.",
                 citation: "Silverman & Barasch, 2023, Journal of Consumer Research",
                 url: URL(string: "https://academic.oup.com/jcr/article-abstract/49/6/1095/6623414")!),
+        Finding(mechanic: "Anything to declare?", symbol: "doc.text.fill",
+                copy: "Writing down what you just learned, without your notes, beat rereading it when students were tested two days and a week later. That is the customs card after landing.",
+                citation: "Roediger & Karpicke, 2006, Psychological Science",
+                url: URL(string: "https://journals.sagepub.com/doi/10.1111/j.1467-9280.2006.01693.x")!),
         Finding(mechanic: "What we won't do", symbol: "hand.raised.fill",
                 copy: "Paying people to do something they already enjoy can make them enjoy it less. So miles are a record of your studying, not a wage, and nothing you need to study is behind them.",
                 citation: "Deci, Koestner & Ryan, 1999, Psychological Bulletin",

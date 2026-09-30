@@ -212,6 +212,7 @@
 		B3BCE7161D853F887FC55F03 /* MembershipCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0707536CE1EE6501FCA203AD /* MembershipCardView.swift */; };
 		B3CE3D47A00CDA957DE780C3 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E56316EB70D85A66C9B618B3 /* SettingsView.swift */; };
 		B4970D3315854BE625BC7717 /* captain_midpoint_san-francisco.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 8EB6C0907262DAFAE144A0CC /* captain_midpoint_san-francisco.m4a */; };
+		B5B809E54AD1A7F0B224C055 /* DeparturePlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = B868737FEB3F677F4B0ED94C /* DeparturePlan.swift */; };
 		B7664D42A73AF6A21FAACC4B /* PilotRatingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C27E2A5E4DBC77E8C75FC1AF /* PilotRatingsTests.swift */; };
 		BAE28233263100BCC5A3266C /* captain_descent_san-francisco.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 66E594E5CF2E444CC76F7A15 /* captain_descent_san-francisco.m4a */; };
 		BBF37A9F92223494A89CE28B /* captain_landed_regina.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 68992329ADA6E0D2215DDF7E /* captain_landed_regina.m4a */; };
@@ -510,6 +511,7 @@
 		B5780AD54B7CADA1C817EAF8 /* captain_layover_seattle.m4a */ = {isa = PBXFileReference; path = captain_layover_seattle.m4a; sourceTree = "<group>"; };
 		B66571CD21FE7457375B9B67 /* AirportWorldMetalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirportWorldMetalView.swift; sourceTree = "<group>"; };
 		B677A2CF7162DBB0F3C7D092 /* RoutePlanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutePlanner.swift; sourceTree = "<group>"; };
+		B868737FEB3F677F4B0ED94C /* DeparturePlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeparturePlan.swift; sourceTree = "<group>"; };
 		B95FC7EE99A7EB1A1CB608F3 /* ActivityStaleDateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityStaleDateTests.swift; sourceTree = "<group>"; };
 		B9EDD1957010314B223AF200 /* SoundEffectsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundEffectsTests.swift; sourceTree = "<group>"; };
 		BAD8B69CF65E78B46148736E /* AppFeedback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppFeedback.swift; sourceTree = "<group>"; };
@@ -1025,6 +1027,7 @@
 				C6CB91E0EA01BD53011DE71A /* AirframePlanform.swift */,
 				CAE328D769F7CC7D57744FF9 /* Airport.swift */,
 				5BDC3F5ABCE08B691D5E14C5 /* BagTag.swift */,
+				B868737FEB3F677F4B0ED94C /* DeparturePlan.swift */,
 				B32E3BBACEDDD2F260A6DB5C /* DigitalTwin.swift */,
 				98A39FC9F4E02536EFECAF1D /* FlightDataRecorder.swift */,
 				358B888860361493B6366533 /* FlightVisualEngine.swift */,
@@ -1449,6 +1452,7 @@
 				B153DCCD93073D71C4002242 /* CabinServicePlanner.swift in Sources */,
 				4F7E70505E499E1103321554 /* CheckBagView.swift in Sources */,
 				49C4809073DCCF532388C4DE /* DepartureCurtainOverlay.swift in Sources */,
+				B5B809E54AD1A7F0B224C055 /* DeparturePlan.swift in Sources */,
 				99DD4B7E6B68DA09851C7499 /* DepartureReadiness.swift in Sources */,
 				8CBB9D65D0801A6D4C7B2A9B /* DigitalTwin.swift in Sources */,
 				D9F03FA5FBAE43273A7FFE79 /* DivertedView.swift in Sources */,

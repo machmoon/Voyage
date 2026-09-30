@@ -2,6 +2,7 @@ import Foundation
 import Observation
 import os
 import RevenueCat
+import UserNotifications
 
 /// Voyage First: the optional membership sold through RevenueCat (called
 /// "First Class" in code from before the name was settled; every
@@ -122,7 +123,11 @@ final class Membership {
     }
 
     func apply(_ customerInfo: CustomerInfo) {
-        record(entitlementActive: customerInfo.entitlements[Self.entitlementID]?.isActive == true)
+        let entitlement = customerInfo.entitlements[Self.entitlementID]
+        record(entitlementActive: entitlement?.isActive == true)
+        TrialReminder.update(isTrial: entitlement?.isActive == true && entitlement?.periodType == .trial,
+                             willRenew: entitlement?.willRenew ?? false,
+                             expiresAt: entitlement?.expirationDate)
     }
 
     /// Whether a premium feature may open, logged with the caller's name so a
@@ -196,5 +201,33 @@ enum FirstClassPaywallGate {
         case .none, .preflight, .arrived: return true
         case .inFlight, .layover, .diverted, .missedConnection: return false
         }
+    }
+}
+
+/// The trial reminder the Flight Manual promises: while a Voyage First free
+/// trial is active and set to renew, a local notification is scheduled two
+/// days before it ends; anything else (cancelled, converted, expired)
+/// removes it. It never asks for notification permission itself: the
+/// scheduler already did, and a denied permission is reported in Home.
+enum TrialReminder {
+    static let identifier = "voyage-first-trial-reminder"
+    static let lead: TimeInterval = 2 * 86_400
+
+    /// When the reminder should fire, or nil for none.
+    static func fireDate(isTrial: Bool, willRenew: Bool, expiresAt: Date?, now: Date = .now) -> Date? {
+        guard isTrial, willRenew, let expiresAt else { return nil }
+        let date = expiresAt.addingTimeInterval(-lead)
+        return date > now ? date : nil
+    }
+
+    static func update(isTrial: Bool, willRenew: Bool, expiresAt: Date?) {
+        let center = UNUserNotificationCenter.current()
+        center.removePendingNotificationRequests(withIdentifiers: [identifier])
+        guard let date = fireDate(isTrial: isTrial, willRenew: willRenew, expiresAt: expiresAt) else { return }
+        let content = UNMutableNotificationContent()
+        content.title = "Your Voyage First trial ends in 2 days"
+        content.body = "Keep it and nothing changes. To cancel: Settings, Voyage First, Manage."
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, date.timeIntervalSinceNow), repeats: false)
+        center.add(UNNotificationRequest(identifier: identifier, content: content, trigger: trigger))
     }
 }
