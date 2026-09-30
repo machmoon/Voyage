@@ -2,16 +2,15 @@ import SwiftUI
 import SwiftData
 
 /// Optional intentions step: "check a bag" with up to three things you're
-/// working on this flight. You type them at a bag-drop kiosk, and each one
-/// prints as its own long, skinny airline tag that feeds out of the kiosk
-/// slot and hangs beside the others, one tag per task (Pat, 2026-09-30).
-/// Checking the bags peels every claim stub off in one pull, the way an
-/// agent hands the claim checks across the counter, and the tags ride the
-/// belt away. Fully skippable; recent bags come back as one-tap chips.
+/// working on this flight. You write each one, and its long, skinny airline
+/// tag appears beside the others, one tag per task. No kiosk, no printer and
+/// no stub to peel: writing is the whole ritual, and one tap on "Check N
+/// bags" sends the tags off down the belt (Pat, 2026-09-30: "keep it simple
+/// and satisfying, just write, no need to tear"). Fully skippable; recent
+/// bags come back as one-tap chips.
 ///
 /// The tag is `TaskBagTagView`, laid out on IATA Resolution 740 stock (see
-/// its doc comment for the sources). The kiosk is Voyage's own, built from
-/// the same Theme tokens as the gate printer on the boarding pass.
+/// its doc comment for the sources).
 struct CheckBagView: View {
     @Bindable var session: FlightSession
     let onContinue: () -> Void
@@ -22,18 +21,12 @@ struct CheckBagView: View {
     @State private var focus = FocusIntegration.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    /// The kiosk has no feed of its own any more: each tag prints itself.
-    private let printed = true
-
-    // Peel and send-off.
-    @State private var peelProgress: CGFloat = 0
-    @State private var lastPeelStep = 0
-    @State private var peeled = false
+    // Send-off.
+    @State private var checked = false
     @State private var sentOff = false
-    @State private var stubWidth: CGFloat = 0
     @Query(sort: \LogbookEntry.date) private var allEntries: [LogbookEntry]
 
-    // One tag per task: printed as each line is entered, fanned below.
+    // One tag per task: written as each line is entered, hung below.
     @State private var printedSlots: [Int] = []
     @State private var codeOverrides: [Int: String] = [:]
     @State private var editingSlot: Int?
@@ -58,7 +51,7 @@ struct CheckBagView: View {
         items.indices.filter { !items[$0].trimmingCharacters(in: .whitespaces).isEmpty }
     }
 
-    /// The printed tags, one per filled line, in slot order.
+    /// The written tags, one per filled line, in slot order.
     private var taskTags: [TaskBagTag] {
         let slots = filledSlots.filter { printedSlots.contains($0) }
         let titles = slots.map { items[$0].trimmingCharacters(in: .whitespaces) }
@@ -115,13 +108,11 @@ struct CheckBagView: View {
                     .padding(.top, 12)
                     .padding(.bottom, 14)
 
-                    kiosk
+                    writingCard
                         .padding(.horizontal, 20)
-                        .zIndex(2)
 
                     tagRack
-                        .padding(.top, -8)
-                        .zIndex(1)
+                        .padding(.top, 6)
                         .id("tag-rack")
 
                     if membership.isConfigured && !taskTags.isEmpty {
@@ -140,8 +131,8 @@ struct CheckBagView: View {
                 }
             }
             .onChange(of: printedSlots) { old, new in
-                // A new tag hangs below the fold: bring its claim stub up
-                // above the button, so the peel is in reach.
+                // A new tag hangs below the fold: bring it up above the
+                // button, so what was just written is in view.
                 guard new.count > old.count else { return }
                 Task { @MainActor in
                     try? await Task.sleep(for: .milliseconds(250))
@@ -184,7 +175,7 @@ struct CheckBagView: View {
                          : "Skip for now")
                 }
                 .buttonStyle(VoyageAccentButtonStyle())
-                .disabled(peeled)
+                .disabled(checked)
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 10)
@@ -200,9 +191,9 @@ struct CheckBagView: View {
             }
         }
         .onChange(of: focusedIndex) { old, _ in
-            // Leaving a line prints its tag, whether by return or by tapping
+            // Leaving a line writes its tag, whether by return or by tapping
             // the next line.
-            if let old { printTaskTag(old) }
+            if let old { writeTaskTag(old) }
         }
         .onChange(of: items) { _, _ in
             // A cleared line takes its tag off the fan.
@@ -213,7 +204,7 @@ struct CheckBagView: View {
             TextField("Three letters", text: $codeDraft)
                 .textInputAutocapitalization(.characters)
                 .autocorrectionDisabled()
-            Button("Print") {
+            Button("Save") {
                 if let slot = editingSlot, let code = TaskCode.sanitized(codeDraft) {
                     withAnimation(.snappy) { codeOverrides[slot] = code }
                     Haptics.softTick()
@@ -227,18 +218,13 @@ struct CheckBagView: View {
         .firstClassPaywall(isPresented: $showsPaywall)
     }
 
-    /// Prints one task's tag onto the fan: a short feed and a tick per line.
-    private func printTaskTag(_ slot: Int) {
+    /// Hangs one task's tag on the rack: it springs in with one soft tick.
+    private func writeTaskTag(_ slot: Int) {
         guard !items[slot].trimmingCharacters(in: .whitespaces).isEmpty,
               !printedSlots.contains(slot) else { return }
-        CabinAudioEngine.shared.playPrinter(feedSchedule: [0.07, 0.07, 0.09])
         Haptics.softTick()
-        withAnimation(.spring(response: 0.45, dampingFraction: 0.68)) {
+        withAnimation(.spring(response: 0.42, dampingFraction: 0.72)) {
             printedSlots.append(slot)
-        }
-        Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(160))
-            Haptics.tap()
         }
     }
 
@@ -283,66 +269,26 @@ struct CheckBagView: View {
         .frame(maxWidth: .infinity)
     }
 
-    // MARK: Kiosk
+    // MARK: Writing card
 
-    /// The bag-drop kiosk: a dark console with the flight on its status line,
-    /// a white screen holding the three lines, and the printer slot the tags
-    /// feed out of. Same construction and tokens as the gate printer on the
-    /// boarding pass (`BagDropPrinterHousing`).
-    private var kiosk: some View {
-        VStack(spacing: 10) {
-            HStack(spacing: 7) {
-                Circle()
-                    .fill(Theme.accent)
-                    .frame(width: 7, height: 7)
-                    .shadow(color: Theme.accent.opacity(0.9), radius: 4)
-                Text("BAG DROP · \(carrier.name.uppercased())")
-                    .lineLimit(1)
-                Spacer(minLength: 6)
-                Text("\(tag.originCode) ✈︎ \(tag.destinationCode)")
-            }
-            .font(.system(size: 9, weight: .bold, design: .monospaced))
-            .kerning(1)
-            .foregroundStyle(Theme.textSecondary)
-            .padding(.horizontal, 4)
-
-            VStack(spacing: 0) {
-                ForEach(0..<3, id: \.self) { index in
-                    bagField(index)
-                    if index < 2 {
-                        Rectangle().fill(Theme.seatMapInk.opacity(0.08)).frame(height: 1)
-                            .padding(.leading, 44)
-                    }
+    /// Three lines on a plain white card, one per bag.
+    private var writingCard: some View {
+        VStack(spacing: 0) {
+            ForEach(0..<3, id: \.self) { index in
+                bagField(index)
+                if index < 2 {
+                    Rectangle().fill(Theme.seatMapInk.opacity(0.08)).frame(height: 1)
+                        .padding(.leading, 44)
                 }
             }
-            .background(Color.white, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .environment(\.colorScheme, .light)
-
-            // The printer slot. It glows while a tag feeds.
-            Capsule()
-                .fill(Theme.ink)
-                .frame(height: 7)
-                .overlay(
-                    Capsule()
-                        .fill(Theme.accent.opacity(printedSlots.isEmpty ? 0.25 : 0.8))
-                        .frame(height: 2)
-                        .blur(radius: 1.5)
-                        .padding(.horizontal, 30)
-                )
-                .padding(.horizontal, 10)
         }
-        .padding(.horizontal, 12)
-        .padding(.top, 12)
-        .padding(.bottom, 10)
-        .background(
-            LinearGradient(colors: [Theme.surfaceSubtle, Theme.surfaceDark],
-                           startPoint: .top, endPoint: .bottom),
-            in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .shadow(color: .black.opacity(0.22), radius: 12, y: 6)
+        .background(Color.white, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .environment(\.colorScheme, .light)
+        .shadow(color: .black.opacity(0.08), radius: 8, y: 3)
     }
 
-    /// One line on the kiosk screen per bag: its number, the field, and a
-    /// tag glyph once its tag has printed.
+    /// One line per bag: its number, the field, and a tag glyph once its tag
+    /// is written.
     private func bagField(_ index: Int) -> some View {
         let isPrinted = printedSlots.contains(index)
             && !items[index].trimmingCharacters(in: .whitespaces).isEmpty
@@ -361,9 +307,9 @@ struct CheckBagView: View {
                 .focused($focusedIndex, equals: index)
                 .submitLabel(.done)
                 .onSubmit {
-                    // Return prints the tag and drops the keyboard, so the
-                    // tag is seen feeding out rather than under the keys.
-                    printTaskTag(index)
+                    // Return writes the tag and drops the keyboard, so the
+                    // tag is seen appearing rather than under the keys.
+                    writeTaskTag(index)
                     focusedIndex = nil
                 }
             if isPrinted {
@@ -381,13 +327,10 @@ struct CheckBagView: View {
     // MARK: Tag rack
 
     private static let tagWidth: CGFloat = 104
-    private static var tagHeight: CGFloat {
-        TaskBagTagView.bodyHeight(for: tagWidth) + TaskBagTagView.stubHeight(for: tagWidth)
-    }
 
-    /// The printed tags hanging from the slot side by side, one per task.
-    /// Each feeds out on its own (`PrintingTag`); a checked bag peels its
-    /// stub and drops onto the belt, one after another.
+    /// The written tags hanging side by side, one per task. Each springs in
+    /// as its line is written; checking the bags drops them onto the belt,
+    /// one after another.
     @ViewBuilder
     private var tagRack: some View {
         let tags = taskTags
@@ -395,7 +338,7 @@ struct CheckBagView: View {
             VStack(spacing: 6) {
                 Image(systemName: "tag")
                     .font(.system(size: 16, weight: .semibold))
-                Text("Each bag prints its own tag here")
+                Text("Each bag gets its own tag here")
                     .font(.caption.weight(.medium))
             }
             .foregroundStyle(Theme.seatMapInk.opacity(0.4))
@@ -406,14 +349,15 @@ struct CheckBagView: View {
             HStack(alignment: .top, spacing: 10) {
                 ForEach(tags) { taskTag in
                     tagColumn(taskTag)
-                        .transition(.asymmetric(insertion: .identity,
-                                                removal: .scale(scale: 0.85).combined(with: .opacity)))
+                        .transition(.asymmetric(
+                            insertion: reduceMotion ? .opacity
+                                : .scale(scale: 0.9, anchor: .top).combined(with: .opacity),
+                            removal: .scale(scale: 0.85).combined(with: .opacity)))
                 }
             }
             .frame(maxWidth: .infinity)
             .padding(.top, 8)
             .animation(.spring(response: 0.5, dampingFraction: 0.8), value: tags.map(\.id))
-            .overlay(alignment: .bottom) { stubHandle(count: tags.count) }
             .onTapGesture { focusedIndex = nil }
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("task-tag-rack")
@@ -422,110 +366,45 @@ struct CheckBagView: View {
 
     private func tagColumn(_ taskTag: TaskBagTag) -> some View {
         let order = Double(taskTag.index)
-        // Each stub lifts a beat after the one before it, left to right.
-        let lift = min(1, max(0, peelProgress * 1.3 - order * 0.12))
-        return PrintingTag(height: Self.tagHeight) {
-            VStack(spacing: 0) {
-                TaskBagTagView(tag: taskTag, carrier: carrier, content: tag, showsStub: false,
-                               width: Self.tagWidth) {
-                    codeDraft = taskTag.code
-                    editingSlot = filledSlots.filter { printedSlots.contains($0) }[taskTag.index]
-                }
-                TaskBagTagStub(tag: taskTag, width: Self.tagWidth)
-                    .clipShape(UnevenRoundedRectangle(bottomLeadingRadius: 3, bottomTrailingRadius: 3))
-                    .shadow(color: .black.opacity(0.25 * lift), radius: 6 * lift, y: 3 * lift)
-                    .rotation3DEffect(.degrees(Double(lift) * 24 + (peeled ? 40 : 0)),
-                                      axis: (x: 0, y: 1, z: 0.2), anchor: .leading, perspective: 0.5)
-                    .rotationEffect(.degrees(peeled ? -18 : Double(lift) * -6), anchor: .bottomLeading)
-                    .offset(x: peeled ? 220 : lift * 10, y: peeled ? -480 : -lift * 6)
-                    .opacity(peeled ? 0 : 1)
-                    .animation(peeled ? .easeIn(duration: 0.5 * Self.peelTimeScale)
-                                .delay(0.06 * order * Self.peelTimeScale) : nil, value: peeled)
-            }
-            .compositingGroup()
-            .shadow(color: .black.opacity(0.16), radius: 8, y: 4)
+        return TaskBagTagView(tag: taskTag, carrier: carrier, content: tag, showsStub: false,
+                              width: Self.tagWidth) {
+            codeDraft = taskTag.code
+            editingSlot = filledSlots.filter { printedSlots.contains($0) }[taskTag.index]
         }
+        .compositingGroup()
+        .shadow(color: .black.opacity(0.16), radius: 8, y: 4)
         .frame(width: Self.tagWidth)
         // Hung, not stacked: a hair of swing, alternating, like tags on a rail.
         .rotationEffect(.degrees(sentOff ? 5 : (taskTag.index.isMultiple(of: 2) ? -0.8 : 0.8)), anchor: .top)
         .offset(y: sentOff ? 1_000 : 0)
-        .animation(sentOff ? .easeIn(duration: 0.5 * Self.peelTimeScale)
-                    .delay(0.09 * order * Self.peelTimeScale) : .spring(response: 0.6, dampingFraction: 0.6),
+        .animation(sentOff ? .easeIn(duration: 0.5 * Self.sendOffTimeScale)
+                    .delay(0.09 * order * Self.sendOffTimeScale) : .spring(response: 0.6, dampingFraction: 0.6),
                    value: sentOff)
     }
 
-    /// The peel handle over the row of claim stubs: one pull across peels
-    /// them all, with a ratchet tick every stretch of adhesive, like the
-    /// pass's perforation. The identifier and actions are load-bearing for
-    /// the UI tests.
-    private func stubHandle(count: Int) -> some View {
-        Color.clear
-            .frame(width: CGFloat(count) * Self.tagWidth + CGFloat(max(0, count - 1)) * 10,
-                   height: TaskBagTagView.stubHeight(for: Self.tagWidth))
-            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { stubWidth = $0 }
-            .contentShape(Rectangle())
-            .gesture(peelGesture)
-            .accessibilityElement(children: .ignore)
-            .accessibilityIdentifier("bag-tag-claim-stub")
-            .accessibilityLabel("Claim checks, tag number \(tag.plate.spoken)")
-            .accessibilityHint(packedCount > 0 ? "Slide across to peel them off and check your bags" : "")
-            .accessibilityAction(named: Text("Peel claim check")) {
-                guard packedCount > 0 else { return }
-                checkBags()
-            }
-            .accessibilityHidden(peeled)
-    }
-
-    private var peelSpan: CGFloat { max(90, stubWidth * 0.6) }
-
-    private var peelGesture: some Gesture {
-        DragGesture(minimumDistance: 6)
-            .onChanged { value in
-                guard printed, !peeled, packedCount > 0 else { return }
-                guard abs(value.translation.width) > abs(value.translation.height) * 0.6 else { return }
-                let p = max(0, value.translation.width) / peelSpan
-                peelProgress = max(peelProgress, min(1, p))
-                let step = Int(peelProgress / 0.12)
-                if step > lastPeelStep {
-                    lastPeelStep = step
-                    CabinAudioEngine.shared.playTearTick()
-                    Haptics.ratchet()
-                }
-                if peelProgress > 0.9 { checkBags() }
-            }
-            .onEnded { _ in
-                guard !peeled else { return }
-                // Not pulled far enough: the adhesive holds and it lies back down.
-                withAnimation(.spring(duration: 0.4)) { peelProgress = 0 }
-                lastPeelStep = 0
-            }
-    }
-
-    /// Stub off, scan, tag onto the belt, then the boarding pass.
+    /// Scan, tags onto the belt, then the boarding pass.
     private func checkBags() {
-        guard !peeled else { return }
+        guard !checked else { return }
+        checked = true
         focusedIndex = nil
         let slots = filledSlots
         session.intentions = slots.map { items[$0].trimmingCharacters(in: .whitespaces) }
         session.tagCodes = TaskCode.codes(for: session.intentions,
                                           existing: slots.map { codeOverrides[$0] ?? "" })
         withAnimation(.spring(response: 0.45, dampingFraction: 0.7)) { printedSlots = slots }
-        peeled = true
-        Haptics.rip()
+        CabinAudioEngine.shared.playScanBeep()
+        Haptics.success()
+        sentOff = true
         Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(Int(Double(reduceMotion ? 100 : 380) * Self.peelTimeScale)))
-            CabinAudioEngine.shared.playScanBeep()
-            Haptics.success()
-            sentOff = true
-            try? await Task.sleep(for: .milliseconds(Int(Double(reduceMotion ? 150 : 480) * Self.peelTimeScale)))
+            try? await Task.sleep(for: .milliseconds(Int(Double(reduceMotion ? 150 : 560) * Self.sendOffTimeScale)))
             onContinue()
         }
     }
 
-    /// `-VoyageSlowPeel` (DEBUG only) runs the peel and send-off eight times
-    /// slower, so `BagTagScreenshotUITests` can photograph them: XCUITest
-    /// screenshots arrive later than the whole 0.9 s sequence.
-    static let peelTimeScale: Double = {
+    /// `-VoyageSlowPeel` (DEBUG only; the name predates the peel's removal)
+    /// runs the send-off eight times slower, so `BagTagScreenshotUITests` can
+    /// photograph it: XCUITest screenshots arrive later than the sequence.
+    static let sendOffTimeScale: Double = {
         #if DEBUG
         ProcessInfo.processInfo.arguments.contains("-VoyageSlowPeel") ? 8 : 1
         #else
@@ -562,7 +441,7 @@ struct CheckBagView: View {
                         }) else { return }
                         Haptics.tap()
                         items[slot] = bag
-                        printTaskTag(slot)
+                        writeTaskTag(slot)
                     } label: {
                         Label(bag, systemImage: mishandled.contains(bag.lowercased())
                               ? "exclamationmark.arrow.triangle.2.circlepath" : "plus")

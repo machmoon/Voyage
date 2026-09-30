@@ -1,7 +1,7 @@
 import XCTest
 
-/// Captures the check-bag bag tag for design review: freshly printed, with
-/// bags written on it, and mid-peel. Skipped unless `BAGTAG_OUT` names a
+/// Captures the check-bag bag tag for design review: freshly written, with
+/// bags written on it, and mid send-off. Skipped unless `BAGTAG_OUT` names a
 /// directory (pass it as `TEST_RUNNER_BAGTAG_OUT` to xcodebuild), so it never
 /// writes anywhere during an ordinary test run.
 ///
@@ -74,7 +74,7 @@ final class BagTagScreenshotUITests: XCTestCase {
         bag2.typeText("Read chapter 9\n")
         pause(0.4)
         save(out, "\(prefix)-3-typing")
-        // Return prints the line's tag and drops the keyboard, so the third
+        // Return writes the line's tag and drops the keyboard, so the third
         // line is tapped first.
         let bag3 = app.textFields["Bag 3, e.g. Review chapter 4"]
         bag3.tap()
@@ -84,11 +84,11 @@ final class BagTagScreenshotUITests: XCTestCase {
 
         let check = app.buttons["Check 3 bags"]
         XCTAssertTrue(check.waitForExistence(timeout: 3))
-        // Launched with -VoyageSlowPeel, so the ~0.9 s peel runs ~7 s.
+        // Launched with -VoyageSlowPeel, so the ~0.6 s send-off runs ~5 s.
         check.tap()
-        save(out, "\(prefix)-5-peeling")
+        save(out, "\(prefix)-5-sending")
         pause(1.2)
-        save(out, "\(prefix)-6-peeled")
+        save(out, "\(prefix)-6-sent")
 
         XCTAssertTrue(app.otherElements["boarding-pass-stub"].waitForExistence(timeout: 15))
     }

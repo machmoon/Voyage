@@ -222,11 +222,10 @@ private struct WelcomeView: View {
 
 // MARK: - Baggage claim
 
-/// Your checked bags come round on Carousel 3, one tag per task. Tear a
-/// tag's claim stub to claim it: that is the task done. A bag left on the
-/// belt is mishandled and rides your next flight (it comes back first among
-/// the recent bags at check-in). The tear is the boarding pass's gesture and
-/// ratchet at bag-tag scale.
+/// Your checked bags come round on Carousel 3, one tag per task. Tap a tag
+/// to claim it: that is the task done. A bag left on the belt is mishandled
+/// and rides your next flight (it comes back first among the recent bags at
+/// check-in).
 private struct BaggageClaimView: View {
     @Bindable var session: FlightSession
     let onContinue: () -> Void
@@ -267,7 +266,7 @@ private struct BaggageClaimView: View {
                         Text("Baggage claim")
                             .font(.title2.bold())
                             .foregroundStyle(.white)
-                        Text("Carousel 3 · tear the stub on what you finished")
+                        Text("Carousel 3 · tap what you finished")
                             .font(.subheadline)
                             .foregroundStyle(.white.opacity(0.55))
                         // Recomputed, not stored: the plate is a pure
@@ -331,8 +330,8 @@ private struct BaggageClaimView: View {
     }
 }
 
-/// A task tag whose claim stub tears off sideways, with the ratchet ticks and
-/// a claim haptic, then a CLAIMED stamp. Unclaimed, it says where it goes.
+/// A task tag you claim with a tap: a claim haptic and the scan beep, then
+/// a CLAIMED stamp. No stub to tear (Pat, 2026-09-30: "no need to tear").
 private struct ClaimableTag: View {
     let tag: TaskBagTag
     let carrier: Carrier
@@ -340,65 +339,29 @@ private struct ClaimableTag: View {
     let claimed: Bool
     let onClaim: () -> Void
 
-    @State private var pull: CGFloat = 0
-    @State private var lastStep = 0
-
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 8) {
             TaskBagTagView(tag: tag, carrier: carrier, content: content, showsStub: false, claimed: claimed,
                            width: Self.width)
-            stub
-                .offset(x: claimed ? 360 : pull, y: claimed ? -40 : 0)
-                .rotationEffect(.degrees(claimed ? 18 : Double(pull / 14)), anchor: .leading)
-                .opacity(claimed ? 0 : 1)
-                .animation(claimed ? .easeIn(duration: 0.45) : nil, value: claimed)
-                .gesture(tearGesture)
+            Text(claimed ? "Claimed" : "Tap to claim")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.white.opacity(claimed ? 0.35 : 0.6))
         }
         .frame(width: Self.width)
+        .scaleEffect(claimed ? 0.97 : 1)
+        .contentShape(Rectangle())
+        .onTapGesture { claim() }
         .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
         .accessibilityIdentifier("claim-tag-\(tag.index)")
         .accessibilityAction(named: Text("Claim bag")) { claim() }
     }
 
     static let width: CGFloat = 104
 
-    private var stub: some View {
-        TaskBagTagStub(tag: tag, width: Self.width, hint: claimed ? nil : "TEAR →")
-            .clipShape(UnevenRoundedRectangle(bottomLeadingRadius: 3, bottomTrailingRadius: 3))
-            .contentShape(Rectangle())
-        .onTapGesture {
-            // A tap nudges the stub, so the gesture is discoverable.
-            Haptics.softTick()
-            withAnimation(.spring(response: 0.25, dampingFraction: 0.4)) { pull = 18 }
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.6).delay(0.18)) { pull = 0 }
-        }
-    }
-
-    private var tearGesture: some Gesture {
-        DragGesture(minimumDistance: 4)
-            .onChanged { value in
-                guard !claimed else { return }
-                pull = max(0, value.translation.width)
-                let step = Int(pull / 24)
-                if step > lastStep {
-                    lastStep = step
-                    CabinAudioEngine.shared.playTearTick()
-                    Haptics.ratchet()
-                }
-                // A skinny stub tears in a shorter pull than the old card's.
-                if pull > 80 { claim() }
-            }
-            .onEnded { _ in
-                guard !claimed else { return }
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.6)) { pull = 0 }
-                lastStep = 0
-            }
-    }
-
     private func claim() {
         guard !claimed else { return }
         Haptics.claim()
-        CabinAudioEngine.shared.playRip()
         CabinAudioEngine.shared.playScanBeep()
         onClaim()
     }

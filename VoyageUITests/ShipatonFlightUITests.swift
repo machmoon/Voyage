@@ -2,8 +2,8 @@ import XCTest
 
 /// The Shipaton video's flight beat, recorded on a CI simulator next to
 /// `ShipatonDemoUITests`: a clean Home, the
-/// if-then plan in the departure board, one bag tag per task and the peeled
-/// claim check, the torn pass, a demo-length flight, baggage claim, the
+/// if-then plan in the departure board, one bag tag per task and the
+/// check-in tap, the torn pass, a demo-length flight, baggage claim, the
 /// customs recall and the stamp, then the Flight Manual.
 ///
 /// Nothing here asserts for its own sake: it keeps going past a missed step
@@ -94,14 +94,6 @@ final class ShipatonFlightUITests: XCTestCase {
             pause(2.5)
             save("flight-02-bag-tags")
 
-            // Peel the claim check across; the button is the fallback.
-            let stub = app.otherElements["bag-tag-claim-stub"]
-            if stub.waitForExistence(timeout: 4), stub.isHittable {
-                let a = stub.coordinate(withNormalizedOffset: CGVector(dx: 0.05, dy: 0.5))
-                let b = stub.coordinate(withNormalizedOffset: CGVector(dx: 1.4, dy: 0.5))
-                a.press(forDuration: 0.05, thenDragTo: b, withVelocity: 180, thenHoldForDuration: 0.1)
-                pause(1.5)
-            }
             let check = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Check ")).firstMatch
             if check.exists, check.isHittable, !app.buttons["Tear and board"].exists { check.tap() }
         }
@@ -136,13 +128,9 @@ final class ShipatonFlightUITests: XCTestCase {
                 if attempt == 2 { print("ARRIVAL-DEBUG tree:\n\(app.debugDescription)") }
             }
             pause(2.5)
-            // Tear the stub on the bag you finished; leave the other one.
+            // Claim the bag you finished; leave the other one.
             let claim = app.descendants(matching: .any)["claim-tag-0"]
-            if claim.waitForExistence(timeout: 6) {
-                let a = claim.coordinate(withNormalizedOffset: CGVector(dx: 0.15, dy: 0.93))
-                let b = claim.coordinate(withNormalizedOffset: CGVector(dx: 1.2, dy: 0.93))
-                a.press(forDuration: 0.05, thenDragTo: b, withVelocity: 220, thenHoldForDuration: 0.1)
-            }
+            if claim.waitForExistence(timeout: 6) { claim.tap() }
             pause(3)
             save("flight-05-baggage-claim")
             if toPassport.waitForExistence(timeout: 4) { toPassport.tap() }

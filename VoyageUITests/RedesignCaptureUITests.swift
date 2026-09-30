@@ -52,14 +52,11 @@ final class RedesignCaptureUITests: XCTestCase {
         bag3.typeText("Outline the history essay\n")
         pause(2.5)
         save("redesign-03-checkin-three")
-        let stub = app.otherElements["bag-tag-claim-stub"]
-        XCTAssertTrue(stub.waitForExistence(timeout: 4))
-        XCTAssertTrue(stub.isHittable, "The claim stubs should be in reach above the button")
-        let a = stub.coordinate(withNormalizedOffset: CGVector(dx: 0.05, dy: 0.5))
-        let b = stub.coordinate(withNormalizedOffset: CGVector(dx: 1.4, dy: 0.5))
-        a.press(forDuration: 0.05, thenDragTo: b, withVelocity: 180, thenHoldForDuration: 0.1)
+        let check = app.buttons["Check 3 bags"]
+        XCTAssertTrue(check.waitForExistence(timeout: 4))
+        check.tap()
         pause(0.3)
-        save("redesign-04-checkin-peel")
+        save("redesign-04-checkin-check")
         XCTAssertTrue(app.buttons["Tear and board"].waitForExistence(timeout: 15))
     }
 
@@ -76,10 +73,9 @@ final class RedesignCaptureUITests: XCTestCase {
         let tag0 = app.descendants(matching: .any)["claim-tag-0"]
         XCTAssertTrue(tag0.waitForExistence(timeout: 4), "The first tap on 'Head to baggage claim' should advance")
         pause(2)
-        let a = tag0.coordinate(withNormalizedOffset: CGVector(dx: 0.15, dy: 0.93))
-        let b = tag0.coordinate(withNormalizedOffset: CGVector(dx: 1.2, dy: 0.93))
-        a.press(forDuration: 0.05, thenDragTo: b, withVelocity: 220, thenHoldForDuration: 0.1)
+        tag0.tap()
         pause(1.5)
+        XCTAssertTrue(tag0.label.contains("Claimed"), "A tap claims the bag; label was \(tag0.label)")
         save("redesign-06-claim")
         app.buttons["Continue to passport control"].tap()
         XCTAssertTrue(app.staticTexts["Anything to declare?"].waitForExistence(timeout: 8))

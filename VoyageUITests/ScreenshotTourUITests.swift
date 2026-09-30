@@ -264,12 +264,10 @@ final class ScreenshotTourUITests: XCTestCase {
         settle(1)
         capture(app, "qa-22-baggage-claim")
 
-        // Claim the bag so the entry records a completed intention: tear its
-        // claim stub (the bottom strip of the tag) to the right.
+        // Claim the bag so the entry records a completed intention: one tap.
         let bagCard = app.descendants(matching: .any)["claim-tag-0"]
         require(bagCard, "the checked bag on the carousel", timeout: 6)
-        bagCard.coordinate(withNormalizedOffset: CGVector(dx: 0.15, dy: 0.86))
-            .press(forDuration: 0.05, thenDragTo: bagCard.coordinate(withNormalizedOffset: CGVector(dx: 1.2, dy: 0.86)))
+        bagCard.tap()
         settle(1)
         capture(app, "qa-23-baggage-claimed")
 

@@ -172,6 +172,9 @@ struct TaskBagTagView: View {
                 .contentTransition(.numericText())
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .onTapGesture { onEditCode?() }
+                // Without an edit action the code must not swallow taps: at
+                // baggage claim the whole tag is the claim button.
+                .allowsHitTesting(onEditCode != nil)
                 .accessibilityIdentifier("task-tag-code-\(tag.index)")
             if tag.style == .priority {
                 Text("FIRST")
@@ -326,43 +329,5 @@ extension Carrier {
         case .northline: return [Color(hex: "2F4F3A"), Color(hex: "4E8A5F")]
         case .lantern: return [Color(hex: "B3541E"), Color(hex: "E3893B")]
         }
-    }
-}
-
-/// A tag that feeds out of the kiosk slot: the leading edge (the stub end)
-/// emerges first and the strip grows downward in thermal-printer line feeds,
-/// each with a soft tick, the same feed the boarding pass's gate printer
-/// uses (`BoardingPassView.passCard`). Reduce Motion shows it whole.
-struct PrintingTag<Content: View>: View {
-    let height: CGFloat
-    var delay: Double = 0
-    @ViewBuilder let content: () -> Content
-
-    @State private var feed: CGFloat = 0
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    var body: some View {
-        content()
-            .frame(height: height, alignment: .bottom)
-            .frame(height: max(1, height * feed), alignment: .bottom)
-            // Clipped at the slot while feeding; unclipped once out, so a
-            // peeled stub can fly clear of the strip.
-            .mask(alignment: .bottom) { Rectangle().padding(feed >= 1 ? -800 : 0) }
-            .frame(height: height, alignment: .top)
-            .onAppear {
-                guard feed == 0 else { return }
-                if reduceMotion { feed = 1; return }
-                Task { @MainActor in
-                    try? await Task.sleep(for: .milliseconds(Int(delay * 1000)))
-                    CabinAudioEngine.shared.playPrinter(feedSchedule: [0.1, 0.1, 0.1, 0.12, 0.1])
-                    let steps = 6
-                    for step in 1...steps {
-                        withAnimation(.easeOut(duration: 0.1)) { feed = CGFloat(step) / CGFloat(steps) }
-                        Haptics.softTick()
-                        try? await Task.sleep(for: .milliseconds(105))
-                    }
-                    Haptics.tap()
-                }
-            }
     }
 }

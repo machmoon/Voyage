@@ -5,6 +5,8 @@ import MapKit
 /// Shows the flown portion solid and the remainder faded, with the
 /// aircraft on the same runway-to-runway trajectory as the window. Two camera modes
 /// (whole route / follow the plane) and two map styles (terrain / satellite).
+/// Satellite is the default: Apple's hybrid imagery with realistic elevation
+/// reads as the real world under the wing (Pat, 2026-09-30).
 ///
 /// Drawn by an `MKMapView` rather than SwiftUI's `Map`, because only the UIKit
 /// view says when its tiles have rendered. The card stays under a calm cover
@@ -33,7 +35,7 @@ struct FlightMapView: View {
     }
 
     @State private var cameraMode: CameraMode = .route
-    @State private var style: Style = .map
+    @State private var style: Style = .satellite
     @State private var tiles: WorldSceneryLoadState = .loading
     @State private var coverCeilingPassed = false
     @State private var controlsHeight: CGFloat = 0
