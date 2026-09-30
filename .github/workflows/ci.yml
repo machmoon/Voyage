@@ -184,7 +184,8 @@ jobs:
       - name: Run the demo and record the screen
         run: |
           mkdir -p shipaton-media
-          xcrun simctl io "$UDID" recordVideo --codec=h264 --force shipaton-media/shipaton-demo.mp4 &
+          python3 -c 'import time; print("%.3f" % time.time())' > shipaton-media/record-start.txt
+          xcrun simctl io "$UDID" recordVideo --codec=h264 --force shipaton-media/shipaton-demo-raw.mp4 &
           REC=$!
           sleep 2
           set +e
@@ -198,6 +199,19 @@ jobs:
           sleep 1
           kill -INT $REC
           wait $REC
+          # Trim to the demo: from just before launch to just after the
+          # last screenshot, using the marks the test wrote (avconvert ships
+          # with macOS and takes --start/--duration).
+          if [ -f shipaton-media/demo-start.txt ] && [ -f shipaton-media/demo-end.txt ]; then
+            read START DURATION < <(python3 -c "
+          r=float(open('shipaton-media/record-start.txt').read()); a=float(open('shipaton-media/demo-start.txt').read()); b=float(open('shipaton-media/demo-end.txt').read())
+          s=max(0.0, a-r-0.5); print('%.2f %.2f' % (s, b-a+1.5))")
+            avconvert --source shipaton-media/shipaton-demo-raw.mp4 --preset PresetPassthrough \
+              --output shipaton-media/shipaton-demo.mp4 --start "$START" --duration "$DURATION" --replace \
+              || cp shipaton-media/shipaton-demo-raw.mp4 shipaton-media/shipaton-demo.mp4
+          else
+            cp shipaton-media/shipaton-demo-raw.mp4 shipaton-media/shipaton-demo.mp4
+          fi
           ls -la shipaton-media
           exit $STATUS
       - name: Compact copies for the repo

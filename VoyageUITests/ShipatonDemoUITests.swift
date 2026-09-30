@@ -33,6 +33,7 @@ final class ShipatonDemoUITests: XCTestCase {
             "-ambienceEnabled", "<false/>",
             "-announcementsEnabled", "<false/>",
         ]
+        mark("demo-start")
         app.launch()
         dismissLocationPromptIfPresent()
 
@@ -114,6 +115,15 @@ final class ShipatonDemoUITests: XCTestCase {
             pause(4)
             save("shipaton-08-customer-center")
         }
+        mark("demo-end")
+    }
+
+    /// Wall-clock marks (the simulator shares the host clock) so CI can trim
+    /// the recording to the demo itself, without the runner's install time.
+    private func mark(_ name: String) {
+        guard let dir = ProcessInfo.processInfo.environment["SHIPATON_CAPTURE_DIR"] else { return }
+        let stamp = String(format: "%.3f", Date().timeIntervalSince1970)
+        try? stamp.write(toFile: dir + "/\(name).txt", atomically: true, encoding: .utf8)
     }
 
     // MARK: Helpers
