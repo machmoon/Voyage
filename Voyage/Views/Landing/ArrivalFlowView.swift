@@ -12,7 +12,7 @@ struct ArrivalFlowView: View {
     let onDone: () -> Void
 
     private enum Step {
-        case welcome, baggage, stamp
+        case welcome, baggage, declaration, stamp
     }
 
     @State private var step: Step = {
@@ -29,11 +29,17 @@ struct ArrivalFlowView: View {
             switch step {
             case .welcome:
                 WelcomeView(session: session) {
-                    advance(session.intentions.isEmpty ? .stamp : .baggage)
+                    advance(session.intentions.isEmpty ? .declaration : .baggage)
                 }
                 .transition(.opacity)
             case .baggage:
                 BaggageClaimView(session: session) {
+                    advance(.declaration)
+                }
+                .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity),
+                                        removal: .opacity))
+            case .declaration:
+                CustomsDeclarationView(session: session) {
                     advance(.stamp)
                 }
                 .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity),
@@ -398,6 +404,126 @@ private struct ClaimableTag: View {
         CabinAudioEngine.shared.playRip()
         CabinAudioEngine.shared.playScanBeep()
         onClaim()
+    }
+}
+
+// MARK: - Customs declaration
+
+/// "Anything to declare?" Three quick recalls, from memory, right after
+/// landing. Retrieval practice: recalling material with no feedback produced
+/// substantially greater retention at two days and a week than restudying it
+/// (Roediger & Karpicke 2006, Psychological Science 17(3)). Voyage claims
+/// nothing about grades; the answers go on the logbook entry. Skipping is one
+/// tap, and nothing depends on it.
+private struct CustomsDeclarationView: View {
+    @Bindable var session: FlightSession
+    let onContinue: () -> Void
+
+    static let prompts = [
+        "One idea you can now explain without your notes",
+        "An example or detail that goes with it",
+        "One question you'd test yourself on next time",
+    ]
+
+    @State private var answers = ["", "", ""]
+    @State private var stamped = false
+    @FocusState private var focused: Int?
+
+    private var filled: [String] {
+        answers.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+    }
+
+    var body: some View {
+        ZStack {
+            Theme.surfaceDark.ignoresSafeArea()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("CUSTOMS · \(session.itinerary.destination.code)")
+                            .font(.system(size: 11, weight: .heavy, design: .monospaced))
+                            .tracking(2)
+                            .foregroundStyle(Theme.accent)
+                        Text("Anything to declare?")
+                            .font(.title2.bold())
+                            .foregroundStyle(.white)
+                        Text("Three quick recalls, no notes. Writing down what you learned beats rereading it a week later.")
+                            .font(.subheadline)
+                            .foregroundStyle(.white.opacity(0.6))
+                    }
+                    .padding(.top, 36)
+
+                    VStack(alignment: .leading, spacing: 14) {
+                        ForEach(Self.prompts.indices, id: \.self) { index in
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("\(index + 1). \(Self.prompts[index])")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(Theme.seatMapInk.opacity(0.6))
+                                TextField("", text: $answers[index], axis: .vertical)
+                                    .font(.custom("Noteworthy-Bold", size: 17, relativeTo: .body))
+                                    .foregroundStyle(Theme.accent)
+                                    .tint(Theme.accent)
+                                    .lineLimit(1...3)
+                                    .focused($focused, equals: index)
+                                    .submitLabel(index < 2 ? .next : .done)
+                                    .onSubmit { focused = index < 2 ? index + 1 : nil }
+                                    .accessibilityLabel(Self.prompts[index])
+                                Rectangle().fill(Theme.seatMapInk.opacity(0.2)).frame(height: 1)
+                            }
+                        }
+                    }
+                    .padding(18)
+                    .background(Theme.passportPaper, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .overlay(alignment: .topTrailing) {
+                        if stamped {
+                            Text("DECLARED")
+                                .font(.system(size: 20, weight: .black, design: .rounded))
+                                .foregroundStyle(Theme.stampInk)
+                                .padding(.horizontal, 8).padding(.vertical, 3)
+                                .overlay(RoundedRectangle(cornerRadius: 5).strokeBorder(Theme.stampInk, lineWidth: 3))
+                                .rotationEffect(.degrees(-12))
+                                .padding(14)
+                                .transition(.scale(scale: 2).combined(with: .opacity))
+                        }
+                    }
+                    .environment(\.colorScheme, .light)
+
+                    Text("Roediger & Karpicke, 2006. Recall with no feedback beat restudying at two days and a week.")
+                        .font(.caption2)
+                        .foregroundStyle(.white.opacity(0.4))
+                }
+                .padding(.horizontal, 24)
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .safeAreaInset(edge: .bottom) {
+                VStack(spacing: 8) {
+                    Button(action: declare) {
+                        Text(filled.isEmpty ? "Nothing to declare" : "Declare and continue")
+                            .font(.headline)
+                            .foregroundStyle(.black)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(.white, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    }
+                    .disabled(stamped)
+                }
+                .padding(.horizontal, 24)
+                .padding(.bottom, 20)
+                .background(Theme.surfaceDark.opacity(0.95))
+            }
+        }
+    }
+
+    private func declare() {
+        focused = nil
+        let answers = filled
+        session.logEntry?.declarations = answers
+        guard !answers.isEmpty else { onContinue(); return }
+        Haptics.stamp()
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.55)) { stamped = true }
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(900))
+            onContinue()
+        }
     }
 }
 

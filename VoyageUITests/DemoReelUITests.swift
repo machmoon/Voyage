@@ -304,6 +304,8 @@ final class DemoReelUITests: XCTestCase {
         pause(3.0)
         _ = tap(app.buttons.matching(
             NSPredicate(format: "label BEGINSWITH %@", "Continue")).firstMatch, timeout: 4)
+        pause(1.5)
+        _ = tap(app.buttons["Nothing to declare"], timeout: 4)   // customs, optional
         pause(2.5)   // passport control, the stamp lands
         if !tap(app.buttons["Post to your logbook"], timeout: 6) {
             _ = tap(app.buttons["Skip for now"], timeout: 2)
