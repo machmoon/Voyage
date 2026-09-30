@@ -1,7 +1,7 @@
 import XCTest
 
 /// The Shipaton video's flight beat, recorded on a CI simulator next to
-/// `ShipatonDemoUITests`: the miles card and weather delays on Home, the
+/// `ShipatonDemoUITests`: a clean Home, the
 /// if-then plan in the departure board, one bag tag per task and the peeled
 /// claim check, the torn pass, a demo-length flight, baggage claim, the
 /// customs recall and the stamp, then the Flight Manual.
@@ -36,7 +36,7 @@ final class ShipatonFlightUITests: XCTestCase {
         app.launch()
         dismissSystemPrompt()
 
-        // Home: the miles card, streak and banked weather delays.
+        // Home: just the globe and the destinations.
         let lax = app.buttons["destination-LAX"]
         XCTAssertTrue(lax.waitForExistence(timeout: 25))
         dismissSystemPrompt()
