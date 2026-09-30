@@ -74,8 +74,11 @@ final class BagTagScreenshotUITests: XCTestCase {
         bag2.typeText("Read chapter 9\n")
         pause(0.4)
         save(out, "\(prefix)-3-typing")
-        // Return on the third line is Done, which drops the keyboard.
-        app.textFields["Bag 3, e.g. Review chapter 4"].typeText("Outline the essay\n")
+        // Return prints the line's tag and drops the keyboard, so the third
+        // line is tapped first.
+        let bag3 = app.textFields["Bag 3, e.g. Review chapter 4"]
+        bag3.tap()
+        bag3.typeText("Outline the essay\n")
         pause(0.8)
         save(out, "\(prefix)-4-written")
 

@@ -2,17 +2,16 @@ import SwiftUI
 import SwiftData
 
 /// Optional intentions step: "check a bag" with up to three things you're
-/// working on this flight. A bag-drop kiosk prints a thermal airline tag for
-/// the booking, and the traveler writes the contents on it by hand. Checking
-/// the bag peels off the claim check, the way an agent hands it across the
-/// counter, and the tag rides the belt away. Fully skippable; recent bags come
-/// back as one-tap chips so regulars never retype them.
+/// working on this flight. You type them at a bag-drop kiosk, and each one
+/// prints as its own long, skinny airline tag that feeds out of the kiosk
+/// slot and hangs beside the others, one tag per task (Pat, 2026-09-30).
+/// Checking the bags peels every claim stub off in one pull, the way an
+/// agent hands the claim checks across the counter, and the tags ride the
+/// belt away. Fully skippable; recent bags come back as one-tap chips.
 ///
-/// History: this step used to draw three c. 1965 paper luggage labels and
-/// rejected the thermal IATA strip, whose proportion is one enormous airport
-/// code. The tag below keeps the strip and gives the student's words their own
-/// handwritten block on it instead. Format sources are cited in `BagTag.swift`
-/// and `BagTagView.swift`.
+/// The tag is `TaskBagTagView`, laid out on IATA Resolution 740 stock (see
+/// its doc comment for the sources). The kiosk is Voyage's own, built from
+/// the same Theme tokens as the gate printer on the boarding pass.
 struct CheckBagView: View {
     @Bindable var session: FlightSession
     let onContinue: () -> Void
@@ -23,11 +22,8 @@ struct CheckBagView: View {
     @State private var focus = FocusIntegration.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    // Print feed, as on the boarding pass.
-    @State private var printProgress: CGFloat = 0
-    @State private var tagHeight: CGFloat = 0
-    @State private var feedComplete = false
-    @State private var printed = false
+    /// The kiosk has no feed of its own any more: each tag prints itself.
+    private let printed = true
 
     // Peel and send-off.
     @State private var peelProgress: CGFloat = 0
@@ -35,6 +31,7 @@ struct CheckBagView: View {
     @State private var peeled = false
     @State private var sentOff = false
     @State private var stubWidth: CGFloat = 0
+    @Query(sort: \LogbookEntry.date) private var allEntries: [LogbookEntry]
 
     // One tag per task: printed as each line is entered, fanned below.
     @State private var printedSlots: [Int] = []
@@ -102,6 +99,7 @@ struct CheckBagView: View {
         VStack(spacing: 0) {
             // Scrolls so the tag, chips and Focus note all stay reachable when
             // the keyboard is up or text is large.
+            ScrollViewReader { proxy in
             ScrollView {
                 VStack(spacing: 0) {
                     VStack(spacing: 4) {
@@ -117,19 +115,14 @@ struct CheckBagView: View {
                     .padding(.top, 12)
                     .padding(.bottom, 14)
 
-                    printerAndTag
+                    kiosk
+                        .padding(.horizontal, 20)
+                        .zIndex(2)
 
-                    if !taskTags.isEmpty {
-                        TaskTagFan(tags: taskTags, carrier: carrier) { tag in
-                            let slot = filledSlots.filter { printedSlots.contains($0) }[tag.index]
-                            codeDraft = tag.code
-                            editingSlot = slot
-                        }
-                        .padding(.top, 18)
-                        .opacity(sentOff ? 0 : 1)
-                        .offset(y: sentOff ? 400 : 0)
-                        .animation(.easeIn(duration: 0.45), value: sentOff)
-                    }
+                    tagRack
+                        .padding(.top, -8)
+                        .zIndex(1)
+                        .id("tag-rack")
 
                     if membership.isConfigured && !taskTags.isEmpty {
                         stylePicker
@@ -146,6 +139,15 @@ struct CheckBagView: View {
                         .padding(.top, 14)
                 }
             }
+            .onChange(of: printedSlots) { old, new in
+                // A new tag hangs below the fold: bring its claim stub up
+                // above the button, so the peel is in reach.
+                guard new.count > old.count else { return }
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(250))
+                    withAnimation(.smooth(duration: 0.6)) { proxy.scrollTo("tag-rack", anchor: .bottom) }
+                }
+            }
             .scrollBounceBehavior(.basedOnSize)
             .scrollDismissesKeyboard(.interactively)
             .contentMargins(.bottom, 16, for: .scrollContent)
@@ -158,6 +160,7 @@ struct CheckBagView: View {
                     LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom)
                         .frame(height: 28)
                 }
+            }
             }
 
             Spacer(minLength: 0)
@@ -191,11 +194,15 @@ struct CheckBagView: View {
                 // Stepping back from the pass keeps what was written.
                 for (i, intention) in session.intentions.prefix(3).enumerated() { items[i] = intention }
             }
-            startPrinting()
             printedSlots = filledSlots
             Task {
                 await focus.refresh()
             }
+        }
+        .onChange(of: focusedIndex) { old, _ in
+            // Leaving a line prints its tag, whether by return or by tapping
+            // the next line.
+            if let old { printTaskTag(old) }
         }
         .onChange(of: items) { _, _ in
             // A cleared line takes its tag off the fan.
@@ -235,12 +242,16 @@ struct CheckBagView: View {
         }
     }
 
-    /// Standard stock is free; priority and livery are Voyage First, and
-    /// tapping a locked one opens the paywall (trigger 3 in SPEC.md).
+    /// Standard stock is free; priority is earned at Gold and livery at
+    /// Platinum, and Voyage First opens both early. Tapping a locked one
+    /// opens the paywall (trigger 3 in SPEC.md).
     private var stylePicker: some View {
         HStack(spacing: 8) {
             ForEach(BagTagStyle.allCases) { style in
-                let locked = style.requiresVoyageFirst && !membership.isFirstClass
+                // Earned by flying (priority at Gold, livery at Platinum) or
+                // opened early by Voyage First.
+                let locked = !style.isUnlocked(tier: LogbookStats.tier(allEntries),
+                                               isFirstMember: membership.isFirstClass)
                 let chosen = session.bagTagStyle == style
                 Button {
                     if locked {
@@ -253,6 +264,11 @@ struct CheckBagView: View {
                     HStack(spacing: 4) {
                         if locked { Image(systemName: "lock.fill").font(.system(size: 9, weight: .bold)) }
                         Text(style.title)
+                        if locked {
+                            Text(style.earnedAt.rawValue)
+                                .font(.system(size: 9, weight: .heavy))
+                                .opacity(0.7)
+                        }
                     }
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(chosen ? .white : Theme.seatMapInk.opacity(locked ? 0.45 : 0.8))
@@ -261,136 +277,198 @@ struct CheckBagView: View {
                     .background(chosen ? Theme.accent : Theme.seatMapInk.opacity(0.06), in: Capsule())
                 }
                 .accessibilityIdentifier("bag-tag-style-\(style.rawValue)")
-                .accessibilityLabel(locked ? "\(style.title) tag, Voyage First" : "\(style.title) tag")
+                .accessibilityLabel(locked ? "\(style.title) tag, free at \(style.earnedAt.rawValue) or with Voyage First" : "\(style.title) tag")
             }
         }
         .frame(maxWidth: .infinity)
     }
 
-    // MARK: Printer and tag
+    // MARK: Kiosk
 
-    private var printerAndTag: some View {
-        VStack(spacing: 0) {
-            if !printed {
-                BagDropPrinterHousing(working: !feedComplete && printProgress > 0,
-                                      feedComplete: feedComplete)
-                    .frame(maxWidth: 340)
-                    .padding(.horizontal, 20)
-                    .zIndex(2)
-                    .transition(.move(edge: .top).combined(with: .opacity))
+    /// The bag-drop kiosk: a dark console with the flight on its status line,
+    /// a white screen holding the three lines, and the printer slot the tags
+    /// feed out of. Same construction and tokens as the gate printer on the
+    /// boarding pass (`BagDropPrinterHousing`).
+    private var kiosk: some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 7) {
+                Circle()
+                    .fill(Theme.accent)
+                    .frame(width: 7, height: 7)
+                    .shadow(color: Theme.accent.opacity(0.9), radius: 4)
+                Text("BAG DROP · \(carrier.name.uppercased())")
+                    .lineLimit(1)
+                Spacer(minLength: 6)
+                Text("\(tag.originCode) ✈︎ \(tag.destinationCode)")
             }
+            .font(.system(size: 9, weight: .bold, design: .monospaced))
+            .kerning(1)
+            .foregroundStyle(Theme.textSecondary)
+            .padding(.horizontal, 4)
 
-            tagStrip
-                .frame(maxWidth: 300)
-                .padding(.horizontal, 28)
-                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { tagHeight = $0 }
-                // Feeds out of the slot: offset up by its own height, masked
-                // at the slot, the mask opening once it is out. The same one
-                // identity trick as `BoardingPassView.passCard`.
-                .offset(y: -tagHeight * (1 - printProgress))
-                .opacity(tagHeight > 0 ? 1 : 0)
-                .mask(alignment: .top) {
-                    Rectangle()
-                        .padding(.horizontal, -60)
-                        .padding(.bottom, -900)
-                        .padding(.top, printed ? -600 : 0)
-                }
-                .padding(.top, printed ? 0 : -7)
-                // Onto the belt: the tag drops away once the stub is off.
-                .offset(y: sentOff ? 900 : 0)
-                .rotationEffect(.degrees(sentOff ? 4 : 0), anchor: .top)
-                .animation(sentOff ? .easeIn(duration: 0.45 * Self.peelTimeScale) : nil, value: sentOff)
-                .zIndex(1)
-        }
-        .animation(.smooth(duration: 0.5), value: printed)
-    }
-
-    private var tagStrip: some View {
-        VStack(spacing: 0) {
-            BagTagBody(content: tag, bagCount: max(packedCount, 1)) {
-                VStack(alignment: .leading, spacing: 2) {
-                    ForEach(0..<3, id: \.self) { index in
-                        bagField(index)
+            VStack(spacing: 0) {
+                ForEach(0..<3, id: \.self) { index in
+                    bagField(index)
+                    if index < 2 {
+                        Rectangle().fill(Theme.seatMapInk.opacity(0.08)).frame(height: 1)
+                            .padding(.leading, 44)
                     }
                 }
             }
-            .background(Color(.systemBackground))
-            .clipShape(BagTagPaper())
-            .overlay(alignment: .bottom) { perforation }
-            .compositingGroup()
-            .shadow(color: .black.opacity(0.12), radius: 10, y: 5)
+            .background(Color.white, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .environment(\.colorScheme, .light)
 
-            claimStub
+            // The printer slot. It glows while a tag feeds.
+            Capsule()
+                .fill(Theme.ink)
+                .frame(height: 7)
+                .overlay(
+                    Capsule()
+                        .fill(Theme.accent.opacity(printedSlots.isEmpty ? 0.25 : 0.8))
+                        .frame(height: 2)
+                        .blur(radius: 1.5)
+                        .padding(.horizontal, 30)
+                )
+                .padding(.horizontal, 10)
         }
-        // Thermal stock is white paper in any appearance, like the pass.
-        .environment(\.colorScheme, .light)
-        .allowsHitTesting(!peeled)
+        .padding(.horizontal, 12)
+        .padding(.top, 12)
+        .padding(.bottom, 10)
+        .background(
+            LinearGradient(colors: [Theme.surfaceSubtle, Theme.surfaceDark],
+                           startPoint: .top, endPoint: .bottom),
+            in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: .black.opacity(0.22), radius: 12, y: 6)
     }
 
-    /// The die-cut line between the tag and the claim check.
-    private var perforation: some View {
-        Line()
-            .stroke(Color.primary.opacity(peeled ? 0 : 0.35),
-                    style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
-            .frame(height: 1)
-            .padding(.horizontal, 6)
-            .accessibilityHidden(true)
-    }
-
-    /// One handwritten line on the tag per bag.
+    /// One line on the kiosk screen per bag: its number, the field, and a
+    /// tag glyph once its tag has printed.
     private func bagField(_ index: Int) -> some View {
-        let filled = !items[index].trimmingCharacters(in: .whitespaces).isEmpty
-        return VStack(alignment: .leading, spacing: 0) {
-            // The placeholder is load-bearing: MarketingCaptureUITests finds
-            // the fields by it.
+        let isPrinted = printedSlots.contains(index)
+            && !items[index].trimmingCharacters(in: .whitespaces).isEmpty
+        return HStack(spacing: 10) {
+            Text("\(index + 1)")
+                .font(.system(size: 12, weight: .heavy, design: .rounded))
+                .foregroundStyle(isPrinted ? .white : Theme.seatMapInk.opacity(0.5))
+                .frame(width: 22, height: 22)
+                .background(isPrinted ? Theme.accent : Theme.seatMapInk.opacity(0.07), in: Circle())
+            // The placeholder is load-bearing: the UI tests find the fields
+            // by it.
             TextField("Bag \(index + 1), e.g. Review chapter 4", text: $items[index])
-                .font(.custom("Noteworthy-Bold", size: 17, relativeTo: .body))
-                .foregroundStyle(Theme.accent)
+                .font(.system(size: 16, weight: .medium, design: .rounded))
+                .foregroundStyle(Theme.seatMapInk)
                 .tint(Theme.accent)
                 .focused($focusedIndex, equals: index)
-                .submitLabel(index < 2 ? .next : .done)
+                .submitLabel(.done)
                 .onSubmit {
+                    // Return prints the tag and drops the keyboard, so the
+                    // tag is seen feeding out rather than under the keys.
                     printTaskTag(index)
-                    focusedIndex = index < 2 ? index + 1 : nil
+                    focusedIndex = nil
                 }
-                .padding(.top, 4)
-            Rectangle()
-                .fill(filled ? Theme.accent.opacity(0.7) : Color.primary.opacity(0.18))
-                .frame(height: 1)
+            if isPrinted {
+                Image(systemName: "tag.fill")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Theme.accent)
+                    .transition(.scale.combined(with: .opacity))
+            }
+        }
+        .padding(.horizontal, 12)
+        .frame(minHeight: 46)
+        .animation(.spring(response: 0.35, dampingFraction: 0.7), value: isPrinted)
+    }
+
+    // MARK: Tag rack
+
+    private static let tagWidth: CGFloat = 104
+    private static var tagHeight: CGFloat {
+        TaskBagTagView.bodyHeight(for: tagWidth) + TaskBagTagView.stubHeight(for: tagWidth)
+    }
+
+    /// The printed tags hanging from the slot side by side, one per task.
+    /// Each feeds out on its own (`PrintingTag`); a checked bag peels its
+    /// stub and drops onto the belt, one after another.
+    @ViewBuilder
+    private var tagRack: some View {
+        let tags = taskTags
+        if tags.isEmpty {
+            VStack(spacing: 6) {
+                Image(systemName: "tag")
+                    .font(.system(size: 16, weight: .semibold))
+                Text("Each bag prints its own tag here")
+                    .font(.caption.weight(.medium))
+            }
+            .foregroundStyle(Theme.seatMapInk.opacity(0.4))
+            .frame(maxWidth: .infinity)
+            .padding(.top, 26)
+            .padding(.bottom, 8)
+        } else {
+            HStack(alignment: .top, spacing: 10) {
+                ForEach(tags) { taskTag in
+                    tagColumn(taskTag)
+                        .transition(.asymmetric(insertion: .identity,
+                                                removal: .scale(scale: 0.85).combined(with: .opacity)))
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.top, 8)
+            .animation(.spring(response: 0.5, dampingFraction: 0.8), value: tags.map(\.id))
+            .overlay(alignment: .bottom) { stubHandle(count: tags.count) }
+            .onTapGesture { focusedIndex = nil }
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("task-tag-rack")
         }
     }
 
-    // MARK: Claim check
-
-    /// Peels from whichever edge the finger pulls toward, lifting on the
-    /// opposite corner, with a ratchet tick every stretch of adhesive, like
-    /// the pass's perforation.
-    private var claimStub: some View {
-        let progress = min(1, max(0, peelProgress))
-        let peelAngle = peeled ? -14.0 : Double(progress * -8)
-        return BagTagClaimStub(content: tag, peelable: packedCount > 0 && printed && !peeled)
-            .background(Color(.systemBackground))
-            .clipShape(UnevenRoundedRectangle(bottomLeadingRadius: 6, bottomTrailingRadius: 6))
-            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { stubWidth = $0 }
+    private func tagColumn(_ taskTag: TaskBagTag) -> some View {
+        let order = Double(taskTag.index)
+        // Each stub lifts a beat after the one before it, left to right.
+        let lift = min(1, max(0, peelProgress * 1.3 - order * 0.12))
+        return PrintingTag(height: Self.tagHeight) {
+            VStack(spacing: 0) {
+                TaskBagTagView(tag: taskTag, carrier: carrier, content: tag, showsStub: false,
+                               width: Self.tagWidth) {
+                    codeDraft = taskTag.code
+                    editingSlot = filledSlots.filter { printedSlots.contains($0) }[taskTag.index]
+                }
+                TaskBagTagStub(tag: taskTag, width: Self.tagWidth)
+                    .clipShape(UnevenRoundedRectangle(bottomLeadingRadius: 3, bottomTrailingRadius: 3))
+                    .shadow(color: .black.opacity(0.25 * lift), radius: 6 * lift, y: 3 * lift)
+                    .rotation3DEffect(.degrees(Double(lift) * 24 + (peeled ? 40 : 0)),
+                                      axis: (x: 0, y: 1, z: 0.2), anchor: .leading, perspective: 0.5)
+                    .rotationEffect(.degrees(peeled ? -18 : Double(lift) * -6), anchor: .bottomLeading)
+                    .offset(x: peeled ? 220 : lift * 10, y: peeled ? -480 : -lift * 6)
+                    .opacity(peeled ? 0 : 1)
+                    .animation(peeled ? .easeIn(duration: 0.5 * Self.peelTimeScale)
+                                .delay(0.06 * order * Self.peelTimeScale) : nil, value: peeled)
+            }
             .compositingGroup()
-            .shadow(color: .black.opacity(0.12 + 0.2 * progress), radius: 6 + 8 * progress, y: 3 + 5 * progress)
-            .rotation3DEffect(.degrees(Double(progress) * 22 + (peeled ? 30 : 0)),
-                              axis: (x: 0, y: 1, z: 0.2), anchor: .leading, perspective: 0.5)
-            .rotationEffect(.degrees(peelAngle), anchor: .bottomLeading)
-            .offset(x: peeled ? 260 : progress * 18, y: peeled ? -520 : -progress * 10)
-            .animation(peeled ? .easeIn(duration: 0.5 * Self.peelTimeScale) : nil, value: peeled)
-            // Opaque while it crosses the tag, gone only once it is clear,
-            // as the pass's stub does (`BoardingPassView.stubPiece`): fading
-            // in flight showed it as a ghost over the handwriting.
-            .opacity(peeled ? 0 : 1)
-            .animation(peeled ? .easeIn(duration: 0.12 * Self.peelTimeScale)
-                        .delay(0.38 * Self.peelTimeScale) : nil, value: peeled)
+            .shadow(color: .black.opacity(0.16), radius: 8, y: 4)
+        }
+        .frame(width: Self.tagWidth)
+        // Hung, not stacked: a hair of swing, alternating, like tags on a rail.
+        .rotationEffect(.degrees(sentOff ? 5 : (taskTag.index.isMultiple(of: 2) ? -0.8 : 0.8)), anchor: .top)
+        .offset(y: sentOff ? 1_000 : 0)
+        .animation(sentOff ? .easeIn(duration: 0.5 * Self.peelTimeScale)
+                    .delay(0.09 * order * Self.peelTimeScale) : .spring(response: 0.6, dampingFraction: 0.6),
+                   value: sentOff)
+    }
+
+    /// The peel handle over the row of claim stubs: one pull across peels
+    /// them all, with a ratchet tick every stretch of adhesive, like the
+    /// pass's perforation. The identifier and actions are load-bearing for
+    /// the UI tests.
+    private func stubHandle(count: Int) -> some View {
+        Color.clear
+            .frame(width: CGFloat(count) * Self.tagWidth + CGFloat(max(0, count - 1)) * 10,
+                   height: TaskBagTagView.stubHeight(for: Self.tagWidth))
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { stubWidth = $0 }
             .contentShape(Rectangle())
             .gesture(peelGesture)
             .accessibilityElement(children: .ignore)
             .accessibilityIdentifier("bag-tag-claim-stub")
-            .accessibilityLabel("Claim check, tag number \(tag.plate.spoken)")
-            .accessibilityHint(packedCount > 0 ? "Slide across to peel it off and check your bags" : "")
+            .accessibilityLabel("Claim checks, tag number \(tag.plate.spoken)")
+            .accessibilityHint(packedCount > 0 ? "Slide across to peel them off and check your bags" : "")
             .accessibilityAction(named: Text("Peel claim check")) {
                 guard packedCount > 0 else { return }
                 checkBags()
@@ -398,7 +476,7 @@ struct CheckBagView: View {
             .accessibilityHidden(peeled)
     }
 
-    private var peelSpan: CGFloat { max(160, stubWidth * 0.7) }
+    private var peelSpan: CGFloat { max(90, stubWidth * 0.6) }
 
     private var peelGesture: some Gesture {
         DragGesture(minimumDistance: 6)
@@ -454,36 +532,6 @@ struct CheckBagView: View {
         1
         #endif
     }()
-
-    // MARK: Printing
-
-    /// Gaps between line feeds, irregular like the pass's gate printer.
-    static let feedSchedule: [Double] = [0.16, 0.12, 0.12, 0.22, 0.12, 0.14, 0.2]
-
-    private func startPrinting() {
-        guard !printed else { return }
-        if reduceMotion {
-            printProgress = 1
-            feedComplete = true
-            printed = true
-            return
-        }
-        Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(250))
-            let schedule = Self.feedSchedule
-            CabinAudioEngine.shared.playPrinter(feedSchedule: schedule)
-            for (line, gap) in schedule.enumerated() {
-                withAnimation(.easeOut(duration: 0.12)) {
-                    printProgress = CGFloat(line + 1) / CGFloat(schedule.count)
-                }
-                Haptics.softTick()
-                try? await Task.sleep(for: .milliseconds(Int(gap * 1000)))
-            }
-            feedComplete = true
-            try? await Task.sleep(for: .milliseconds(220))
-            printed = true
-        }
-    }
 
     // MARK: Chips and Focus
 
