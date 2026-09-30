@@ -125,7 +125,16 @@ final class ShipatonFlightUITests: XCTestCase {
         pause(3)
         save("flight-04-landed")
         if toClaim.exists {
-            toClaim.tap()
+            // The arrival fades in over ~1.25 s; retry a tap that lands on a
+            // screen that has not taken it, and say so in the log if none do.
+            let firstTag = app.descendants(matching: .any)["claim-tag-0"]
+            for attempt in 0..<3 where !firstTag.exists {
+                if attempt == 0 { toClaim.tap() }
+                else { toClaim.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap() }
+                if firstTag.waitForExistence(timeout: 4) { break }
+                print("ARRIVAL-DEBUG attempt \(attempt): claim-tag-0 absent after tapping 'Head to baggage claim'")
+                if attempt == 2 { print("ARRIVAL-DEBUG tree:\n\(app.debugDescription)") }
+            }
             pause(2.5)
             // Tear the stub on the bag you finished; leave the other one.
             let claim = app.descendants(matching: .any)["claim-tag-0"]
