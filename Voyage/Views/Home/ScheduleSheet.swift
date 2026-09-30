@@ -5,11 +5,17 @@ import SwiftUI
 struct ScheduleSheet: View {
     let origin: Airport
     let destination: Airport
-    let onSchedule: (DepartureOption) -> Void
+    /// The chosen departure and its if-then plan.
+    let onSchedule: (DepartureOption, String?) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var selectedID: DepartureOption.ID?
     @State private var options: [DepartureOption] = []
+    @State private var place: DeparturePlace = .library
+    @State private var plan = ""
+    /// True once the traveler typed their own plan; place and time changes
+    /// then stop rewriting it.
+    @State private var planEdited = false
 
     private var selected: DepartureOption? {
         options.first { $0.id == selectedID }
@@ -62,6 +68,7 @@ struct ScheduleSheet: View {
                 .padding(.bottom, 16)
             }
 
+            planSection
             footer
         }
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
@@ -70,7 +77,66 @@ struct ScheduleSheet: View {
             options = RouteCatalog.upcomingDepartures(from: origin, to: destination,
                                                       after: .now, count: 10)
             selectedID = options.first?.id
+            refreshPlan()
         }
+        .onChange(of: selectedID) { _, _ in refreshPlan() }
+        .onChange(of: place) { _, _ in refreshPlan() }
+    }
+
+    // MARK: If-then plan
+
+    private func refreshPlan() {
+        guard !planEdited, let selected else { return }
+        plan = DeparturePlan.sentence(departure: selected.departure, place: place,
+                                      flightNumber: selected.flightNumber, destination: destination)
+    }
+
+    /// Where you'll be, and the one-line plan it writes. Implementation
+    /// intentions (Gollwitzer & Sheeran 2006): the reminder reads it back.
+    private var planSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Where will you be?")
+                .font(.subheadline.weight(.semibold))
+            HStack(spacing: 8) {
+                ForEach(DeparturePlace.allCases) { option in
+                    Button {
+                        Haptics.tap()
+                        planEdited = false
+                        withAnimation(.snappy(duration: 0.2)) { place = option }
+                    } label: {
+                        Label(option.title, systemImage: option.symbol)
+                            .font(.caption.weight(.semibold))
+                            .lineLimit(1)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 7)
+                            .foregroundStyle(place == option ? .white : .primary)
+                            .background(place == option ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(Theme.cardBackground),
+                                        in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(place == option ? .isSelected : [])
+                }
+            }
+            TextField("When it's 7:00 PM at the library, I'll board…", text: $plan, axis: .vertical)
+                .font(.callout)
+                .lineLimit(1...3)
+                .padding(10)
+                .background(Theme.cardBackground, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .onChange(of: plan) { _, new in
+                    if let selected, new != DeparturePlan.sentence(departure: selected.departure, place: place,
+                                                                   flightNumber: selected.flightNumber,
+                                                                   destination: destination) {
+                        planEdited = true
+                    }
+                }
+                .accessibilityIdentifier("schedule-if-then-plan")
+            Text("Your if-then plan. The boarding call and your pass read it back.")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+        .background(Color(.secondarySystemGroupedBackground))
     }
 
     // MARK: Rows
@@ -137,7 +203,8 @@ struct ScheduleSheet: View {
         VStack(spacing: 12) {
             Button {
                 if let selected {
-                    onSchedule(selected)
+                    let trimmed = plan.trimmingCharacters(in: .whitespacesAndNewlines)
+                    onSchedule(selected, trimmed.isEmpty ? nil : trimmed)
                     Haptics.success()
                     dismiss()
                 }

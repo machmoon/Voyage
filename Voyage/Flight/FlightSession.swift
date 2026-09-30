@@ -46,6 +46,8 @@ final class FlightSession {
     var intentions: [String] = []
     /// One 3-letter code per checked bag, parallel to `intentions`.
     var tagCodes: [String] = []
+    /// The if-then plan from a scheduled departure, read back on the pass.
+    var departurePlan: String?
     /// The tag stock this booking prints on (priority and livery are Voyage First).
     var bagTagStyle: BagTagStyle = .standard
     let bookedAt: Date

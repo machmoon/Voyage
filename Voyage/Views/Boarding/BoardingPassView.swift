@@ -98,6 +98,25 @@ struct BoardingPassView: View {
                     // passes over them rather than under their text.
                     .zIndex(1)
 
+                // The if-then plan written when this departure was scheduled
+                // (`DeparturePlan`), read back at the gate.
+                if printed, let plan = session.departurePlan {
+                    Label {
+                        Text(plan)
+                            .font(.custom("Noteworthy-Bold", size: 15, relativeTo: .footnote))
+                            .foregroundStyle(.white.opacity(0.9))
+                            .multilineTextAlignment(.leading)
+                    } icon: {
+                        Image(systemName: "checkmark.seal.fill")
+                            .foregroundStyle(Theme.accent)
+                    }
+                    .padding(.horizontal, 34)
+                    .padding(.top, 14)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    .accessibilityLabel("Your plan: \(plan)")
+                    .accessibilityIdentifier("boarding-pass-plan")
+                }
+
                 Spacer()
 
                 // Always in the layout once printed, faded rather than removed:

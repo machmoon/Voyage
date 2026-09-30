@@ -10,6 +10,9 @@ struct ScheduledFlight: Codable, Equatable {
     /// Flight number of the booked departure ("VOY 741"). Optional so
     /// flights persisted by older builds still decode.
     var flightNumber: String?
+    /// The if-then plan written at scheduling (`DeparturePlan`). Optional so
+    /// flights persisted by older builds still decode.
+    var plan: String?
 
     static let boardingLead: TimeInterval = 10 * 60
     static let boardingClose: TimeInterval = 15 * 60
@@ -65,10 +68,11 @@ final class FlightScheduler: NSObject, UNUserNotificationCenterDelegate {
     }
 
     func schedule(destination: Airport, departure: Date, origin: Airport,
-                  flightNumber: String? = nil) {
+                  flightNumber: String? = nil, plan: String? = nil) {
         let flight = ScheduledFlight(destinationCode: destination.code,
                                      departure: departure,
-                                     flightNumber: flightNumber)
+                                     flightNumber: flightNumber,
+                                     plan: plan)
         scheduled = flight
         persist()
 
@@ -80,7 +84,7 @@ final class FlightScheduler: NSObject, UNUserNotificationCenterDelegate {
             let content = UNMutableNotificationContent()
             let number = flightNumber ?? RoutePlanner.flightNumber(from: origin, to: destination)
             content.title = "Now boarding. \(number) to \(destination.city)"
-            content.body = "Your flight departs in 10 minutes. Boarding closes 15 minutes after departure."
+            content.body = DeparturePlan.reminderBody(plan: plan)
             content.sound = .default
 
             // A departure inside the next ten minutes still gets its reminder,
