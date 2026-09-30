@@ -183,9 +183,7 @@ struct PassportView: View {
     private var detailRows: some View {
         VStack(alignment: .leading, spacing: 10) {
             detailRow("airplane", memberLine)
-            if streak >= 2 {
-                detailRow("flame.fill", "\(streak)-day streak")
-            }
+            // No streak row: streaks are hidden for now (2026-09-30).
         }
     }
 

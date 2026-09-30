@@ -20,6 +20,7 @@ struct LogbookView: View {
 
     @State private var tab: Tab = .flights
     @State private var replaySelection: ReplaySelection?
+    @State private var showingMembershipCard = false
 
     private var tier: FlyerTier { LogbookStats.tier(entries) }
     private var rating: RatingProgress { RatingProgress.evaluate(entries: entries) }
@@ -67,6 +68,7 @@ struct LogbookView: View {
             // The app accent, the same as every other sheet.
             .tint(Theme.tint)
         }
+        .sheet(isPresented: $showingMembershipCard) { MembershipCardView() }
         .fullScreenCover(item: $replaySelection) { selection in
             FlightReplayView(entries: selection.entries, title: selection.title)
         }
@@ -202,12 +204,16 @@ struct LogbookView: View {
                     .monospacedDigit()
                     .foregroundStyle(Ramp.ink)
                 let landings = entries.filter(\.completed)
-                let streak = LogbookStats.streak(entries).days
-                Text("\(rating.current.title) · \(landings.count) landings\(streak >= 2 ? " · \(streak)-day streak" : "")")
+                // Streaks are hidden for now (Pat, 2026-09-30: "streaks are
+                // kind of hard... lets just not do it for now"). The model
+                // (`LogbookStats.streak`) and its tests stay.
+                Text("\(rating.current.title) · \(landings.count) landings")
                     .voyageFont(Ramp.TypeScale.bodyM)
                     .foregroundStyle(Ramp.hushed)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+
+            milesRow
 
             // Only what is still open. A met requirement is already
             // implied by the rating name, and a list of checks is clutter.
@@ -270,6 +276,56 @@ struct LogbookView: View {
             RoundedRectangle(cornerRadius: Ramp.Radius.card, style: .continuous)
                 .strokeBorder(Ramp.rule, lineWidth: 1)
         )
+    }
+
+    /// Voyage Miles, one tap from the status card: tier chip, miles, the
+    /// distance to the next tier and a thin bar, opening the wallet card.
+    /// Moved here off Home (2026-09-30), where it read as clutter over the
+    /// globe. Same row shape as the recorder row below it.
+    private var milesRow: some View {
+        let progress = MilesProgress(entries: entries)
+        return Button {
+            Haptics.tap()
+            showingMembershipCard = true
+        } label: {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    TierBadge(tier: progress.tier)
+                    Text(MilesFormat.miles(progress.statusMiles))
+                        .voyageFont(Ramp.TypeScale.bodyM, weight: .semibold)
+                        .monospacedDigit()
+                        .foregroundStyle(Ramp.ink)
+                    Spacer(minLength: 8)
+                    if let next = progress.next {
+                        Text("\(MilesFormat.number(progress.remaining)) to \(next.rawValue)")
+                            .voyageFont(Ramp.TypeScale.bodyXS)
+                            .monospacedDigit()
+                            .foregroundStyle(Ramp.hushed)
+                    }
+                    Image(systemName: "chevron.right")
+                        .voyageFont(11, weight: .semibold)
+                        .foregroundStyle(Ramp.hushed)
+                }
+                if progress.next != nil {
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule().fill(Ramp.rule)
+                            Capsule().fill(Theme.tint)
+                                .frame(width: max(4, geo.size.width * progress.fraction))
+                        }
+                    }
+                    .frame(height: 4)
+                }
+            }
+            .padding(.top, 16)
+            .overlay(alignment: .top) { Rectangle().fill(Ramp.rule).frame(height: 1) }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Voyage Miles, \(progress.tier.rawValue), \(MilesFormat.miles(progress.statusMiles)). \(progress.headline)")
+        .accessibilityHint("Opens your membership card")
+        .accessibilityIdentifier("voyage-miles-card")
     }
 
     /// One checklist line: title and progress text over a bar while a

@@ -107,18 +107,11 @@ struct HomeView: View {
             }
 
             VStack(spacing: 0) {
+                // Home is the globe and the destinations, nothing else (Pat,
+                // 2026-09-30: "if they are already in the app why should we
+                // show it"). Miles and status live one tap away, in the
+                // Logbook's status card, which opens `MembershipCardView`.
                 header
-                if selectedDestination == nil {
-                    VoyageMilesCard(
-                        progress: MilesProgress(entries: entries),
-                        suggestion: milesSuggestion,
-                        hasDeparted: VoyageMiles.hasDeparted(entries),
-                        streak: LogbookStats.streak(entries)
-                    ) { showingMembershipCard = true }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 10)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-                }
                 if let scheduled = scheduler.scheduled {
                     scheduledBanner(scheduled)
                         .padding(.top, 8)
@@ -310,7 +303,6 @@ struct HomeView: View {
                         // get the location glyph either.
                         glyph: settings.originIsFromLocation ? "location.fill" : "airplane.departure",
                         trailing: ratingLine,
-                        streak: streakLine,
                         showsChevron: false
                     )
                 }
