@@ -53,6 +53,16 @@ class ArchiveIconTests(unittest.TestCase):
         self.assertTrue(self.validate_icon({'CFBundleIcons': {'CFBundlePrimaryIcon': {
             'CFBundleIconName': ''}}}))
 
+    def test_test_store_key_blocks_submission(self):
+        icon = {'CFBundleIcons': {'CFBundlePrimaryIcon': {'CFBundleIconName': 'AppIcon'}},
+                'RevenueCatAPIKey': 'test_abc123'}
+        self.assertTrue(any('Test Store' in m for m in self.validate_icon(icon)))
+
+    def test_placeholder_key_passes(self):
+        icon = {'CFBundleIcons': {'CFBundlePrimaryIcon': {'CFBundleIconName': 'AppIcon'}},
+                'RevenueCatAPIKey': 'REVENUECAT_API_KEY_NOT_SET'}
+        self.assertEqual(self.validate_icon(icon), [])
+
 
 if __name__ == '__main__':
     unittest.main()

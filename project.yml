@@ -35,6 +35,24 @@ targets:
     platform: iOS
     sources:
       - path: Voyage
+    preBuildScripts:
+      # Ada's rule (app/vite.config.ts `refuseTestStoreKey`), applied at the
+      # one point every Release build passes through: a Test Store key
+      # simulates every purchase, so a store build carrying one would sell
+      # nothing and unlock everything. VOYAGE_ALLOW_TEST_STORE=1 lets a demo
+      # build through on purpose, by name.
+      - name: Refuse Test Store key in Release
+        basedOnDependencyAnalysis: false
+        script: |
+          if [ "$CONFIGURATION" = "Release" ]; then
+            case "$REVENUECAT_API_KEY" in
+              test_*)
+                if [ "$VOYAGE_ALLOW_TEST_STORE" != "1" ]; then
+                  echo "error: Refusing to build Release with a RevenueCat Test Store key; set VOYAGE_ALLOW_TEST_STORE=1 for a demo build."
+                  exit 1
+                fi ;;
+            esac
+          fi
     dependencies:
       - target: VoyageWidgets
         embed: true
@@ -46,10 +64,11 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.patrickliu.voyage
         # Public RevenueCat SDK key, read by Membership through Info.plist
-        # (RevenueCatAPIKey). Replace this one line with the dashboard's
-        # `test_…` (Test Store) or `appl_…` (App Store) public key. Any value
-        # without one of those prefixes, like this placeholder, leaves the SDK
-        # unconfigured and hides First Class; the app is otherwise unchanged.
+        # (RevenueCatAPIKey). Per configuration, below: Debug carries the
+        # project's Test Store key (`test_…`, simulated purchases, public by
+        # design); Release carries the placeholder until real App Store
+        # products exist, then the `appl_…` key. Any value without one of
+        # those prefixes leaves the SDK unconfigured and hides Voyage First.
         REVENUECAT_API_KEY: REVENUECAT_API_KEY_NOT_SET
         DEVELOPMENT_TEAM: "3QQL2XA4VS"
         INFOPLIST_FILE: Voyage/Support/Info.plist
@@ -60,6 +79,14 @@ targets:
         CODE_SIGN_STYLE: Automatic
         ENABLE_TESTABILITY: true
       configs:
+        # RevenueCat Test Store key for Debug (simulator, CI, the Shipaton
+        # demo). RevenueCat: "Never submit an app to the App Store configured
+        # with a Test Store API key", so Release never gets it: the
+        # `Refuse Test Store key in Release` pre-build script below fails any
+        # Release build whose key starts with `test_`, and
+        # scripts/check_release.py re-checks the built Info.plist.
+        Debug:
+          REVENUECAT_API_KEY: test_LlloIJeXyDjIqWpcwNZexxJvRHW
         # Release signs manually against the App Store distribution profile.
         # Automatic signing cannot be used for the archive: it provisions with
         # a *development* profile, and Apple will not issue one to a team with

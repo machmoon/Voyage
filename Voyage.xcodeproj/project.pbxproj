@@ -1103,6 +1103,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = ED23C4CAB20385D0BF6E05C2 /* Build configuration list for PBXNativeTarget "Voyage" */;
 			buildPhases = (
+				CE674A63248830B7E7CD37EA /* Refuse Test Store key in Release */,
 				B07965DF829D86CC5AF124FB /* Sources */,
 				894096D3D32E041E1CB81813 /* Resources */,
 				38EE6A7097BFE358C5FE9170 /* Frameworks */,
@@ -1306,6 +1307,28 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		CE674A63248830B7E7CD37EA /* Refuse Test Store key in Release */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Refuse Test Store key in Release";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if [ \"$CONFIGURATION\" = \"Release\" ]; then\n  case \"$REVENUECAT_API_KEY\" in\n    test_*)\n      if [ \"$VOYAGE_ALLOW_TEST_STORE\" != \"1\" ]; then\n        echo \"error: Refusing to build Release with a RevenueCat Test Store key; set VOYAGE_ALLOW_TEST_STORE=1 for a demo build.\"\n        exit 1\n      fi ;;\n  esac\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		2EB22EE74A402A05B65E431D /* Sources */ = {
@@ -1680,7 +1703,7 @@
 					"@executable_path/Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.patrickliu.voyage;
-				REVENUECAT_API_KEY = REVENUECAT_API_KEY_NOT_SET;
+				REVENUECAT_API_KEY = test_LlloIJeXyDjIqWpcwNZexxJvRHW;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 1;
 			};

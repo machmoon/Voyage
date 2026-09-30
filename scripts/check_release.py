@@ -228,6 +228,14 @@ def check_archive(archive):
     if "ITSAppUsesNonExemptEncryption" not in app:
         blocker("built app Info.plist: ITSAppUsesNonExemptEncryption is missing")
 
+    # RevenueCat: "Never submit an app to the App Store configured with a Test
+    # Store API key." project.yml gives the test key to Debug only and its
+    # pre-build script refuses a Release build carrying one; this re-checks
+    # what was actually built.
+    if str(app.get("RevenueCatAPIKey", "")).strip().startswith("test_"):
+        blocker("built app Info.plist: RevenueCatAPIKey is a RevenueCat Test Store key (test_…). "
+                "It simulates every purchase; a store build must carry the appl_ key or none.")
+
     if not app.get("NSSupportsLiveActivities"):
         blocker("built app Info.plist: NSSupportsLiveActivities is missing — Activity.request "
                 "would throw and FlightActivityController swallows it, so no Live Activity ever appears")

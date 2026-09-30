@@ -29,7 +29,7 @@ final class Membership {
     static let shared = Membership()
 
     /// The RevenueCat entitlement First Class unlocks.
-    nonisolated static let entitlementID = "first"
+    nonisolated static let entitlementID = "voyage_first"
     /// Info.plist key carrying the public SDK key. Its value is the
     /// `REVENUECAT_API_KEY` build setting in `project.yml`.
     nonisolated static let apiKeyInfoKey = "RevenueCatAPIKey"
