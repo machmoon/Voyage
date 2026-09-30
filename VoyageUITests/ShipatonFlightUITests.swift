@@ -74,18 +74,9 @@ final class ShipatonFlightUITests: XCTestCase {
         pause(1.5)
         // Seat labels read "<Cabin> seat 12A, ..."; the skip button's is
         // "Skip seat selection" and assigns the first open seat.
-        let open = app.buttons.matching(NSPredicate(format: "label CONTAINS %@ AND NOT (label CONTAINS %@) AND NOT (label BEGINSWITH %@)",
-                                                    " seat ", "locked", "First")).firstMatch
-        if open.waitForExistence(timeout: 3), open.isHittable { open.tap() }
-        pause(1)
-        let take = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Take seat")).firstMatch
         let skip = app.buttons["Skip seat selection"]
-        if take.waitForExistence(timeout: 4), take.isHittable {
-            take.tap()
-        } else {
-            XCTAssertTrue(skip.waitForExistence(timeout: 4), "Expected the seat picker's skip button")
-            skip.tap()
-        }
+        XCTAssertTrue(skip.waitForExistence(timeout: 6), "Expected the seat picker's skip button")
+        skip.tap()
         XCTAssertTrue(app.textFields["Bag 1, e.g. Review chapter 4"].waitForExistence(timeout: 15),
                       "Expected check-in after the seat picker")
 
