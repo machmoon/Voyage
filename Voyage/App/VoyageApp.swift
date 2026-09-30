@@ -15,6 +15,9 @@ struct VoyageApp: App {
         // Starts the seven-day clock the review prompt waits on; a no-op after
         // the first launch of the install.
         MainActor.assumeIsolated { AppFeedback.stampFirstLaunchIfNeeded() }
+        // RevenueCat, for the optional First Class membership. A no-op without
+        // a key and under XCTest; see `Membership.configure`.
+        MainActor.assumeIsolated { Membership.shared.configure() }
     }
 
     var body: some Scene {

@@ -220,6 +220,8 @@ struct SettingsView: View {
                     }
                 }
 
+                FirstClassSettingsSection()
+
                 Section {
                     Button {
                         settings.hasCompletedOnboarding = false

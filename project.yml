@@ -12,6 +12,15 @@ options:
 fileTypes:
   xcprivacy:
     buildPhase: resources
+# RevenueCat for the optional First Class membership. Pinned exactly, like the
+# runner image in ci.yml, so an SDK bump is a deliberate commit. The
+# `purchases-ios-spm` mirror is the package URL RevenueCat's installation docs
+# give for SPM (same tags as RevenueCat/purchases-ios, without the repo's test
+# fixtures, so resolution is faster).
+packages:
+  RevenueCat:
+    url: https://github.com/RevenueCat/purchases-ios-spm
+    exactVersion: 5.91.0
 settings:
   base:
     SWIFT_VERSION: "5.0"
@@ -29,9 +38,19 @@ targets:
     dependencies:
       - target: VoyageWidgets
         embed: true
+      - package: RevenueCat
+        product: RevenueCat
+      - package: RevenueCat
+        product: RevenueCatUI
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.patrickliu.voyage
+        # Public RevenueCat SDK key, read by Membership through Info.plist
+        # (RevenueCatAPIKey). Replace this one line with the dashboard's
+        # `test_…` (Test Store) or `appl_…` (App Store) public key. Any value
+        # without one of those prefixes, like this placeholder, leaves the SDK
+        # unconfigured and hides First Class; the app is otherwise unchanged.
+        REVENUECAT_API_KEY: REVENUECAT_API_KEY_NOT_SET
         DEVELOPMENT_TEAM: "3QQL2XA4VS"
         INFOPLIST_FILE: Voyage/Support/Info.plist
         TARGETED_DEVICE_FAMILY: "1"

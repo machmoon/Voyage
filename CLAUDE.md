@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Voyage is a SwiftUI iOS app (iOS 17+, no third-party dependencies) that themes study/focus sessions as airline flights: book a route on a globe, board, study through an airplane-window view, land, collect logbook stamps.
+Voyage is a SwiftUI iOS app (iOS 17+, one third-party dependency: RevenueCat, for the optional First Class membership) that themes study/focus sessions as airline flights: book a route on a globe, board, study through an airplane-window view, land, collect logbook stamps.
 
 ## Project generation (XcodeGen)
 
@@ -66,6 +66,17 @@ xcrun simctl launch booted com.patrickliu.voyage -VoyageShortFlights
 **In-flight views (`Voyage/Views/Flight/`):** `InFlightView` hosts two switchable study views — the side-facing `WindowSceneView` (Canvas; per-phase kinematics from a `phaseStart` reset on phase change; wing drawn only for over-wing seats via `session.hasWingView`) and `FlightMapView` (MapKit; plane positioned by `GreatCircle` slerp at `session.legProgress`, Route/Follow cameras, Terrain/Satellite styles). A black "cabin lights dimmed" curtain covers the boarding→in-flight stage swap.
 
 **Audio (`Voyage/Audio/`):** ambience, chimes and haptics are generated procedurally — `CabinAudioEngine`, `Haptics`. The PA is different: `Voyage/Resources/PA/*.m4a` holds recorded Voyage Air crew and captain lines, and `Announcer` falls back to speech synthesis only for a device voice the traveler picks. Audio is **foreground-only**: there is deliberately no `audio` entry in `UIBackgroundModes` (App Review 2.5.4 rejected the unearned declaration — strict mode diverts 30s after backgrounding, so nothing needs to keep playing). Do not re-add it; on this lineage it lived in `Voyage/Support/Info.plist`, not `project.yml`.
+
+## Membership (First Class, RevenueCat)
+
+RevenueCat and RevenueCatUI come in through `packages:` in `project.yml` (the `purchases-ios-spm` mirror, `exactVersion`). The design follows RevenueCat's own samples at purchases-ios 5.91.0 (`Examples/SampleCat/SampleCat/UserViewModel.swift`, `Screens/Paywalls/PaywallsTabView.swift`, `Screens/CustomerCenter/CustomerCenterTabView.swift`), cited in each file.
+
+- **Key.** `REVENUECAT_API_KEY` in `project.yml` (Voyage target settings) reaches Info.plist as `RevenueCatAPIKey`. The committed value is the placeholder `REVENUECAT_API_KEY_NOT_SET`; replace that one line with the dashboard's public `test_…` (Test Store) or `appl_…` key and run `xcodegen generate`. Anything without those prefixes leaves the SDK unconfigured.
+- **State.** `Membership.shared` (`Voyage/Support/Membership.swift`) is `@MainActor @Observable`: `status` is `.unknown`/`.economy`/`.firstClass`, `isFirstClass` reads entitlement `first`, `isConfigured` says whether the SDK is live. `VoyageApp.init` calls `configure()`, which is a no-op with no key and under XCTest (the `XCTestConfigurationFilePath` guard), so unit tests never touch the network. A failed refresh never demotes a known member.
+- **Free stays free.** No existing feature reads `Membership`. `.unknown` never locks anything the free app already does.
+- **Hooks for premium features** (`Voyage/Views/Membership/FirstClassPaywall.swift`): gate with `guard Membership.shared.requireFirstClass(from: "feature-name", paywall: $showsPaywall) else { return }`, and attach `.firstClassPaywall(isPresented: $showsPaywall)` to the view that owns the trigger (not the root: a sheet cannot present from under another sheet). Without the SDK the gate returns false and presents nothing. `.firstClassCustomerCenter(isPresented:)` presents Customer Center. Never call `Purchases.shared` or RevenueCatUI's `.presentPaywallIfNeeded` directly: both trap when the SDK was never configured.
+- **Settings.** `FirstClassSettingsSection` (status, See First Class, Manage membership) sits above Help and is hidden when the SDK is not configured.
+- Tests: `VoyageTests/MembershipTests.swift`.
 
 ## QA screenshots
 

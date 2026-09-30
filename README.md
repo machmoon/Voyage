@@ -10,7 +10,7 @@
 <p align="center">
   <a href="https://apps.apple.com/app/id6794570257"><img src="https://img.shields.io/badge/App%20Store-Voyage%3A%20Study%20%26%20Focus%20Timer-0D96F6" alt="App Store"></a>
   <a href="#build-from-source"><img src="https://img.shields.io/badge/platform-iOS%2017%2B-111827" alt="iOS 17+"></a>
-  <a href="#build-from-source"><img src="https://img.shields.io/badge/third--party%20dependencies-0-16A34A" alt="No third-party dependencies"></a>
+  <a href="#build-from-source"><img src="https://img.shields.io/badge/third--party%20dependencies-1%20(RevenueCat)-16A34A" alt="One third-party dependency: RevenueCat"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2563EB" alt="MIT"></a>
 </p>
 
@@ -55,7 +55,7 @@ The pass is the commitment. Press the button or slide along the dotted line, and
 - **Cabin service.** Optional reminders to drink water, rest your eyes, and stretch.
 - **Focus.** A Flight Focus filter ties a flight to iOS Focus. Location, if you allow it, sets your nearest airport as home. The app does not block other apps or turn on airplane mode.
 
-Your logbook stays on the device. Voyage collects nothing and has no analytics or third-party SDKs. Details are in [PRIVACY.md](PRIVACY.md).
+Your logbook stays on the device. Voyage has no analytics and no ads. Its one third-party SDK is RevenueCat, which handles the optional First Class membership and sees only purchase records, never your logbook. Details are in [PRIVACY.md](PRIVACY.md).
 
 ## Build from source
 
@@ -109,7 +109,7 @@ xcodebuild -downloadComponent MetalToolchain
 
 ## How it is built
 
-Voyage is SwiftUI on iOS 17 with no third-party dependencies. The pieces:
+Voyage is SwiftUI on iOS 17 with one third-party dependency, RevenueCat, for the optional First Class membership. The pieces:
 
 | Part | Where | What it does |
 | --- | --- | --- |
@@ -119,6 +119,7 @@ Voyage is SwiftUI on iOS 17 with no third-party dependencies. The pieces:
 | Window | `Voyage/Views/Flight/` | A Canvas passenger window with per-phase kinematics, MapKit scenery, and a Metal haze shader. |
 | Audio | `Voyage/Audio/`, `Voyage/Resources/PA/` | Procedural ambience, chimes, and haptics. Recorded PA lines for the crew and captain. |
 | Persistence | SwiftData | A single `LogbookEntry` model. Tiers computed from the logbook unlock cosmetics only. |
+| Membership | `Voyage/Support/Membership.swift`, `Voyage/Views/Membership/` | Optional First Class through RevenueCat: entitlement state, the dashboard-designed paywall, and Customer Center. Without a key the SDK stays off and the app is unchanged. |
 | Widgets | `VoyageWidgets/` | Live Activity and Dynamic Island. |
 | Tests | `VoyageTests/`, `VoyageUITests/` | Unit tests for phases, deadlines, connections, geometry, and weather. UI tours that write screenshots to `QA/`. |
 
