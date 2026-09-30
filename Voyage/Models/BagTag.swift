@@ -226,3 +226,150 @@ struct BagTagContent {
         return String(format: "%02d", day) + month
     }
 }
+
+// MARK: - One tag per task
+
+/// Tag stock. Standard is free, always. Priority (a red PRIORITY band and a
+/// FIRST routing block, like the tags carriers issue premium passengers) and
+/// carrier livery are Voyage First additions; nothing free moves behind them.
+enum BagTagStyle: String, CaseIterable, Identifiable {
+    case standard, priority, livery
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .standard: return "Standard"
+        case .priority: return "Priority"
+        case .livery: return "Livery"
+        }
+    }
+
+    var requiresVoyageFirst: Bool { self != .standard }
+}
+
+/// The three-letter code printed big on a task's tag, the way a bag tag
+/// prints its destination airport. "Organic chem problem set" is OCP.
+enum TaskCode {
+    static let stopWords: Set<String> = ["the", "a", "an", "of", "for", "and", "to"]
+    private static let vowels: Set<Character> = ["A", "E", "I", "O", "U"]
+
+    /// First letters of up to three significant words; with fewer than three,
+    /// filled from the words' next consonants (last word first), then vowels.
+    /// Uppercase ASCII only. A code that collides with `avoiding` or with a
+    /// catalog airport has its last letter bumped (A→B…Z→A) until it is free.
+    static func make(from title: String, avoiding: Set<String> = []) -> String {
+        let words = title
+            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: Locale(identifier: "en_US"))
+            .uppercased()
+            .split { !($0.isASCII && $0.isLetter) }
+            .map(String.init)
+        let significant = words.filter { !stopWords.contains($0.lowercased()) }
+        let source = significant.isEmpty ? words : significant
+
+        var letters = Array(source.prefix(3).compactMap(\.first))
+        if letters.count < 3 {
+            // Fill from what follows each word's initial, last word first
+            // ("Read ch" is RCH, "Essay" is ESS): consonants, then vowels.
+            let rest = source.prefix(3).reversed().flatMap { $0.dropFirst() }
+            for c in rest where !vowels.contains(c) && letters.count < 3 { letters.append(c) }
+            for c in rest where vowels.contains(c) && letters.count < 3 { letters.append(c) }
+        }
+        while letters.count < 3 { letters.append("X") }
+        var code = String(letters.prefix(3))
+
+        let taken = avoiding.union(airportCodes)
+        var attempts = 0
+        while taken.contains(code) && attempts < 26 {
+            code = bumped(code)
+            attempts += 1
+        }
+        return code
+    }
+
+    /// Codes for a list of tasks, each avoiding the ones before it. Codes the
+    /// traveler already edited (`existing`, same index) are kept.
+    static func codes(for titles: [String], existing: [String] = []) -> [String] {
+        var used: Set<String> = []
+        return titles.enumerated().map { index, title in
+            if index < existing.count, let kept = sanitized(existing[index]), !used.contains(kept) {
+                used.insert(kept)
+                return kept
+            }
+            let code = make(from: title, avoiding: used)
+            used.insert(code)
+            return code
+        }
+    }
+
+    /// A hand-edited code: three ASCII letters, uppercased, or nil.
+    static func sanitized(_ raw: String) -> String? {
+        let letters = raw.uppercased().filter { $0.isASCII && $0.isLetter }
+        return letters.count == 3 ? letters : nil
+    }
+
+    private static let airportCodes = Set(Airport.all.map(\.code))
+
+    private static func bumped(_ code: String) -> String {
+        var chars = Array(code)
+        let last = chars[2].asciiValue ?? 65
+        chars[2] = Character(UnicodeScalar(last >= 90 ? 65 : last + 1))
+        return String(chars)
+    }
+}
+
+/// One checked bag: one task, its code, and its own plate. Consecutive
+/// serials, like tags printed one after another at a counter.
+struct TaskBagTag: Hashable, Identifiable {
+    let index: Int
+    let count: Int
+    let title: String
+    var code: String
+    let plate: BagTagLicensePlate
+    var style: BagTagStyle
+    var id: Int { index }
+
+    /// "BAG 2 OF 3"
+    var bagLine: String { "BAG \(index + 1) OF \(count)" }
+
+    /// "Bag 2 of 3, O C P, Organic chem problem set"
+    var accessibilityLabel: String {
+        "Bag \(index + 1) of \(count), \(code.map(String.init).joined(separator: " ")), \(title)"
+    }
+
+    static func tags(titles: [String], codes: [String], base: BagTagLicensePlate,
+                     style: BagTagStyle = .standard) -> [TaskBagTag] {
+        let resolved = TaskCode.codes(for: titles, existing: codes)
+        return titles.enumerated().map { index, title in
+            TaskBagTag(index: index, count: titles.count, title: title, code: resolved[index],
+                       plate: BagTagLicensePlate(leadingDigit: base.leadingDigit,
+                                                 issuerCode: base.issuerCode,
+                                                 serial: (base.serial + index) % 1_000_000),
+                       style: style)
+        }
+    }
+}
+
+/// Bags left on the carousel: tasks from recent flights that were checked but
+/// not claimed. They ride the next flight, first in the recent-bag chips.
+enum MishandledBags {
+    static func pending(in entries: [LogbookEntry], lookback: Int = 10) -> [String] {
+        var seen = Set<String>()
+        var result: [String] = []
+        for entry in entries.prefix(lookback) {
+            for (index, intention) in entry.intentions.enumerated() {
+                let claimed = index < entry.intentionsCompleted.count && entry.intentionsCompleted[index]
+                let key = intention.lowercased()
+                guard !claimed, !seen.contains(key) else { continue }
+                seen.insert(key)
+                result.append(intention)
+            }
+            // A bag claimed later removes it from the carousel.
+            for (index, intention) in entry.intentions.enumerated()
+            where index < entry.intentionsCompleted.count && entry.intentionsCompleted[index] {
+                seen.insert(intention.lowercased())
+            }
+        }
+        return result
+    }
+}

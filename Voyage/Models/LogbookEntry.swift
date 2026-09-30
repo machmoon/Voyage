@@ -76,6 +76,11 @@ final class LogbookEntry {
     /// before ratings existed.
     var endorsementRaw: String?
 
+    /// One 3-letter bag tag code per intention ("OCP"), parallel to
+    /// `intentions`. Empty on rows written before tags carried codes; the
+    /// default keeps SwiftData's lightweight migration working.
+    var tagCodes: [String] = []
+
     /// The rating this landing completed, if any.
     var endorsement: PilotRating? {
         get { endorsementRaw.flatMap(PilotRating.init(rawValue:)) }

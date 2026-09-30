@@ -36,6 +36,14 @@ struct CheckBagView: View {
     @State private var sentOff = false
     @State private var stubWidth: CGFloat = 0
 
+    // One tag per task: printed as each line is entered, fanned below.
+    @State private var printedSlots: [Int] = []
+    @State private var codeOverrides: [Int: String] = [:]
+    @State private var editingSlot: Int?
+    @State private var codeDraft = ""
+    @State private var membership = Membership.shared
+    @State private var showsPaywall = false
+
     private var tag: BagTagContent {
         BagTagContent(itinerary: session.itinerary, seat: session.seat, bookedAt: session.bookedAt)
     }
@@ -44,11 +52,39 @@ struct CheckBagView: View {
         items.filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }.count
     }
 
-    /// Up to six distinct intentions from recent flights, newest first,
-    /// excluding ones already packed this time.
+    /// Bags left on the carousel last time. They ride this flight, first.
+    private var mishandled: Set<String> {
+        Set(MishandledBags.pending(in: Array(entries)).map { $0.lowercased() })
+    }
+
+    private var filledSlots: [Int] {
+        items.indices.filter { !items[$0].trimmingCharacters(in: .whitespaces).isEmpty }
+    }
+
+    /// The printed tags, one per filled line, in slot order.
+    private var taskTags: [TaskBagTag] {
+        let slots = filledSlots.filter { printedSlots.contains($0) }
+        let titles = slots.map { items[$0].trimmingCharacters(in: .whitespaces) }
+        return TaskBagTag.tags(titles: titles,
+                               codes: slots.map { codeOverrides[$0] ?? "" },
+                               base: tag.plate,
+                               style: session.bagTagStyle)
+    }
+
+    private var carrier: Carrier {
+        Carrier(rawValue: String(session.itinerary.legs[0].flightNumber.prefix { !$0.isWhitespace })) ?? .voyageAir
+    }
+
+    /// Up to six distinct intentions from recent flights, mishandled bags
+    /// first, then newest first, excluding ones already packed this time.
     private var recentBags: [String] {
         var seen = Set(items.map { $0.trimmingCharacters(in: .whitespaces).lowercased() })
         var result: [String] = []
+        for bag in MishandledBags.pending(in: Array(entries)) where !seen.contains(bag.lowercased()) {
+            seen.insert(bag.lowercased())
+            result.append(bag)
+            if result.count == 6 { return result }
+        }
         for entry in entries.prefix(20) {
             for intention in entry.intentions {
                 let key = intention.lowercased()
@@ -82,6 +118,23 @@ struct CheckBagView: View {
                     .padding(.bottom, 14)
 
                     printerAndTag
+
+                    if !taskTags.isEmpty {
+                        TaskTagFan(tags: taskTags, carrier: carrier) { tag in
+                            let slot = filledSlots.filter { printedSlots.contains($0) }[tag.index]
+                            codeDraft = tag.code
+                            editingSlot = slot
+                        }
+                        .padding(.top, 18)
+                        .opacity(sentOff ? 0 : 1)
+                        .offset(y: sentOff ? 400 : 0)
+                        .animation(.easeIn(duration: 0.45), value: sentOff)
+                    }
+
+                    if membership.isConfigured && !taskTags.isEmpty {
+                        stylePicker
+                            .padding(.top, 12)
+                    }
 
                     if !recentBags.isEmpty {
                         recentBagsRow
@@ -139,10 +192,79 @@ struct CheckBagView: View {
                 for (i, intention) in session.intentions.prefix(3).enumerated() { items[i] = intention }
             }
             startPrinting()
+            printedSlots = filledSlots
             Task {
                 await focus.refresh()
             }
         }
+        .onChange(of: items) { _, _ in
+            // A cleared line takes its tag off the fan.
+            printedSlots.removeAll { !filledSlots.contains($0) }
+        }
+        .alert("Tag code", isPresented: Binding(get: { editingSlot != nil },
+                                                set: { if !$0 { editingSlot = nil } })) {
+            TextField("Three letters", text: $codeDraft)
+                .textInputAutocapitalization(.characters)
+                .autocorrectionDisabled()
+            Button("Print") {
+                if let slot = editingSlot, let code = TaskCode.sanitized(codeDraft) {
+                    withAnimation(.snappy) { codeOverrides[slot] = code }
+                    Haptics.softTick()
+                }
+                editingSlot = nil
+            }
+            Button("Cancel", role: .cancel) { editingSlot = nil }
+        } message: {
+            Text("Three letters, like an airport code.")
+        }
+        .firstClassPaywall(isPresented: $showsPaywall)
+    }
+
+    /// Prints one task's tag onto the fan: a short feed and a tick per line.
+    private func printTaskTag(_ slot: Int) {
+        guard !items[slot].trimmingCharacters(in: .whitespaces).isEmpty,
+              !printedSlots.contains(slot) else { return }
+        CabinAudioEngine.shared.playPrinter(feedSchedule: [0.07, 0.07, 0.09])
+        Haptics.softTick()
+        withAnimation(.spring(response: 0.45, dampingFraction: 0.68)) {
+            printedSlots.append(slot)
+        }
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(160))
+            Haptics.tap()
+        }
+    }
+
+    /// Standard stock is free; priority and livery are Voyage First, and
+    /// tapping a locked one opens the paywall (trigger 3 in SPEC.md).
+    private var stylePicker: some View {
+        HStack(spacing: 8) {
+            ForEach(BagTagStyle.allCases) { style in
+                let locked = style.requiresVoyageFirst && !membership.isFirstClass
+                let chosen = session.bagTagStyle == style
+                Button {
+                    if locked {
+                        _ = membership.requireFirstClass(from: "bag-tag-\(style.rawValue)", paywall: $showsPaywall)
+                        return
+                    }
+                    Haptics.tap()
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) { session.bagTagStyle = style }
+                } label: {
+                    HStack(spacing: 4) {
+                        if locked { Image(systemName: "lock.fill").font(.system(size: 9, weight: .bold)) }
+                        Text(style.title)
+                    }
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(chosen ? .white : Theme.seatMapInk.opacity(locked ? 0.45 : 0.8))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 7)
+                    .background(chosen ? Theme.accent : Theme.seatMapInk.opacity(0.06), in: Capsule())
+                }
+                .accessibilityIdentifier("bag-tag-style-\(style.rawValue)")
+                .accessibilityLabel(locked ? "\(style.title) tag, Voyage First" : "\(style.title) tag")
+            }
+        }
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: Printer and tag
@@ -228,6 +350,7 @@ struct CheckBagView: View {
                 .focused($focusedIndex, equals: index)
                 .submitLabel(index < 2 ? .next : .done)
                 .onSubmit {
+                    printTaskTag(index)
                     focusedIndex = index < 2 ? index + 1 : nil
                 }
                 .padding(.top, 4)
@@ -304,9 +427,11 @@ struct CheckBagView: View {
     private func checkBags() {
         guard !peeled else { return }
         focusedIndex = nil
-        session.intentions = items
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
+        let slots = filledSlots
+        session.intentions = slots.map { items[$0].trimmingCharacters(in: .whitespaces) }
+        session.tagCodes = TaskCode.codes(for: session.intentions,
+                                          existing: slots.map { codeOverrides[$0] ?? "" })
+        withAnimation(.spring(response: 0.45, dampingFraction: 0.7)) { printedSlots = slots }
         peeled = true
         Haptics.rip()
         Task { @MainActor in
@@ -389,8 +514,10 @@ struct CheckBagView: View {
                         }) else { return }
                         Haptics.tap()
                         items[slot] = bag
+                        printTaskTag(slot)
                     } label: {
-                        Label(bag, systemImage: "plus")
+                        Label(bag, systemImage: mishandled.contains(bag.lowercased())
+                              ? "exclamationmark.arrow.triangle.2.circlepath" : "plus")
                             .font(.caption.weight(.medium))
                             .lineLimit(1)
                             .foregroundStyle(Theme.accent)

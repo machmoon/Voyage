@@ -215,16 +215,30 @@ private struct WelcomeView: View {
 
 // MARK: - Baggage claim
 
-/// Your checked intentions come around the belt. Mark off what you finished.
+/// Your checked bags come round on Carousel 3, one tag per task. Tear a
+/// tag's claim stub to claim it: that is the task done. A bag left on the
+/// belt is mishandled and rides your next flight (it comes back first among
+/// the recent bags at check-in). The tear is the boarding pass's gesture and
+/// ratchet at bag-tag scale.
 private struct BaggageClaimView: View {
     @Bindable var session: FlightSession
     let onContinue: () -> Void
 
     @State private var claimed: Set<Int> = []
+    @State private var arrived = false
 
     private var claimPlate: BagTagLicensePlate {
         BagTagLicensePlate.make(flightNumber: session.itinerary.legs[0].flightNumber,
                                 seat: session.seat, bookedAt: session.bookedAt)
+    }
+
+    private var tags: [TaskBagTag] {
+        TaskBagTag.tags(titles: session.intentions, codes: session.tagCodes,
+                        base: claimPlate, style: session.bagTagStyle)
+    }
+
+    private var carrier: Carrier {
+        Carrier(rawValue: String(session.itinerary.legs[0].flightNumber.prefix { !$0.isWhitespace })) ?? .voyageAir
     }
 
     var body: some View {
@@ -232,35 +246,46 @@ private struct BaggageClaimView: View {
             Theme.surfaceDark.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                VStack(spacing: 6) {
-                    Image(systemName: "arrow.triangle.2.circlepath")
-                        .font(.system(size: 28))
-                        .foregroundStyle(Theme.accent)
-                    Text("Baggage claim")
-                        .font(.title2.bold())
-                        .foregroundStyle(.white)
-                    Text("Carousel 3 · claim what you finished")
-                        .font(.subheadline)
-                        .foregroundStyle(.white.opacity(0.55))
-                    // The claim check peeled off the bag tag at check-in
-                    // (`CheckBagView`). Recomputed, not stored: the plate is
-                    // a pure function of the booking.
-                    Text("Claim check \(claimPlate.printed)")
-                        .font(.caption.weight(.semibold).monospaced())
-                        .foregroundStyle(.white.opacity(0.45))
-                        .accessibilityLabel("Claim check \(claimPlate.spoken)")
-                }
-                .padding(.top, 40)
-
-                VStack(spacing: 12) {
-                    ForEach(Array(session.intentions.enumerated()), id: \.offset) { index, intention in
-                        bagCard(index: index, intention: intention)
+                ScrollView {
+                    VStack(spacing: 6) {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .font(.system(size: 28))
+                            .foregroundStyle(Theme.accent)
+                            .rotationEffect(.degrees(arrived ? 360 : 0))
+                            .animation(.easeInOut(duration: 1.2), value: arrived)
+                        Text("Baggage claim")
+                            .font(.title2.bold())
+                            .foregroundStyle(.white)
+                        Text("Carousel 3 · tear the stub on what you finished")
+                            .font(.subheadline)
+                            .foregroundStyle(.white.opacity(0.55))
+                        // Recomputed, not stored: the plate is a pure
+                        // function of the booking.
+                        Text("Claim check \(claimPlate.printed)")
+                            .font(.caption.weight(.semibold).monospaced())
+                            .foregroundStyle(.white.opacity(0.45))
+                            .accessibilityLabel("Claim check \(claimPlate.spoken)")
                     }
-                }
-                .padding(.horizontal, 24)
-                .padding(.top, 36)
+                    .padding(.top, 40)
 
-                Spacer()
+                    VStack(spacing: 18) {
+                        ForEach(tags) { tag in
+                            ClaimableTag(tag: tag, carrier: carrier,
+                                         claimed: claimed.contains(tag.index)) {
+                                withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
+                                    _ = claimed.insert(tag.index)
+                                }
+                            }
+                            // Round the belt: each bag slides in from the side.
+                            .offset(x: arrived ? 0 : 420)
+                            .animation(.spring(response: 0.7, dampingFraction: 0.8)
+                                .delay(0.25 + 0.35 * Double(tag.index)), value: arrived)
+                        }
+                    }
+                    .padding(.horizontal, 44)
+                    .padding(.top, 28)
+                    .padding(.bottom, 20)
+                }
 
                 Button(action: finish) {
                     Text("Continue to passport control")
@@ -274,44 +299,105 @@ private struct BaggageClaimView: View {
                 .padding(.bottom, 30)
             }
         }
-    }
-
-    private func bagCard(index: Int, intention: String) -> some View {
-        let isClaimed = claimed.contains(index)
-        return Button {
-            Haptics.tap()
-            // Claiming reads the tag; releasing it back onto the belt does not.
-            if !isClaimed { CabinAudioEngine.shared.playScanBeep() }
-            withAnimation(.snappy(duration: 0.3)) {
-                if isClaimed { claimed.remove(index) } else { claimed.insert(index) }
-            }
-        } label: {
-            HStack(spacing: 14) {
-                Image(systemName: "suitcase.rolling.fill")
-                    .font(.title3)
-                    .foregroundStyle(isClaimed ? Theme.accent : .white.opacity(0.35))
-                Text(intention)
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.white.opacity(isClaimed ? 0.95 : 0.7))
-                    .strikethrough(isClaimed, color: .white.opacity(0.5))
-                    .multilineTextAlignment(.leading)
-                Spacer()
-                Image(systemName: isClaimed ? "checkmark.circle.fill" : "circle")
-                    .font(.title3)
-                    .foregroundStyle(isClaimed ? Theme.accent : .white.opacity(0.25))
-            }
-            .padding(16)
-            .background(.white.opacity(isClaimed ? 0.1 : 0.05),
-                        in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        }
-        .buttonStyle(.plain)
+        .onAppear { arrived = true }
     }
 
     private func finish() {
         if let entry = session.logEntry {
             entry.intentionsCompleted = session.intentions.indices.map { claimed.contains($0) }
+            entry.tagCodes = tags.map(\.code)
         }
         onContinue()
+    }
+}
+
+/// A task tag whose claim stub tears off sideways, with the ratchet ticks and
+/// a claim haptic, then a CLAIMED stamp. Unclaimed, it says where it goes.
+private struct ClaimableTag: View {
+    let tag: TaskBagTag
+    let carrier: Carrier
+    let claimed: Bool
+    let onClaim: () -> Void
+
+    @State private var pull: CGFloat = 0
+    @State private var lastStep = 0
+
+    var body: some View {
+        VStack(spacing: 0) {
+            TaskBagTagView(tag: tag, carrier: carrier, showsStub: false, claimed: claimed)
+            stub
+                .offset(x: claimed ? 360 : pull, y: claimed ? -40 : 0)
+                .rotationEffect(.degrees(claimed ? 18 : Double(pull / 14)), anchor: .leading)
+                .opacity(claimed ? 0 : 1)
+                .animation(claimed ? .easeIn(duration: 0.45) : nil, value: claimed)
+                .gesture(tearGesture)
+            if !claimed {
+                Text("Unclaimed bags are mishandled: they go on your next flight.")
+                    .font(.caption2)
+                    .foregroundStyle(.white.opacity(0.45))
+                    .padding(.top, 6)
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("claim-tag-\(tag.index)")
+        .accessibilityAction(named: Text("Claim bag")) { claim() }
+    }
+
+    private var stub: some View {
+        HStack {
+            Image(systemName: "scissors")
+            Text("CLAIM \(tag.code)")
+                .font(.system(size: 11, weight: .heavy, design: .monospaced))
+            Spacer()
+            Text(claimed ? "" : "TEAR →")
+                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                .opacity(0.6)
+        }
+        .foregroundStyle(Color(hex: "14161C"))
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(Color.white, in: UnevenRoundedRectangle(bottomLeadingRadius: 8, bottomTrailingRadius: 8))
+        .overlay(alignment: .top) {
+            Rectangle()
+                .stroke(style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                .frame(height: 1)
+                .foregroundStyle(Color.black.opacity(0.35))
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            // A tap nudges the stub, so the gesture is discoverable.
+            Haptics.softTick()
+            withAnimation(.spring(response: 0.25, dampingFraction: 0.4)) { pull = 18 }
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.6).delay(0.18)) { pull = 0 }
+        }
+    }
+
+    private var tearGesture: some Gesture {
+        DragGesture(minimumDistance: 4)
+            .onChanged { value in
+                guard !claimed else { return }
+                pull = max(0, value.translation.width)
+                let step = Int(pull / 24)
+                if step > lastStep {
+                    lastStep = step
+                    CabinAudioEngine.shared.playTearTick()
+                    Haptics.ratchet()
+                }
+                if pull > 150 { claim() }
+            }
+            .onEnded { _ in
+                guard !claimed else { return }
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.6)) { pull = 0 }
+                lastStep = 0
+            }
+    }
+
+    private func claim() {
+        guard !claimed else { return }
+        Haptics.claim()
+        CabinAudioEngine.shared.playRip()
+        CabinAudioEngine.shared.playScanBeep()
+        onClaim()
     }
 }
 

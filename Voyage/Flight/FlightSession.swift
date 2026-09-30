@@ -44,6 +44,10 @@ final class FlightSession {
     var seat: String = "—"
     var aircraft: AircraftProfile = .boeing737800
     var intentions: [String] = []
+    /// One 3-letter code per checked bag, parallel to `intentions`.
+    var tagCodes: [String] = []
+    /// The tag stock this booking prints on (priority and livery are Voyage First).
+    var bagTagStyle: BagTagStyle = .standard
     let bookedAt: Date
 
     /// Frequent-flyer tier at booking time; drives cosmetic unlocks only.
@@ -1019,6 +1023,7 @@ final class FlightSession {
             departedAt: departedAt,
             outcome: outcome
         )
+        entry.tagCodes = TaskCode.codes(for: intentions, existing: tagCodes)
         // A flight that ended within its first minute is a false start, not
         // a trip: the diverted screen still shows it, the logbook does not.
         // Tearing a pass and backing out immediately used to leave rows of

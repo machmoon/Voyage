@@ -145,6 +145,7 @@
 		77B4AF4D85E697E2A4F3C53B /* crew_descent_miami.m4a in Resources */ = {isa = PBXBuildFile; fileRef = EA9AAD4889275D62E36335E0 /* crew_descent_miami.m4a */; };
 		77F248325778F184DFE6DBC1 /* crew_midpoint_seattle.m4a in Resources */ = {isa = PBXBuildFile; fileRef = AD711E337CC4BCE705C6F75C /* crew_midpoint_seattle.m4a */; };
 		780CFA3E771461FBC636FBA3 /* crew_finalcall_los-angeles.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 558D9D25FDD5EE816806F526 /* crew_finalcall_los-angeles.m4a */; };
+		78844768A6356EB0F9DB5566 /* TaskBagTagView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 440CBB5EB45D44446005A985 /* TaskBagTagView.swift */; };
 		798DB0B4A99844B6D77FC28D /* crew_layover_miami.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 9D9DCCC49536BF279DDA4C77 /* crew_layover_miami.m4a */; };
 		7A0077950E5AF1A68476AD28 /* crew_descent_toronto.m4a in Resources */ = {isa = PBXBuildFile; fileRef = FF3C48169C3DBD3F624BFEF2 /* crew_descent_toronto.m4a */; };
 		7ABC500B9DB9CF1AE2C4D682 /* LogbookMigrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D852A33B5FE2C0E2F34BB75C /* LogbookMigrationTests.swift */; };
@@ -388,6 +389,7 @@
 		415C36476BB7DDE42806FBA6 /* RealWorldSceneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealWorldSceneView.swift; sourceTree = "<group>"; };
 		415D0FFCD4FA6DB8C28976A0 /* FlyerTierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlyerTierTests.swift; sourceTree = "<group>"; };
 		41B9819A51BED6339E0BE464 /* captain_midpoint_toronto.m4a */ = {isa = PBXFileReference; path = captain_midpoint_toronto.m4a; sourceTree = "<group>"; };
+		440CBB5EB45D44446005A985 /* TaskBagTagView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskBagTagView.swift; sourceTree = "<group>"; };
 		44B8A2CEA1D7B030571DC244 /* GreatCircleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GreatCircleTests.swift; sourceTree = "<group>"; };
 		45F3660F8491333EED3A1940 /* captain_finalcall_san-francisco.m4a */ = {isa = PBXFileReference; path = "captain_finalcall_san-francisco.m4a"; sourceTree = "<group>"; };
 		4622E9976475575ABB598CDC /* FlightPostView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightPostView.swift; sourceTree = "<group>"; };
@@ -641,6 +643,7 @@
 				88D4D98A42F216B799704C84 /* BoardingPassView.swift */,
 				E90C1A3DFBF3DAA7D4ABB231 /* CheckBagView.swift */,
 				CBE81C5820E0ED57F7ACBBBB /* SeatSelectionView.swift */,
+				440CBB5EB45D44446005A985 /* TaskBagTagView.swift */,
 			);
 			path = Boarding;
 			sourceTree = "<group>";
@@ -1520,6 +1523,7 @@
 				EF1A61B70BBA4A5C83FF193F /* StudyCoach.swift in Sources */,
 				8E743E20A577052BEAAAC9D8 /* StudyCoachSection.swift in Sources */,
 				F756497ACC73E477F44878E8 /* StudyMapWarmup.swift in Sources */,
+				78844768A6356EB0F9DB5566 /* TaskBagTagView.swift in Sources */,
 				4D31525631FD4FC74A1A1AF1 /* TestModeSeeder.swift in Sources */,
 				2A6D2CD0EC832A9D6BD443E8 /* Theme.swift in Sources */,
 				96AC30BF0A697D72EE75C2CE /* UpgradeOfferSheet.swift in Sources */,

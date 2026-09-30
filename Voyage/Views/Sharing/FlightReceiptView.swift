@@ -14,7 +14,17 @@ struct FlightReceiptView: View {
     let caption: String?
     let intentionsCompleted: Int
     let intentionsTotal: Int
+    /// "OCP ✓  ESS ✓  RCH mishandled": each bag's code, claimed or not.
+    var bagCodesLine: String? = nil
     let viaCode: String?
+
+    static func bagCodesLine(codes: [String], completed: [Bool]) -> String? {
+        guard !codes.isEmpty else { return nil }
+        return codes.enumerated().map { index, code in
+            let done = index < completed.count && completed[index]
+            return done ? "\(code) ✓" : "\(code) mishandled"
+        }.joined(separator: "  ")
+    }
 
     init(session: FlightSession, caption: String?) {
         originCode = session.itinerary.origin.code
@@ -28,6 +38,8 @@ struct FlightReceiptView: View {
         self.caption = caption?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
         intentionsTotal = session.intentions.count
         intentionsCompleted = session.logEntry?.intentionsCompleted.filter(\.self).count ?? 0
+        bagCodesLine = Self.bagCodesLine(codes: session.logEntry?.tagCodes ?? [],
+                                         completed: session.logEntry?.intentionsCompleted ?? [])
         viaCode = session.itinerary.connection?.code
     }
 
@@ -43,6 +55,7 @@ struct FlightReceiptView: View {
         caption = entry.shareCaption
         intentionsTotal = entry.intentions.count
         intentionsCompleted = zip(entry.intentions, entry.intentionsCompleted).filter(\.1).count
+        bagCodesLine = Self.bagCodesLine(codes: entry.tagCodes, completed: entry.intentionsCompleted)
         viaCode = entry.connectionCode
     }
 
@@ -180,7 +193,8 @@ struct FlightReceiptView: View {
     }
 
     private var bagsSummary: String {
-        "\(intentionsCompleted)/\(intentionsTotal) bags claimed at arrival"
+        let summary = "\(intentionsCompleted)/\(intentionsTotal) bags claimed at arrival"
+        return bagCodesLine.map { "\(summary)\n\($0)" } ?? summary
     }
 
     private var stampBadge: some View {

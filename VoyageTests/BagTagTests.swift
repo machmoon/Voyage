@@ -163,3 +163,72 @@ final class BagTagTests: XCTestCase {
         return out
     }
 }
+
+final class TaskBagTagTests: XCTestCase {
+    func testCodesFromTheSpecExamples() {
+        XCTAssertEqual(TaskCode.make(from: "Organic chem problem set"), "OCP")
+        XCTAssertEqual(TaskCode.make(from: "Essay"), "ESS")
+        XCTAssertEqual(TaskCode.make(from: "Read ch 4"), "RCH")
+        XCTAssertEqual(TaskCode.make(from: "The history of art"), "HAR")
+        XCTAssertEqual(TaskCode.make(from: "Écrire l'essai"), "ELE")
+        XCTAssertEqual(TaskCode.make(from: "   "), "XXX")
+    }
+
+    func testCodesAreThreeUppercaseASCIILetters() {
+        for title in ["math", "a", "Go", "Lab report 3", "🧪 chem", "Ü"] {
+            let code = TaskCode.make(from: title)
+            XCTAssertEqual(code.count, 3, title)
+            XCTAssertTrue(code.allSatisfy { $0.isASCII && $0.isUppercase }, "\(title) → \(code)")
+        }
+    }
+
+    func testCollisionsBumpTheLastLetter() {
+        XCTAssertEqual(TaskCode.make(from: "Organic chem problem set", avoiding: ["OCP"]), "OCQ")
+        XCTAssertEqual(TaskCode.make(from: "Organic chem problem set", avoiding: ["OCP", "OCQ"]), "OCR")
+        XCTAssertEqual(TaskCode.make(from: "Zebra yak zoo"), "ZYZ")
+        XCTAssertEqual(TaskCode.make(from: "Zebra yak zoo", avoiding: ["ZYZ"]), "ZYA")
+    }
+
+    func testCatalogAirportCodesAreAvoided() {
+        XCTAssertEqual(TaskCode.make(from: "Lecture about X-rays"), "LAY")
+        XCTAssertEqual(TaskCode.make(from: "Big old syllabus"), "BOT")
+        for airport in Airport.all {
+            XCTAssertNotEqual(TaskCode.codes(for: [airport.code]).first, airport.code)
+        }
+    }
+
+    func testCodesForABookingAreDistinctAndKeepEdits() {
+        let codes = TaskCode.codes(for: ["Read ch 4", "Read ch 5", "Essay"])
+        XCTAssertEqual(codes, ["RCH", "RCI", "ESS"])
+        XCTAssertEqual(TaskCode.codes(for: ["Read ch 4", "Essay"], existing: ["mth", ""]), ["MTH", "ESS"])
+    }
+
+    func testTagsCarryConsecutiveSerialsAndSpokenLabels() {
+        let base = BagTagLicensePlate(leadingDigit: 0, issuerCode: 868, serial: 482_913)
+        let tags = TaskBagTag.tags(titles: ["Organic chem problem set", "Essay"], codes: [], base: base)
+        XCTAssertEqual(tags.map(\.plate.serial), [482_913, 482_914])
+        XCTAssertEqual(tags[0].bagLine, "BAG 1 OF 2")
+        XCTAssertEqual(tags[0].accessibilityLabel, "Bag 1 of 2, O C P, Organic chem problem set")
+    }
+
+    func testStandardStockIsFreeAndTheRestAreVoyageFirst() {
+        XCTAssertFalse(BagTagStyle.standard.requiresVoyageFirst)
+        XCTAssertTrue(BagTagStyle.priority.requiresVoyageFirst)
+        XCTAssertTrue(BagTagStyle.livery.requiresVoyageFirst)
+    }
+
+    @MainActor
+    func testUnclaimedBagsRideTheNextFlight() {
+        func entry(_ intentions: [String], _ done: [Bool]) -> LogbookEntry {
+            LogbookEntry(originCode: "SFO", destinationCode: "LAX", flightNumber: "VOY 1", seat: "C1",
+                         miles: 1, focusSeconds: 1, completed: true,
+                         intentions: intentions, intentionsCompleted: done)
+        }
+        // Newest first, as the check-in query sorts.
+        let entries = [
+            entry(["Essay", "Lab report"], [true, false]),
+            entry(["Essay", "Flashcards"], [false, false]),
+        ]
+        XCTAssertEqual(MishandledBags.pending(in: entries), ["Lab report", "Flashcards"])
+    }
+}
