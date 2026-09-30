@@ -10,6 +10,7 @@ struct SettingsView: View {
     @Query private var entries: [LogbookEntry]
     @State private var hasSeededData = false
     @State private var isWritingFeedback = false
+    @State private var showingFlightManual = false
     /// Read once when Settings opens; Apple Intelligence state changes in the
     /// Settings app, which reopening this screen picks up.
     @State private var intelligence = IntelligenceAvailability.current
@@ -224,6 +225,17 @@ struct SettingsView: View {
 
                 Section {
                     Button {
+                        showingFlightManual = true
+                    } label: {
+                        Label("The Flight Manual", systemImage: "book.pages")
+                    }
+                    .accessibilityIdentifier("settings-flight-manual")
+                } footer: {
+                    Text("Why Voyage works like an airline: the studies behind the boarding pass, bag tags, miles and streaks.")
+                }
+
+                Section {
+                    Button {
                         settings.hasCompletedOnboarding = false
                         dismiss()
                     } label: {
@@ -298,6 +310,7 @@ struct SettingsView: View {
             .navigationBarTitleDisplayMode(.inline)
             .onAppear { hasSeededData = TestModeSeeder.hasSeededData(in: modelContext) }
             .sheet(isPresented: $isWritingFeedback) { FeedbackSheet() }
+            .sheet(isPresented: $showingFlightManual) { FlightManualView() }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }

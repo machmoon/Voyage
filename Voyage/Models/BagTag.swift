@@ -137,7 +137,7 @@ struct BagTagLicensePlate: Hashable {
 
     /// FNV-1a, as `RoutePlanner.fallbackFlightNumber` uses: stable across
     /// launches, unlike `String.hashValue`.
-    private static func fnv1a(_ text: String) -> UInt64 {
+    static func fnv1a(_ text: String) -> UInt64 {
         var hash: UInt64 = 0xcbf2_9ce4_8422_2325
         for byte in text.utf8 {
             hash ^= UInt64(byte)

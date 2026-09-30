@@ -100,3 +100,16 @@ final class VoyageMilesTests: XCTestCase {
         XCTAssertEqual(twice.sentence, "SFO–LAX (1h 25m) twice gets you there.")
     }
 }
+
+final class FlightManualTests: XCTestCase {
+    /// Every card cites a source a reader can open.
+    func testEveryFindingHasACitationAndAnHTTPSLink() {
+        XCTAssertEqual(FlightManual.findings.count, 8)
+        for finding in FlightManual.findings {
+            XCTAssertEqual(finding.url.scheme, "https", finding.mechanic)
+            XCTAssertTrue(finding.citation.contains(","), finding.mechanic)
+            XCTAssertFalse(finding.copy.isEmpty)
+        }
+        XCTAssertEqual(Set(FlightManual.findings.map(\.id)).count, FlightManual.findings.count)
+    }
+}

@@ -24,6 +24,7 @@ struct HomeView: View {
     @State private var showingSchedule = false
     @State private var showingLogbook = false
     @State private var showingSettings = false
+    @State private var showingMembershipCard = false
     @State private var nowTick = Date()
     /// A fresh line each time Home is built, i.e. every launch. Picked once so
     /// it stays put while you browse, and never repeats the previous launch.
@@ -76,6 +77,12 @@ struct HomeView: View {
             + "\(PilotRatings.hoursText(next.remainingFocusSeconds)) to go"
     }
 
+    /// The miles still needed for the next tier, as a route from here.
+    private var milesSuggestion: MilesRouteSuggestion? {
+        MilesRouteSuggestion.best(remaining: MilesProgress(entries: entries).remaining,
+                                  from: origin, standing: standing, bypass: Self.loyaltyBypass)
+    }
+
     private var selectedItinerary: Itinerary? {
         selectedDestination.map { RoutePlanner.itinerary(from: origin, to: $0) }
     }
@@ -101,6 +108,16 @@ struct HomeView: View {
 
             VStack(spacing: 0) {
                 header
+                if selectedDestination == nil {
+                    VoyageMilesCard(
+                        progress: MilesProgress(entries: entries),
+                        suggestion: milesSuggestion,
+                        hasDeparted: VoyageMiles.hasDeparted(entries)
+                    ) { showingMembershipCard = true }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 10)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                }
                 if let scheduled = scheduler.scheduled {
                     scheduledBanner(scheduled)
                         .padding(.top, 8)
@@ -126,6 +143,9 @@ struct HomeView: View {
         }
         .sheet(isPresented: $showingSettings) {
             SettingsView()
+        }
+        .sheet(isPresented: $showingMembershipCard) {
+            MembershipCardView()
         }
         .onAppear {
             locationManager.resolveHomeAirport()
