@@ -55,7 +55,15 @@ The pass is the commitment. Press the button or slide along the dotted line, and
 - **Cabin service.** Optional reminders to drink water, rest your eyes, and stretch.
 - **Focus.** A Flight Focus filter ties a flight to iOS Focus. Location, if you allow it, sets your nearest airport as home. The app does not block other apps or turn on airplane mode.
 
-Your logbook stays on the device. Voyage has no analytics and no ads. Its one third-party SDK is RevenueCat, which handles the optional First Class membership and sees only purchase records, never your logbook. Details are in [PRIVACY.md](PRIVACY.md).
+### Voyage First, and the loyalty program for studying
+
+Every free feature stays free. On top of it, Voyage runs like an airline loyalty program, built on the loyalty-card and motivation studies the in-app **Flight Manual** cites one by one:
+
+- **One bag tag per task.** Each task prints its own tag with a three-letter code ("Organic chem problem set" is OCP). At arrival the bags come round Carousel 3 and you tear the claim stub on what you finished. Unclaimed bags are mishandled and ride your next flight.
+- **Voyage Miles.** Miles are the real distance you flew. A 500-mile welcome bonus arrives with your first torn pass (every threshold sits 500 higher, so nobody's tier changed), and the Home card shows the gap to Silver as a flight you can book: "1,240 miles to Silver. SFO–LAX (1h 25m) twice gets you there."
+- **Voyage First** (optional subscription, through RevenueCat). Tap a First seat you haven't earned and an upgrade offer shows both ways to the front: earn it with miles, free forever, or fly Voyage First today. It opens every First seat and adds priority and carrier-livery bag tags. It never adds miles, moves a tier, or appears during a flight. Status can't be bought.
+
+Your logbook stays on the device. Voyage has no analytics and no ads. Its one third-party SDK is RevenueCat, which handles the optional Voyage First membership and sees only an anonymous app user ID and purchase records, never your logbook. Details are in [PRIVACY.md](PRIVACY.md).
 
 ## Build from source
 
@@ -109,7 +117,7 @@ xcodebuild -downloadComponent MetalToolchain
 
 ## How it is built
 
-Voyage is SwiftUI on iOS 17 with one third-party dependency, RevenueCat, for the optional First Class membership. The pieces:
+Voyage is SwiftUI on iOS 17 with one third-party dependency, RevenueCat, for the optional Voyage First membership. The pieces:
 
 | Part | Where | What it does |
 | --- | --- | --- |
@@ -119,7 +127,7 @@ Voyage is SwiftUI on iOS 17 with one third-party dependency, RevenueCat, for the
 | Window | `Voyage/Views/Flight/` | A Canvas passenger window with per-phase kinematics, MapKit scenery, and a Metal haze shader. |
 | Audio | `Voyage/Audio/`, `Voyage/Resources/PA/` | Procedural ambience, chimes, and haptics. Recorded PA lines for the crew and captain. |
 | Persistence | SwiftData | A single `LogbookEntry` model. Tiers computed from the logbook unlock cosmetics only. |
-| Membership | `Voyage/Support/Membership.swift`, `Voyage/Views/Membership/` | Optional First Class through RevenueCat: entitlement state, the dashboard-designed paywall, and Customer Center. Without a key the SDK stays off and the app is unchanged. |
+| Membership | `Voyage/Support/Membership.swift`, `Voyage/Views/Membership/` | Optional Voyage First through RevenueCat (entitlement `voyage_first`): entitlement state, the upgrade offer on a locked First seat, the dashboard-designed paywall, Customer Center, the Voyage Miles card and the Flight Manual. Without a key the SDK stays off and the free app is unchanged. |
 | Widgets | `VoyageWidgets/` | Live Activity and Dynamic Island. |
 | Tests | `VoyageTests/`, `VoyageUITests/` | Unit tests for phases, deadlines, connections, geometry, and weather. UI tours that write screenshots to `QA/`. |
 

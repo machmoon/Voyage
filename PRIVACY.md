@@ -32,11 +32,11 @@ frozen results are attached to the local flight replay so the scene does not
 change later. If a reading is unavailable, Voyage computes clear conditions on
 device. Voyage does not use these requests to build an advertising profile.
 
-Voyage offers an optional First Class membership, sold through Apple's in-app
+Voyage offers an optional Voyage First membership, sold through Apple's in-app
 purchase system and managed with the RevenueCat SDK. RevenueCat receives an
 anonymous app user ID it generates, your purchase and subscription records from
 Apple, and technical device and app metadata, so it can tell Voyage whether
-First Class is active. It never receives your logbook, location, or study
+Voyage First is active. It never receives your logbook, location, or study
 sessions. RevenueCat describes its practices in the
 [RevenueCat Privacy Policy](https://www.revenuecat.com/privacy/). Voyage
 contains no advertising, no analytics, and no other third-party SDKs.

@@ -1,5 +1,7 @@
 # Voyage App Store copy — proposed September 11, 2026
 
+> **Voyage First (branch `shipaton/revenuecat`, not shipped).** The description below says "There are no subscriptions, in-app purchases, or ads." That stays true for every build on the App Store today. It becomes false the day a store build carries RevenueCat with real products (an `appl_` key): change that sentence, the App Privacy answers (Purchases: purchase history; Identifiers: user ID) and `build/submit_update.py` in the same release. Deliberately not changed for the Shipaton entry, which needs no store release.
+
 Status: 1.5 (build 12) submitted September 27, 2026, waiting for review. It replaces build 11, whose review was withdrawn, and adds the logbook and passport redesign, the bag tag, study unlocks, trip replay without grey tiles and the Home streak to the Apple Intelligence flight plan and new onboarding. 1.4 (build 10) is live. The "What's new" is in `build/submit_update.py`.
 
 ## Positioning

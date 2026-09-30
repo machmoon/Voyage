@@ -44,6 +44,18 @@ We used MapKit for the flight map, Metal for the airplane window effects, SwiftD
 
 We also used GPT-5.6 and Codex for visual development. Codex would run the app in the simulator, take screenshots of the complete flight, inspect them, and make changes to the interface. We created automated UI tours which fly through the app and save screenshots to the repository, allowing us to compare the visual state before and after changes instead of relying on our increasingly unreliable perception of what looked good.
 
+**How Voyage uses RevenueCat**
+
+Voyage sells comfort, never progress. Status is earned in the logbook; Voyage First only buys the seat, and every student keeps the whole study app for free.
+
+The paywall sits where an airline would put it. On the seat map, a First seat you haven't earned is locked. Tap it and an upgrade offer shows both ways to the front of the plane: "Earn it" with your real miles to Silver translated into a route you can book, and "Fly First today," which opens the paywall designed in RevenueCat's dashboard (`PaywallView`, offering `default`, monthly and yearly packages). When the `voyage_first` entitlement turns active the sheet closes and the seat opens with the premium chime. Members manage their plan in RevenueCat's Customer Center from Settings; non-members can restore purchases there.
+
+The paywall never appears during a flight, on launch, in onboarding or on a diversion screen: RevenueCat's own guidance is to hold back in low-consideration states, and mid-flight is also where a paywall would break the focus Voyage exists to protect (`FirstClassPaywallGate`, unit-tested for every in-flight stage). A Release build refuses to compile with a Test Store key.
+
+What Voyage First adds: every First seat on every aircraft, priority and carrier-livery bag tags. What it never does: add miles, move a tier, or put anything that is free today behind the paywall.
+
+The loyalty mechanics come from the research, and the app cites each study in its Flight Manual: a 500-mile welcome bonus because a loyalty card with stamps already on it gets finished more often ([Nunes and Drèze, 2006](https://academic.oup.com/jcr/article-abstract/32/4/504/1787425)), the gap to the next tier shown as a flight because customers speed up as a reward gets closer ([Kivetz, Urminsky and Zheng, 2006](https://home.uchicago.edu/ourminsky/Goal-Gradient_Illusionary_Goal_Progress.pdf)), one bag tag per task because specific plans have a medium-to-large effect on reaching goals ([Gollwitzer and Sheeran, 2006](https://www.researchgate.net/publication/37367696_Implementation_Intentions_and_Goal_Achievement_A_Meta-Analysis_of_Effects_and_Processes)), and miles as a record rather than a wage because expected rewards can undermine intrinsic motivation ([Deci, Koestner and Ryan, 1999](https://pubmed.ncbi.nlm.nih.gov/10589297)).
+
 **Individual Contributions**
 
 We tried to operate at our Pareto Frontier, leveraging each team members unique skills to maximize utility generated and use of man-hours. Unfortunately there was only one human team member, which reduced our pareto frontier to the productivity levels of a mere one-man operation.
