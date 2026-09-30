@@ -141,7 +141,7 @@ struct MilesRouteSuggestion: Equatable {
         from origin: Airport,
         standing: LoyaltyStanding,
         bypass: Bool = false,
-        maxTrips: Int = 4
+        maxTrips: Int = 12
     ) -> MilesRouteSuggestion? {
         guard remaining > 0 else { return nil }
         let open = LoyaltyProgram.destinations(from: origin, standing: standing, bypass: bypass)

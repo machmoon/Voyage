@@ -39,6 +39,8 @@ final class ShipatonDemoUITests: XCTestCase {
         // Home: the miles card, then book the open regional hop.
         let lax = app.buttons["destination-LAX"]
         XCTAssertTrue(lax.waitForExistence(timeout: 25))
+        // The location prompt can arrive after Home does.
+        dismissLocationPromptIfPresent()
         pause(2)
         save("shipaton-00-home")
         lax.tap()

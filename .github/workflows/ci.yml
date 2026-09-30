@@ -166,9 +166,7 @@ jobs:
           xcrun simctl boot "$UDID"
           xcrun simctl bootstatus "$UDID" -b
           xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --cellularBars 4 --wifiBars 3 || true
-          # No permission prompt over the recording.
-          xcrun simctl privacy "$UDID" grant location com.patrickliu.voyage || true
-          xcrun simctl privacy "$UDID" grant location-always com.patrickliu.voyage || true
+
       - name: Build for testing
         run: |
           xcodebuild build-for-testing \
@@ -176,6 +174,13 @@ jobs:
             -destination "id=$UDID" \
             -derivedDataPath build/dd \
             CODE_SIGNING_ALLOWED=NO
+      - name: Install the app and grant location
+        # Granting needs the app installed first, or the grant is dropped and
+        # the location prompt lands on the recording.
+        run: |
+          xcrun simctl install "$UDID" build/dd/Build/Products/Debug-iphonesimulator/Voyage.app
+          xcrun simctl privacy "$UDID" grant location com.patrickliu.voyage || true
+          xcrun simctl privacy "$UDID" grant location-always com.patrickliu.voyage || true
       - name: Run the demo and record the screen
         run: |
           mkdir -p shipaton-media
