@@ -3,7 +3,9 @@ import Observation
 import os
 import RevenueCat
 
-/// First Class: the optional membership sold through RevenueCat.
+/// Voyage First: the optional membership sold through RevenueCat (called
+/// "First Class" in code from before the name was settled; every
+/// user-facing string says Voyage First).
 ///
 /// Shaped on RevenueCat's own SwiftUI samples in purchases-ios (MIT, tag
 /// 5.91.0): `Examples/SampleCat/SampleCat/UserViewModel.swift` for the
@@ -55,6 +57,9 @@ final class Membership {
     }
 
     private(set) var status: Status = .unknown
+    /// Set by `-VoyageFirstMember` / `-VoyageFirstFree` for UI captures, the
+    /// way `-VoyageEnforceLoyalty` pins loyalty. A forced status ignores the SDK.
+    @ObservationIgnored private var forced: Status?
     /// True once `Purchases.configure` has run in this process. Every view
     /// that would touch `Purchases.shared` (paywall, Customer Center) checks it.
     private(set) var isConfigured: Bool
@@ -104,7 +109,14 @@ final class Membership {
 
     // MARK: State
 
+    nonisolated static func forcedStatus(arguments: [String]) -> Status? {
+        if arguments.contains("-VoyageFirstMember") { return .firstClass }
+        if arguments.contains("-VoyageFirstFree") { return .economy }
+        return nil
+    }
+
     func record(entitlementActive: Bool?) {
+        if let forced { if status != forced { status = forced }; return }
         let next = Self.status(after: status, entitlementActive: entitlementActive)
         if next != status { status = next }
     }
@@ -124,6 +136,19 @@ final class Membership {
 
     // MARK: SDK
 
+    /// Restore purchases, for the Settings button non-members see. A no-op
+    /// without the SDK. Returns whether Voyage First is active afterwards.
+    @discardableResult
+    func restore() async -> Bool {
+        guard isConfigured else { return false }
+        do {
+            apply(try await Purchases.shared.restorePurchases())
+        } catch {
+            log.error("Restore failed: \(error.localizedDescription, privacy: .public)")
+        }
+        return isFirstClass
+    }
+
     /// Configures RevenueCat once, at launch. Never throws and never blocks:
     /// with no key, or under XCTest (the `XCTestConfigurationFilePath` guard
     /// `WeatherService` and `AppFeedback` use), it logs and returns, and the
@@ -131,6 +156,10 @@ final class Membership {
     func configure(bundle: Bundle = .main, processInfo: ProcessInfo = .processInfo) {
         guard !isConfigured, !Purchases.isConfigured else { return }
         guard processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
+        if let forced = Self.forcedStatus(arguments: processInfo.arguments) {
+            self.forced = forced
+            status = forced
+        }
         guard let key = Self.apiKey(in: bundle.infoDictionary) else {
             log.notice("No RevenueCat key in Info.plist; First Class is off for this build.")
             return
@@ -151,6 +180,21 @@ final class Membership {
             for await info in Purchases.shared.customerInfoStream {
                 self?.apply(info)
             }
+        }
+    }
+}
+
+/// Where the paywall may appear. RevenueCat's placement guidance is to hold
+/// back in low-consideration states; for Voyage that is anywhere a flight is
+/// under way, where a paywall would also break the focus the app exists to
+/// protect. So: at booking (preflight: the seat map) and after landing, and
+/// never in flight, in the lounge, or on a diversion or missed-connection
+/// screen. Home (no session) is fine.
+enum FirstClassPaywallGate {
+    static func canPresent(stage: FlightSession.Stage?) -> Bool {
+        switch stage {
+        case .none, .preflight, .arrived: return true
+        case .inFlight, .layover, .diverted, .missedConnection: return false
         }
     }
 }

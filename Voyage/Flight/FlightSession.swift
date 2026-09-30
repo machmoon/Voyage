@@ -55,9 +55,12 @@ final class FlightSession {
     var landedFlights: Int = 0
 
     /// Whether a seat in `row` of the current aircraft can be booked.
-    func premiumSeatAccess(row: Int) -> PremiumSeatAccess {
+    /// `isFirstMember` is passed in by the seat map (which observes
+    /// `Membership`) rather than read here, so the session stays testable.
+    func premiumSeatAccess(row: Int, isFirstMember: Bool = false) -> PremiumSeatAccess {
         LoyaltyProgram.premiumSeatAccess(row: row, plan: aircraft.cabinPlan,
-                                         tier: tier, landedFlights: landedFlights)
+                                         tier: tier, landedFlights: landedFlights,
+                                         isFirstMember: isFirstMember)
     }
     var hasPremiumChime: Bool { tier == .platinum }
     var hasSunsetScene: Bool { tier >= .gold }

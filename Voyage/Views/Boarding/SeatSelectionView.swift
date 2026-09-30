@@ -1,3 +1,4 @@
+import SwiftData
 import SwiftUI
 
 /// Airline-style seat map, drawn from the aircraft's real cabin plan and its
@@ -20,6 +21,13 @@ struct SeatSelectionView: View {
     let onContinue: () -> Void
 
     @State private var selected: String?
+    /// Observed so a purchase re-renders the map with First open.
+    @State private var membership = Membership.shared
+    @Query private var entries: [LogbookEntry]
+    /// The locked First seat whose upgrade offer is showing.
+    @State private var upgradeOffer: UpgradeOfferTarget?
+    /// The seat that just opened through Voyage First, for its unlock burst.
+    @State private var justUpgraded: String?
     /// Centre of the over-wing exit rows, measured from the cabin's own top so
     /// the wing is drawn where the exits actually are on this aircraft.
     @State private var exitRowCenters: [Int: CGFloat] = [:]
@@ -113,6 +121,37 @@ struct SeatSelectionView: View {
             // exist on the new one.
             withAnimation(.snappy(duration: 0.25)) { selected = nil }
             preselectRememberedSeat()
+        }
+        .sheet(item: $upgradeOffer) { target in
+            UpgradeOfferSheet(
+                seat: target.seat,
+                currentSeat: selected,
+                progress: milesProgress,
+                suggestion: MilesRouteSuggestion.best(
+                    remaining: milesProgress.remaining,
+                    from: SettingsStore.shared.homeAirport,
+                    standing: LoyaltyStanding(entries: entries),
+                    bypass: LoyaltyProgram.bypassesLocks())
+            ) {
+                celebrateUpgrade(to: target.seat)
+            }
+        }
+    }
+
+    private var milesProgress: MilesProgress { MilesProgress(entries: entries) }
+
+    /// The demo shot: the seat the traveler reached for turns from locked to
+    /// selected, with a gold burst, the premium chime and the upgrade haptic.
+    private func celebrateUpgrade(to seat: String) {
+        Haptics.upgrade()
+        CabinAudioEngine.shared.playChime(premium: true)
+        withAnimation(.spring(response: 0.45, dampingFraction: 0.55)) {
+            selected = seat
+            justUpgraded = seat
+        }
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 1_800_000_000)
+            withAnimation(.easeOut(duration: 0.4)) { justUpgraded = nil }
         }
     }
 
@@ -247,6 +286,7 @@ struct SeatSelectionView: View {
     /// status benefit: which row opens early and what opens the rest.
     private func premiumCabinNote(_ cabin: CabinPlan.Cabin) -> String? {
         guard !session.isPremiumCabin else { return nil }
+        if membership.isFirstClass { return "Voyage First: every seat up front is yours" }
         let early = LoyaltyProgram.earlyUpgradeRows(in: plan).sorted()
         guard let first = early.first else { return nil }
         let rowText = early.count == 1 ? "Row \(first)" : "Rows \(first)–\(early.last ?? first)"
@@ -395,7 +435,7 @@ struct SeatSelectionView: View {
 
     /// Loyalty state of a seat. Only premium rows can be closed.
     private func access(row: Int, cabin: CabinPlan.Cabin) -> PremiumSeatAccess {
-        cabin.isPremium ? session.premiumSeatAccess(row: row) : .open
+        cabin.isPremium ? session.premiumSeatAccess(row: row, isFirstMember: membership.isFirstClass) : .open
     }
 
     private func seatButton(id: String, cabin: CabinPlan.Cabin,
@@ -404,7 +444,14 @@ struct SeatSelectionView: View {
         let locked = !access.isBookable
 
         return Button {
-            guard !locked else { return }
+            guard !locked else {
+                // A locked First seat raises the upgrade offer: both ways to
+                // the front, earned and paid. Never mid-flight (the gate).
+                guard FirstClassPaywallGate.canPresent(stage: session.stage) else { return }
+                Haptics.softTick()
+                upgradeOffer = UpgradeOfferTarget(seat: id)
+                return
+            }
             Haptics.tap()
             CabinAudioEngine.shared.playSeatLatch()
             withAnimation(.snappy(duration: 0.25)) { selected = id }
@@ -442,8 +489,10 @@ struct SeatSelectionView: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .disabled(locked)
-        .scaleEffect(isSelected ? 1.06 : 1)
+        .overlay {
+            if justUpgraded == id { UpgradeBurst() }
+        }
+        .scaleEffect(isSelected ? (justUpgraded == id ? 1.18 : 1.06) : 1)
         .animation(.snappy(duration: 0.25), value: isSelected)
         .accessibilityLabel(accessibilityLabel(id: id, cabin: cabin, taken: false, access: access))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
@@ -460,7 +509,8 @@ struct SeatSelectionView: View {
         case .lockedUntilSilver: return "\(prefix) \(id), locked, opens at Silver status"
         case .lockedUntilFirstLanding: return "\(prefix) \(id), locked, opens after your first landed flight"
         case .earlyUpgrade where !taken: return "\(prefix) \(id), early upgrade seat"
-        case .open, .earlyUpgrade: break
+        case .voyageFirst where !taken: return "\(prefix) \(id), Voyage First seat"
+        case .open, .earlyUpgrade, .voyageFirst: break
         }
         if taken { return "\(prefix) \(id), taken" }
         return "\(prefix) \(id)"
@@ -566,9 +616,11 @@ struct SeatSelectionView: View {
         guard let row = Int(id.filter(\.isNumber)),
               let cabin = plan.cabin(forRow: row) else { return "Standard seat" }
         if cabin.isPremium {
-            return session.premiumSeatAccess(row: row) == .earlyUpgrade
-                ? "Early upgrade: wider recliner, first to board"
-                : "Wider recliner, first to board"
+            switch session.premiumSeatAccess(row: row, isFirstMember: membership.isFirstClass) {
+            case .earlyUpgrade: return "Early upgrade: wider recliner, first to board"
+            case .voyageFirst: return "Voyage First: wider recliner, first to board"
+            default: return "Wider recliner, first to board"
+            }
         }
         if plan.exitRows.contains(row) { return "Extra legroom at the exit door" }
         if let wing = plan.wingAnchorRow, (wing...(wing + 3)).contains(row) {
@@ -702,5 +754,42 @@ private struct AirframeCanvas: View {
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)
+    }
+}
+
+// MARK: - Upgrade
+
+struct UpgradeOfferTarget: Identifiable, Equatable {
+    let seat: String
+    var id: String { seat }
+}
+
+/// Gold rings and sparks thrown off a seat the moment it opens.
+private struct UpgradeBurst: View {
+    @State private var go = false
+
+    var body: some View {
+        ZStack {
+            ForEach(0..<2, id: \.self) { ring in
+                Circle()
+                    .strokeBorder(Theme.seatFirstGold, lineWidth: 2)
+                    .scaleEffect(go ? 2.6 + CGFloat(ring) : 0.6)
+                    .opacity(go ? 0 : 0.9)
+                    .animation(.easeOut(duration: 0.9).delay(Double(ring) * 0.15), value: go)
+            }
+            ForEach(0..<10, id: \.self) { index in
+                let angle = Double(index) / 10 * 2 * .pi
+                Image(systemName: index.isMultiple(of: 2) ? "sparkle" : "star.fill")
+                    .font(.system(size: index.isMultiple(of: 2) ? 10 : 6, weight: .bold))
+                    .foregroundStyle(index.isMultiple(of: 3) ? Theme.seatFirstGoldLight : Theme.seatFirstGold)
+                    .offset(x: go ? cos(angle) * 44 : 0, y: go ? sin(angle) * 44 : 0)
+                    .scaleEffect(go ? 1 : 0.2)
+                    .opacity(go ? 0 : 1)
+                    .animation(.easeOut(duration: 1.0), value: go)
+            }
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+        .onAppear { go = true }
     }
 }

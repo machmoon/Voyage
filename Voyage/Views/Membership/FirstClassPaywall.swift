@@ -93,46 +93,80 @@ private struct FirstClassCustomerCenterModifier: ViewModifier {
     }
 }
 
-/// The First Class section of Settings. Hidden entirely when the SDK is not
+/// The Voyage First section of Settings. Hidden entirely when the SDK is not
 /// configured, so a build without a key looks exactly as it did before.
+/// A member sees "Voyage First · Active" and Manage (Customer Center); a
+/// non-member sees See Voyage First (the paywall) and Restore purchases.
 struct FirstClassSettingsSection: View {
     @State private var membership = Membership.shared
     @State private var showsPaywall = false
     @State private var showsCustomerCenter = false
+    @State private var restoring = false
+    @State private var restoreNote: String?
 
     var body: some View {
         if membership.isConfigured {
             Section {
-                LabeledContent("Cabin", value: cabinLabel)
-                    .accessibilityIdentifier("settings-first-class-status")
-                if !membership.isFirstClass {
+                HStack {
+                    Label {
+                        Text("Voyage First")
+                    } icon: {
+                        Image(systemName: "carseat.right.fill")
+                            .foregroundStyle(Theme.seatFirstGold)
+                    }
+                    Spacer()
+                    Text(statusLabel)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(membership.isFirstClass ? Theme.seatFirstGold : .secondary)
+                        .contentTransition(.opacity)
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityIdentifier("settings-first-class-status")
+                if membership.isFirstClass {
+                    Button {
+                        showsCustomerCenter = true
+                    } label: {
+                        Label("Manage", systemImage: "person.crop.circle.badge.checkmark")
+                    }
+                    .accessibilityIdentifier("settings-customer-center")
+                } else {
                     Button {
                         showsPaywall = true
                     } label: {
-                        Label("See First Class", systemImage: "star.circle.fill")
+                        Label("See Voyage First", systemImage: "star.circle.fill")
                     }
                     .accessibilityIdentifier("settings-first-class-paywall")
+                    Button {
+                        restoring = true
+                        Task {
+                            let active = await membership.restore()
+                            restoring = false
+                            restoreNote = active ? nil : "No Voyage First purchase found for this Apple ID."
+                        }
+                    } label: {
+                        HStack {
+                            Label("Restore purchases", systemImage: "arrow.clockwise")
+                            if restoring { Spacer(); ProgressView() }
+                        }
+                    }
+                    .disabled(restoring)
+                    .accessibilityIdentifier("settings-restore-purchases")
                 }
-                Button {
-                    showsCustomerCenter = true
-                } label: {
-                    Label("Manage membership", systemImage: "person.crop.circle.badge.checkmark")
-                }
-                .accessibilityIdentifier("settings-customer-center")
             } header: {
-                Text("First Class")
+                Text("Voyage First")
             } footer: {
-                Text("First Class is optional. Everything Voyage does for free stays free. Manage membership restores a purchase, changes a plan, or cancels one.")
+                Text(restoreNote ?? "Optional. Everything Voyage does for free stays free, and status can't be bought: Voyage First buys the seat up front, never miles or tiers.")
             }
             .firstClassPaywall(isPresented: $showsPaywall)
             .firstClassCustomerCenter(isPresented: $showsCustomerCenter)
+            .animation(.snappy, value: membership.isFirstClass)
         }
     }
 
-    private var cabinLabel: String {
+    private var statusLabel: String {
         switch membership.status {
-        case .firstClass: "First Class"
-        case .economy: "Economy"
+        case .firstClass: "Active"
+        case .economy: "Not a member"
         case .unknown: "Checking…"
         }
     }

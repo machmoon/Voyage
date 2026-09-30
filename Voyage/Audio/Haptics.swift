@@ -68,6 +68,21 @@ enum Haptics {
         after(0.16) { rigid.impactOccurred(intensity: 0.35) }
     }
 
+    /// A seat opening up front: a light latch, a rising pair, then the
+    /// success notification landing with the premium chime's last note.
+    static func upgrade() {
+        light.impactOccurred(intensity: 0.5)
+        after(0.10) { medium.impactOccurred(intensity: 0.7) }
+        after(0.22) { rigid.impactOccurred(intensity: 0.9) }
+        after(0.56) { notify.notificationOccurred(.success) }
+    }
+
+    /// A bag tag's claim stub tearing off: shorter than the boarding pass.
+    static func claim() {
+        rigid.impactOccurred(intensity: 0.8)
+        after(0.07) { light.impactOccurred(intensity: 0.6) }
+    }
+
     static func success() { notify.notificationOccurred(.success) }
     static func warning() { notify.notificationOccurred(.warning) }
     static func failure() { notify.notificationOccurred(.error) }

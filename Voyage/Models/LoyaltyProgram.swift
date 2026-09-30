@@ -137,10 +137,14 @@ enum PremiumSeatAccess: Equatable {
     case lockedUntilFirstLanding
     /// Still closed; opens at Silver status.
     case lockedUntilSilver
+    /// A seat free status has not opened yet, open because the traveler
+    /// flies Voyage First. Only ever replaces one of the two locked cases:
+    /// a seat status already opened stays `.open`/`.earlyUpgrade`.
+    case voyageFirst
 
     var isBookable: Bool {
         switch self {
-        case .open, .earlyUpgrade: return true
+        case .open, .earlyUpgrade, .voyageFirst: return true
         case .lockedUntilFirstLanding, .lockedUntilSilver: return false
         }
     }
@@ -244,15 +248,27 @@ enum LoyaltyProgram {
     }
 
     /// Whether a seat in `row` can be booked.
+    ///
+    /// `isFirstMember` only adds: Voyage First opens every premium seat the
+    /// free rules still hold closed, and never changes a seat that status
+    /// already opened. Free travellers keep the front row after their first
+    /// landing and the whole cabin at Silver, forever.
     static func premiumSeatAccess(
         row: Int,
         plan: CabinPlan,
         tier: FlyerTier,
-        landedFlights: Int
+        landedFlights: Int,
+        isFirstMember: Bool = false
     ) -> PremiumSeatAccess {
         guard plan.isPremiumRow(row), tier < .silver else { return .open }
-        guard earlyUpgradeRows(in: plan).contains(row) else { return .lockedUntilSilver }
-        return landedFlights >= earlyUpgradeLandings ? .earlyUpgrade : .lockedUntilFirstLanding
+        let free: PremiumSeatAccess
+        if earlyUpgradeRows(in: plan).contains(row) {
+            free = landedFlights >= earlyUpgradeLandings ? .earlyUpgrade : .lockedUntilFirstLanding
+        } else {
+            free = .lockedUntilSilver
+        }
+        if isFirstMember && !free.isBookable { return .voyageFirst }
+        return free
     }
 }
 

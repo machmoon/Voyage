@@ -119,4 +119,14 @@ final class MembershipTests: XCTestCase {
         membership.configure()
         XCTAssertFalse(membership.isConfigured)
     }
+
+    func testEntitlementIsTheDashboardIdentifier() {
+        XCTAssertEqual(Membership.entitlementID, "voyage_first")
+    }
+
+    func testForcedStatusLaunchArguments() {
+        XCTAssertEqual(Membership.forcedStatus(arguments: ["-VoyageFirstMember"]), .firstClass)
+        XCTAssertEqual(Membership.forcedStatus(arguments: ["-VoyageFirstFree"]), .economy)
+        XCTAssertNil(Membership.forcedStatus(arguments: ["-VoyageShortFlights"]))
+    }
 }

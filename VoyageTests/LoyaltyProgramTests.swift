@@ -156,4 +156,44 @@ final class LoyaltyProgramTests: XCTestCase {
             if let premium { XCTAssertLessThan(rows.count, premium.rows.count, aircraft.name) }
         }
     }
+
+    // MARK: Voyage First
+
+    /// Voyage First opens every premium seat the free rules still hold, and
+    /// never changes a seat status already opened.
+    func testVoyageFirstOpensLockedPremiumSeatsOnly() {
+        for aircraft in AircraftProfile.allCases {
+            let plan = aircraft.cabinPlan
+            for row in plan.cabins.flatMap(\.rows) {
+                for tier in FlyerTier.allCases {
+                    for landings in [0, 1, 5] {
+                        let free = LoyaltyProgram.premiumSeatAccess(row: row, plan: plan, tier: tier,
+                                                                    landedFlights: landings)
+                        let member = LoyaltyProgram.premiumSeatAccess(row: row, plan: plan, tier: tier,
+                                                                      landedFlights: landings,
+                                                                      isFirstMember: true)
+                        XCTAssertTrue(member.isBookable)
+                        if free.isBookable {
+                            XCTAssertEqual(member, free, "\(aircraft) row \(row) changed for a member")
+                        } else {
+                            XCTAssertEqual(member, .voyageFirst)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    func testPaywallNeverPresentsMidFlight() {
+        XCTAssertTrue(FirstClassPaywallGate.canPresent(stage: nil))
+        XCTAssertTrue(FirstClassPaywallGate.canPresent(stage: .preflight))
+        XCTAssertTrue(FirstClassPaywallGate.canPresent(stage: .arrived))
+        for stage: FlightSession.Stage in [.inFlight, .layover, .diverted, .missedConnection] {
+            XCTAssertFalse(FirstClassPaywallGate.canPresent(stage: stage), "\(stage)")
+        }
+    }
+
+    func testSilverPerkMatchesTheSeatMapName() {
+        XCTAssertEqual(FlyerTier.silver.perkDescription, "First-class seats")
+    }
 }
