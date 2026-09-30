@@ -202,7 +202,7 @@ struct LogbookView: View {
                     .monospacedDigit()
                     .foregroundStyle(Ramp.ink)
                 let landings = entries.filter(\.completed)
-                let streak = LogbookStats.streakDays(entries)
+                let streak = LogbookStats.streak(entries).days
                 Text("\(rating.current.title) · \(landings.count) landings\(streak >= 2 ? " · \(streak)-day streak" : "")")
                     .voyageFont(Ramp.TypeScale.bodyM)
                     .foregroundStyle(Ramp.hushed)

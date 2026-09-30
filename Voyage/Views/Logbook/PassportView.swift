@@ -55,7 +55,7 @@ struct PassportView: View {
     private var tier: FlyerTier { LogbookStats.tier(entries) }
     private var rating: RatingProgress { RatingProgress.evaluate(entries: entries) }
     private var memberSince: Date? { completedEntries.map(\.date).min() }
-    private var streak: Int { LogbookStats.streakDays(entries) }
+    private var streak: Int { LogbookStats.streak(entries).days }
 
     @State private var photo: UIImage? = PassportPhotoStore.load()
     @State private var photoItem: PhotosPickerItem?

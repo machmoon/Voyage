@@ -112,7 +112,8 @@ struct HomeView: View {
                     VoyageMilesCard(
                         progress: MilesProgress(entries: entries),
                         suggestion: milesSuggestion,
-                        hasDeparted: VoyageMiles.hasDeparted(entries)
+                        hasDeparted: VoyageMiles.hasDeparted(entries),
+                        streak: LogbookStats.streak(entries)
                     ) { showingMembershipCard = true }
                     .padding(.horizontal, 20)
                     .padding(.top, 10)
@@ -128,11 +129,12 @@ struct HomeView: View {
         }
         .sheet(isPresented: $showingSchedule) {
             if let destination = selectedDestination {
-                ScheduleSheet(origin: origin, destination: destination) { option in
+                ScheduleSheet(origin: origin, destination: destination) { option, plan in
                     scheduler.schedule(destination: destination,
                                        departure: option.departure,
                                        origin: origin,
-                                       flightNumber: option.flightNumber)
+                                       flightNumber: option.flightNumber,
+                                       plan: plan)
                 }
                 .presentationDetents([.large])
                 .presentationCornerRadius(28)
@@ -393,8 +395,7 @@ struct HomeView: View {
 
     private func refreshRatingLine() {
         ratingLine = entries.isEmpty ? nil : RatingProgress.evaluate(entries: entries).summaryLine
-        let streak = LogbookStats.streakDays(entries)
-        streakLine = streak >= 2 ? "\(streak)-day streak" : nil
+        streakLine = LogbookStats.streak(entries).line
         standing = LoyaltyStanding(entries: entries)
     }
 
@@ -507,8 +508,9 @@ struct HomeView: View {
 
     private func boardScheduled(_ flight: ScheduledFlight) {
         let number = flight.flightNumber
+        let plan = flight.plan
         scheduler.cancel()
-        depart(to: flight.destination, flightNumber: number)
+        depart(to: flight.destination, flightNumber: number, plan: plan)
     }
 
     // MARK: Booking panel
@@ -752,7 +754,7 @@ struct HomeView: View {
         }
     }
 
-    private func depart(to destination: Airport, flightNumber: String? = nil) {
+    private func depart(to destination: Airport, flightNumber: String? = nil, plan: String? = nil) {
         // A flight already on the schedule boards whatever the rules say now.
         guard flightNumber != nil || isUnlocked(destination) else { return }
         let itinerary = RoutePlanner.itinerary(from: origin, to: destination,
@@ -761,6 +763,7 @@ struct HomeView: View {
                                     modelContext: modelContext,
                                     tier: LogbookStats.tier(entries))
         session.landedFlights = standing.landedFlights
+        session.departurePlan = plan
         session.prepareRealWorldTwin()
 
         // Every departure starts cold: the curtain must not be waved through by

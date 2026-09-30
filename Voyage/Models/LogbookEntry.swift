@@ -76,6 +76,10 @@ final class LogbookEntry {
     /// before ratings existed.
     var endorsementRaw: String?
 
+    /// Answers to the post-landing retrieval check ("Anything to declare?"),
+    /// up to three, blanks dropped. Empty when skipped or before it existed.
+    var declarations: [String] = []
+
     /// One 3-letter bag tag code per intention ("OCP"), parallel to
     /// `intentions`. Empty on rows written before tags carried codes; the
     /// default keeps SwiftData's lightweight migration working.
@@ -296,6 +300,72 @@ enum LogbookStats {
                     && $0.destinationCode == entry.destinationCode
             }
             .allSatisfy { $0.focusSeconds < entry.focusSeconds }
+    }
+
+    /// The streak, with weather delays: rain-day grace tokens in airline
+    /// language. The flight was delayed, not cancelled.
+    ///
+    /// Silverman & Barasch (2023, J. Consumer Research 49(6)) found visible
+    /// streaks keep people going, and that being able to repair a broken one
+    /// softens the blow. Voyage's repair is earned and free, never sold:
+    /// every `delayEarnDays` days flown in a row bank one weather delay (at
+    /// most `delayCap`), and a missed day spends one automatically. A token
+    /// covers exactly one day; with none left, the streak resets and any
+    /// banked tokens go with it.
+    struct Streak: Equatable {
+        /// Days with a landing in the current streak (delay days not counted).
+        let days: Int
+        /// Weather delays banked now, shown as cloud chips.
+        let tokens: Int
+        /// Delays spent inside the current streak.
+        let delaysUsed: Int
+        /// Yesterday was covered by a delay and today has no landing yet.
+        let delayedYesterday: Bool
+
+        static let none = Streak(days: 0, tokens: 0, delaysUsed: 0, delayedYesterday: false)
+
+        /// "6-day streak", "6-day streak · weather delay", nil under 2 days.
+        var line: String? {
+            guard days >= 2 else { return nil }
+            return delayedYesterday ? "\(days)-day streak · weather delay" : "\(days)-day streak"
+        }
+    }
+
+    static let delayEarnDays = 5
+    static let delayCap = 2
+
+    static func streak(_ entries: [LogbookEntry],
+                       calendar: Calendar = .current,
+                       now: Date = .now) -> Streak {
+        let flown = Set(entries.filter(\.completed).map { calendar.startOfDay(for: $0.date) })
+        guard let first = flown.min() else { return .none }
+        let today = calendar.startOfDay(for: now)
+        guard first <= today else { return .none }
+
+        var days = 0, tokens = 0, used = 0
+        var lastWasDelay = false
+        var day = first
+        while day <= today {
+            if flown.contains(day) {
+                days += 1
+                lastWasDelay = false
+                if days % delayEarnDays == 0 { tokens = min(delayCap, tokens + 1) }
+            } else if day == today {
+                // Today is still in progress: not a miss yet.
+                break
+            } else if days > 0 && tokens > 0 {
+                tokens -= 1
+                used += 1
+                lastWasDelay = true
+            } else {
+                days = 0; tokens = 0; used = 0
+                lastWasDelay = false
+            }
+            guard let next = calendar.date(byAdding: .day, value: 1, to: day) else { break }
+            day = next
+        }
+        return Streak(days: days, tokens: tokens, delaysUsed: used,
+                      delayedYesterday: lastWasDelay && !flown.contains(today))
     }
 
     /// Consecutive-day streak of completed flights ending today or yesterday.
