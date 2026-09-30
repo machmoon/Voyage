@@ -18,6 +18,7 @@ struct ArrivalFlowView: View {
     @State private var step: Step = {
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-VoyageDebugStamp") { return .stamp }
+        if ProcessInfo.processInfo.arguments.contains("-VoyageDebugCustoms") { return .declaration }
         #endif
         return .welcome
     }()
@@ -247,6 +248,10 @@ private struct BaggageClaimView: View {
         Carrier(rawValue: String(session.itinerary.legs[0].flightNumber.prefix { !$0.isWhitespace })) ?? .voyageAir
     }
 
+    private var tagContent: BagTagContent {
+        BagTagContent(itinerary: session.itinerary, seat: session.seat, bookedAt: session.bookedAt)
+    }
+
     var body: some View {
         ZStack {
             Theme.surfaceDark.ignoresSafeArea()
@@ -274,9 +279,11 @@ private struct BaggageClaimView: View {
                     }
                     .padding(.top, 40)
 
-                    VStack(spacing: 18) {
+                    // The same long tags you checked, side by side off the
+                    // belt, one per task.
+                    HStack(alignment: .top, spacing: 10) {
                         ForEach(tags) { tag in
-                            ClaimableTag(tag: tag, carrier: carrier,
+                            ClaimableTag(tag: tag, carrier: carrier, content: tagContent,
                                          claimed: claimed.contains(tag.index)) {
                                 withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
                                     _ = claimed.insert(tag.index)
@@ -288,9 +295,16 @@ private struct BaggageClaimView: View {
                                 .delay(0.25 + 0.35 * Double(tag.index)), value: arrived)
                         }
                     }
-                    .padding(.horizontal, 44)
-                    .padding(.top, 28)
-                    .padding(.bottom, 20)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 24)
+                    Text(claimed.count == tags.count
+                         ? "All bags claimed."
+                         : "Unclaimed bags are mishandled: they go on your next flight.")
+                        .font(.caption2)
+                        .foregroundStyle(.white.opacity(0.45))
+                        .padding(.top, 10)
+                        .padding(.bottom, 20)
                 }
 
                 Button(action: finish) {
@@ -322,6 +336,7 @@ private struct BaggageClaimView: View {
 private struct ClaimableTag: View {
     let tag: TaskBagTag
     let carrier: Carrier
+    var content: BagTagContent?
     let claimed: Bool
     let onClaim: () -> Void
 
@@ -330,46 +345,27 @@ private struct ClaimableTag: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            TaskBagTagView(tag: tag, carrier: carrier, showsStub: false, claimed: claimed)
+            TaskBagTagView(tag: tag, carrier: carrier, content: content, showsStub: false, claimed: claimed,
+                           width: Self.width)
             stub
                 .offset(x: claimed ? 360 : pull, y: claimed ? -40 : 0)
                 .rotationEffect(.degrees(claimed ? 18 : Double(pull / 14)), anchor: .leading)
                 .opacity(claimed ? 0 : 1)
                 .animation(claimed ? .easeIn(duration: 0.45) : nil, value: claimed)
                 .gesture(tearGesture)
-            if !claimed {
-                Text("Unclaimed bags are mishandled: they go on your next flight.")
-                    .font(.caption2)
-                    .foregroundStyle(.white.opacity(0.45))
-                    .padding(.top, 6)
-            }
         }
+        .frame(width: Self.width)
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("claim-tag-\(tag.index)")
         .accessibilityAction(named: Text("Claim bag")) { claim() }
     }
 
+    static let width: CGFloat = 104
+
     private var stub: some View {
-        HStack {
-            Image(systemName: "scissors")
-            Text("CLAIM \(tag.code)")
-                .font(.system(size: 11, weight: .heavy, design: .monospaced))
-            Spacer()
-            Text(claimed ? "" : "TEAR →")
-                .font(.system(size: 10, weight: .bold, design: .monospaced))
-                .opacity(0.6)
-        }
-        .foregroundStyle(Color(hex: "14161C"))
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(Color.white, in: UnevenRoundedRectangle(bottomLeadingRadius: 8, bottomTrailingRadius: 8))
-        .overlay(alignment: .top) {
-            Rectangle()
-                .stroke(style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
-                .frame(height: 1)
-                .foregroundStyle(Color.black.opacity(0.35))
-        }
-        .contentShape(Rectangle())
+        TaskBagTagStub(tag: tag, width: Self.width, hint: claimed ? nil : "TEAR →")
+            .clipShape(UnevenRoundedRectangle(bottomLeadingRadius: 3, bottomTrailingRadius: 3))
+            .contentShape(Rectangle())
         .onTapGesture {
             // A tap nudges the stub, so the gesture is discoverable.
             Haptics.softTick()
@@ -389,7 +385,8 @@ private struct ClaimableTag: View {
                     CabinAudioEngine.shared.playTearTick()
                     Haptics.ratchet()
                 }
-                if pull > 150 { claim() }
+                // A skinny stub tears in a shorter pull than the old card's.
+                if pull > 80 { claim() }
             }
             .onEnded { _ in
                 guard !claimed else { return }
@@ -415,6 +412,19 @@ private struct ClaimableTag: View {
 /// (Roediger & Karpicke 2006, Psychological Science 17(3)). Voyage claims
 /// nothing about grades; the answers go on the logbook entry. Skipping is one
 /// tap, and nothing depends on it.
+///
+/// Drawn as the arrivals-hall moment rather than a form:
+/// - the card follows the U.S. customs declaration, CBP Form 6059B (a public
+///   domain federal form): a banded header naming the service and the form,
+///   a row of boxed, numbered fields for the flight, then numbered items each
+///   with its own box, and a signature line under "I have made a truthful
+///   declaration". The service here is Voyage's own fictional one: no seal,
+///   no agency name.
+/// - the two exits are the red and green channels of an arrivals hall, the
+///   customs channel signs of the EU/UK red-and-green system: green for
+///   "Nothing to declare", red for goods to declare.
+/// - declaring drops an inked DECLARED cachet on the card with the stamp
+///   haptic, the same gesture as the passport stamp that follows.
 private struct CustomsDeclarationView: View {
     @Bindable var session: FlightSession
     let onContinue: () -> Void
@@ -427,90 +437,311 @@ private struct CustomsDeclarationView: View {
 
     @State private var answers = ["", "", ""]
     @State private var stamped = false
+    @State private var appeared = false
     @FocusState private var focused: Int?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private static let paperInk = Color(hex: "1E2B45")
+    private static let signYellow = Color(hex: "FFCC00")
+    private static let greenChannel = Color(hex: "0B7A3E")
+    private static let redChannel = Color(hex: "C4232B")
 
     private var filled: [String] {
         answers.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
     }
 
+    private var itinerary: Itinerary { session.itinerary }
+
     var body: some View {
         ZStack {
-            Theme.surfaceDark.ignoresSafeArea()
+            LinearGradient(colors: [Theme.surfaceSubtle, Theme.surfaceDark, Theme.ink],
+                           startPoint: .top, endPoint: .bottom)
+                .ignoresSafeArea()
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("CUSTOMS · \(session.itinerary.destination.code)")
-                            .font(.system(size: 11, weight: .heavy, design: .monospaced))
-                            .tracking(2)
-                            .foregroundStyle(Theme.accent)
+                    wayfindingSign
+                        .padding(.top, 18)
+                    VStack(alignment: .leading, spacing: 4) {
                         Text("Anything to declare?")
-                            .font(.title2.bold())
+                            .font(.system(size: 30, weight: .bold))
                             .foregroundStyle(.white)
-                        Text("Three quick recalls, no notes. Writing down what you learned beats rereading it a week later.")
+                        Text("Three quick recalls, no notes. Writing it down beats rereading it a week later.")
                             .font(.subheadline)
                             .foregroundStyle(.white.opacity(0.6))
                     }
-                    .padding(.top, 36)
-
-                    VStack(alignment: .leading, spacing: 14) {
-                        ForEach(Self.prompts.indices, id: \.self) { index in
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("\(index + 1). \(Self.prompts[index])")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(Theme.seatMapInk.opacity(0.6))
-                                TextField("", text: $answers[index], axis: .vertical)
-                                    .font(.custom("Noteworthy-Bold", size: 17, relativeTo: .body))
-                                    .foregroundStyle(Theme.accent)
-                                    .tint(Theme.accent)
-                                    .lineLimit(1...3)
-                                    .focused($focused, equals: index)
-                                    .submitLabel(index < 2 ? .next : .done)
-                                    .onSubmit { focused = index < 2 ? index + 1 : nil }
-                                    .accessibilityLabel(Self.prompts[index])
-                                Rectangle().fill(Theme.seatMapInk.opacity(0.2)).frame(height: 1)
-                            }
-                        }
-                    }
-                    .padding(18)
-                    .background(Theme.passportPaper, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    .overlay(alignment: .topTrailing) {
-                        if stamped {
-                            Text("DECLARED")
-                                .font(.system(size: 20, weight: .black, design: .rounded))
-                                .foregroundStyle(Theme.stampInk)
-                                .padding(.horizontal, 8).padding(.vertical, 3)
-                                .overlay(RoundedRectangle(cornerRadius: 5).strokeBorder(Theme.stampInk, lineWidth: 3))
-                                .rotationEffect(.degrees(-12))
-                                .padding(14)
-                                .transition(.scale(scale: 2).combined(with: .opacity))
-                        }
-                    }
-                    .environment(\.colorScheme, .light)
-
+                    declarationCard
+                        .rotationEffect(.degrees(appeared ? 0 : 3), anchor: .bottomTrailing)
+                        .offset(y: appeared ? 0 : 40)
+                        .opacity(appeared ? 1 : 0)
+                        .scaleEffect(stamped && !reduceMotion ? 0.985 : 1)
                     Text("Roediger & Karpicke, 2006. Recall with no feedback beat restudying at two days and a week.")
                         .font(.caption2)
                         .foregroundStyle(.white.opacity(0.4))
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 12)
             }
             .scrollDismissesKeyboard(.interactively)
-            .safeAreaInset(edge: .bottom) {
-                VStack(spacing: 8) {
-                    Button(action: declare) {
-                        Text(filled.isEmpty ? "Nothing to declare" : "Declare and continue")
-                            .font(.headline)
-                            .foregroundStyle(.black)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(.white, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                    }
-                    .disabled(stamped)
+            .safeAreaInset(edge: .bottom) { channels }
+        }
+        .onAppear {
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.15)) { appeared = true }
+        }
+    }
+
+    // MARK: Hall
+
+    /// The overhead sign you follow off the jet bridge: black panel, yellow
+    /// type and pictogram, as airport wayfinding sets it.
+    private var wayfindingSign: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "arrow.up")
+                .font(.system(size: 15, weight: .black))
+            Image(systemName: "suitcase.rolling.fill")
+                .font(.system(size: 14, weight: .bold))
+            Text("Customs")
+                .font(.system(size: 17, weight: .bold))
+            Spacer(minLength: 6)
+            Text("ARRIVALS · \(itinerary.destination.code)")
+                .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                .kerning(1.2)
+                .opacity(0.8)
+        }
+        .foregroundStyle(Self.signYellow)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 11)
+        .background(Color.black, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(.white.opacity(0.08)))
+        .accessibilityElement(children: .combine)
+    }
+
+    // MARK: Card
+
+    private var declarationCard: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            cardHeader
+            VStack(alignment: .leading, spacing: 14) {
+                flightFields
+                Text("Each arriving traveler declares, from memory, what they are bringing back from this flight.")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(Self.paperInk.opacity(0.7))
+                ForEach(Self.prompts.indices, id: \.self) { index in
+                    item(index)
                 }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 20)
-                .background(Theme.surfaceDark.opacity(0.95))
+                signatureLine
+            }
+            .padding(16)
+        }
+        .background(Theme.passportPaper)
+        // Hidden from accessibility: as an overlay it otherwise sits over
+        // the answer fields and XCUITest reports them not hittable.
+        .overlay(PaperGrain(opacity: 0.35).accessibilityHidden(true))
+        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 6, style: .continuous).strokeBorder(Self.paperInk.opacity(0.15)))
+        .overlay(alignment: .bottomTrailing) {
+            if stamped {
+                declaredCachet
+                    .padding(.trailing, 18)
+                    .padding(.bottom, 26)
+                    .transition(reduceMotion ? .opacity
+                                : .scale(scale: 2.6).combined(with: .opacity))
             }
         }
+        .shadow(color: .black.opacity(0.35), radius: 18, y: 10)
+        .environment(\.colorScheme, .light)
+    }
+
+    private var cardHeader: some View {
+        HStack(alignment: .center) {
+            VStack(alignment: .leading, spacing: 1) {
+                Text("VOYAGE BORDER SERVICE")
+                    .font(.system(size: 8.5, weight: .heavy))
+                    .kerning(1.5)
+                Text("Customs Declaration")
+                    .font(.system(size: 17, weight: .bold, design: .serif))
+            }
+            Spacer()
+            VStack(alignment: .trailing, spacing: 1) {
+                Text("FORM VB-6059")
+                Text("WELCOME TO \(itinerary.destination.code)")
+            }
+            .font(.system(size: 7.5, weight: .bold, design: .monospaced))
+            .opacity(0.75)
+        }
+        .foregroundStyle(Self.paperInk)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background {
+            ZStack {
+                Theme.passportFoil.opacity(0.35)
+                GuillocheBand(ink: Theme.passportInk, lines: 11, amplitude: 4)
+            }
+        }
+        .overlay(alignment: .bottom) { Rectangle().fill(Self.paperInk.opacity(0.5)).frame(height: 1) }
+    }
+
+    /// Boxed, numbered cells, as the form's top rows are.
+    private var flightFields: some View {
+        HStack(spacing: 0) {
+            formCell("A", "Flight", itinerary.primaryFlightNumber)
+            formCell("B", "From", itinerary.origin.code)
+            formCell("C", "Date", BagTagContent.airlineDate(session.now))
+            formCell("D", "Seat", session.seat)
+        }
+        .overlay(Rectangle().strokeBorder(Self.paperInk.opacity(0.35), lineWidth: 1))
+    }
+
+    private func formCell(_ letter: String, _ label: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text("\(letter)  \(label.uppercased())")
+                .font(.system(size: 7, weight: .heavy))
+                .kerning(0.6)
+                .opacity(0.6)
+            Text(value)
+                .font(.system(size: 12, weight: .bold, design: .monospaced))
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+        }
+        .foregroundStyle(Self.paperInk)
+        .padding(.horizontal, 7)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .overlay(alignment: .trailing) { Rectangle().fill(Self.paperInk.opacity(0.25)).frame(width: 1) }
+    }
+
+    /// One numbered item: the number in its box, the question in small caps,
+    /// a handwritten answer, and a tick box that fills when it is answered.
+    private func item(_ index: Int) -> some View {
+        let answered = !answers[index].trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        return HStack(alignment: .top, spacing: 10) {
+            Text("\(index + 1)")
+                .font(.system(size: 12, weight: .heavy, design: .monospaced))
+                .frame(width: 22, height: 22)
+                .overlay(Rectangle().strokeBorder(Self.paperInk.opacity(0.6), lineWidth: 1))
+            VStack(alignment: .leading, spacing: 4) {
+                Text(Self.prompts[index].uppercased())
+                    .font(.system(size: 9, weight: .bold))
+                    .kerning(0.4)
+                    .opacity(0.7)
+                    .fixedSize(horizontal: false, vertical: true)
+                TextField("", text: $answers[index], axis: .vertical)
+                    .font(.custom("Noteworthy-Bold", size: 17, relativeTo: .body))
+                    .foregroundStyle(Theme.passportInk)
+                    .tint(Theme.passportInk)
+                    .lineLimit(1...3)
+                    .focused($focused, equals: index)
+                    .submitLabel(index < 2 ? .next : .done)
+                    .onSubmit { focused = index < 2 ? index + 1 : nil }
+                    .accessibilityLabel(Self.prompts[index])
+                Rectangle().fill(Self.paperInk.opacity(answered ? 0.5 : 0.22)).frame(height: 1)
+            }
+            Image(systemName: answered ? "checkmark.square.fill" : "square")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(answered ? Theme.passportInk : Self.paperInk.opacity(0.35))
+                .contentTransition(.symbolEffect(.replace))
+                .accessibilityHidden(true)
+        }
+        .foregroundStyle(Self.paperInk)
+    }
+
+    private var signatureLine: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("I HAVE MADE A TRUTHFUL DECLARATION, FROM MEMORY.")
+                .font(.system(size: 7.5, weight: .heavy))
+                .kerning(0.5)
+                .opacity(0.6)
+            HStack(alignment: .lastTextBaseline) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(filled.isEmpty ? " " : "Traveler, \(session.seat)")
+                        .font(.custom("Noteworthy-Bold", size: 15, relativeTo: .body))
+                        .foregroundStyle(Theme.passportInk)
+                    Rectangle().fill(Self.paperInk.opacity(0.4)).frame(height: 1)
+                    Text("SIGNATURE").font(.system(size: 6.5, weight: .heavy)).opacity(0.5)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(BagTagContent.airlineDate(session.now))
+                        .font(.system(size: 12, weight: .bold, design: .monospaced))
+                    Rectangle().fill(Self.paperInk.opacity(0.4)).frame(height: 1)
+                    Text("DATE").font(.system(size: 6.5, weight: .heavy)).opacity(0.5)
+                }
+                .frame(width: 80)
+            }
+        }
+        .foregroundStyle(Self.paperInk)
+        .padding(.top, 4)
+    }
+
+    /// A round customs cachet: double ring, the port, the date.
+    private var declaredCachet: some View {
+        ZStack {
+            Circle().strokeBorder(Theme.stampInk, lineWidth: 3)
+            Circle().strokeBorder(Theme.stampInk, lineWidth: 1).padding(6)
+            VStack(spacing: 1) {
+                Text(itinerary.destination.code)
+                    .font(.system(size: 11, weight: .heavy, design: .monospaced))
+                Text("DECLARED")
+                    .font(.system(size: 17, weight: .black, design: .rounded))
+                Text(BagTagContent.airlineDate(session.now))
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+            }
+            .foregroundStyle(Theme.stampInk)
+        }
+        .frame(width: 112, height: 112)
+        .rotationEffect(.degrees(-14))
+        .opacity(0.88)
+        .blendMode(.multiply)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Declared")
+    }
+
+    // MARK: Channels
+
+    /// Green channel and red channel, side by side. The labels are
+    /// load-bearing: the UI tests tap them by name.
+    private var channels: some View {
+        HStack(spacing: 10) {
+            Button {
+                skip()
+            } label: {
+                channelLabel("Nothing to declare", symbol: "checkmark", tint: Self.greenChannel)
+            }
+            .disabled(stamped)
+            Button(action: declare) {
+                channelLabel("Declare and continue", symbol: "square.and.pencil", tint: Self.redChannel)
+                    .opacity(filled.isEmpty ? 0.45 : 1)
+            }
+            .disabled(stamped || filled.isEmpty)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 10)
+        .padding(.bottom, 16)
+        .background(Theme.ink.opacity(0.92))
+    }
+
+    private func channelLabel(_ title: String, symbol: String, tint: Color) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: symbol)
+                .font(.system(size: 13, weight: .black))
+                .frame(width: 26, height: 26)
+                .background(.white.opacity(0.2), in: RoundedRectangle(cornerRadius: 5))
+            Text(title)
+                .font(.subheadline.weight(.bold))
+                .multilineTextAlignment(.leading)
+                .lineLimit(2)
+                .minimumScaleFactor(0.8)
+            Spacer(minLength: 0)
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, 12)
+        .frame(maxWidth: .infinity, minHeight: 56)
+        .background(tint, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private func skip() {
+        focused = nil
+        Haptics.tap()
+        session.logEntry?.declarations = []
+        onContinue()
     }
 
     private func declare() {
@@ -519,9 +750,10 @@ private struct CustomsDeclarationView: View {
         session.logEntry?.declarations = answers
         guard !answers.isEmpty else { onContinue(); return }
         Haptics.stamp()
-        withAnimation(.spring(response: 0.35, dampingFraction: 0.55)) { stamped = true }
+        CabinAudioEngine.shared.playThunk()
+        withAnimation(.spring(response: 0.32, dampingFraction: 0.5)) { stamped = true }
         Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(900))
+            try? await Task.sleep(for: .milliseconds(1_300))
             onContinue()
         }
     }
