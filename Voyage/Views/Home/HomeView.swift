@@ -13,6 +13,7 @@ struct HomeView: View {
     }
 
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.scenePhase) private var scenePhase
     @Query private var entries: [LogbookEntry]
 
     @State private var settings = SettingsStore.shared
@@ -159,14 +160,28 @@ struct HomeView: View {
             recenter(animated: false)
             applyPendingShortcutDeparture()
             refreshRatingLine()
+            publishWidget()
+            handleWidgetTakeOff()
         }
-        .onChange(of: logbookKey) { refreshRatingLine() }
+        .onChange(of: logbookKey) {
+            refreshRatingLine()
+            publishWidget()
+        }
         .onChange(of: settings.originOverrideCode) {
             selectedDestination = nil
             recenter(animated: true)
+            publishWidget()
         }
         .onChange(of: settings.resolvedOriginCode) {
             recenter(animated: true)
+            publishWidget()
+        }
+        .onChange(of: scheduler.scheduled) { publishWidget() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { handleWidgetTakeOff() }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: TakeOffRequest.notification)) { _ in
+            handleWidgetTakeOff()
         }
         .onReceive(clock) { nowTick = $0 }
     }
@@ -263,6 +278,35 @@ struct HomeView: View {
         } else {
             cameraPosition = .camera(camera)
         }
+    }
+
+    // MARK: Widget
+
+    /// Where the widget's "Take off" goes: the route flown last, if it is
+    /// still open from here, otherwise the shortest open one (the first card
+    /// on the departure board). A Voyage flight's length is its route, so this
+    /// is also "the last duration".
+    private var quickDestination: Airport? {
+        if let last = entries.max(by: { $0.date < $1.date }),
+           let airport = Airport.all.first(where: { $0.code == last.destinationCode }),
+           airport != origin, isUnlocked(airport) {
+            return airport
+        }
+        return destinations.first(where: isUnlocked)
+    }
+
+    private func publishWidget() {
+        WidgetBridge.publish(origin: origin, quickDestination: quickDestination,
+                             scheduled: scheduler.scheduled)
+    }
+
+    /// The widget's "Take off": straight into the air on `quickDestination`,
+    /// skipping seat, bag and boarding pass. The ritual is the point of a
+    /// planned departure; the widget is for "just start".
+    private func handleWidgetTakeOff() {
+        guard settings.hasCompletedOnboarding, TakeOffRequest.consume(),
+              let destination = quickDestination else { return }
+        depart(to: destination, skipRitual: true)
     }
 
     /// Siri / Shortcuts "Depart on a focus flight" lands here with a destination pre-selected.
@@ -767,7 +811,8 @@ struct HomeView: View {
         }
     }
 
-    private func depart(to destination: Airport, flightNumber: String? = nil, plan: String? = nil) {
+    private func depart(to destination: Airport, flightNumber: String? = nil, plan: String? = nil,
+                        skipRitual: Bool = false) {
         // A flight already on the schedule boards whatever the rules say now.
         guard flightNumber != nil || isUnlocked(destination) else { return }
         let itinerary = RoutePlanner.itinerary(from: origin, to: destination,
@@ -794,6 +839,12 @@ struct HomeView: View {
         }
 
         Haptics.success()
+        if skipRitual {
+            // What the torn boarding pass does (`BoardingFlowView.beginDeparture`),
+            // minus the curtain: the session goes straight to `.inFlight` and
+            // RootView mounts the window. No seat is chosen, so it stays "—".
+            session.departFirstLeg()
+        }
         onDepart(session)
     }
 }

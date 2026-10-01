@@ -45,6 +45,9 @@
 			<key>NSPrivacyAccessedAPITypeReasons</key>
 			<array>
 				<string>CA92.1</string>
+				<!-- The App Group suite the Home Screen widget reads
+				     (Voyage/Shared/WidgetSnapshot.swift). -->
+				<string>1C8F.1</string>
 			</array>
 		</dict>
 	</array>

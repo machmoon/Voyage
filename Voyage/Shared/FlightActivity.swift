@@ -19,6 +19,12 @@ struct FlightActivityAttributes: ActivityAttributes {
         var legCount: Int
         /// True once the session has ended (landed/diverted) — final frame.
         var concluded: Bool
+        /// Set while the app is backgrounded mid-flight: the instant the
+        /// flight diverts unless the traveller comes back. The lock screen is
+        /// exactly where they are when this matters, so the card counts down
+        /// to it instead of to a landing that will not happen. Optional so a
+        /// state encoded by an older build still decodes.
+        var graceDeadline: Date? = nil
     }
 
     var originCode: String

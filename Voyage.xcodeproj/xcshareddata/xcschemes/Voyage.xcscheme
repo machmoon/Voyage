@@ -49,6 +49,20 @@
                ReferencedContainer = "container:Voyage.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "NO"
+            buildForProfiling = "NO"
+            buildForArchiving = "NO"
+            buildForAnalyzing = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "A9DA7EFA4AE891D63ADAF1DF"
+               BuildableName = "VoyageWidgetsTests.xctest"
+               BlueprintName = "VoyageWidgetsTests"
+               ReferencedContainer = "container:Voyage.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
@@ -75,6 +89,17 @@
                BlueprintIdentifier = "4FF7C8D507A57E3C87D791D3"
                BuildableName = "VoyageTests.xctest"
                BlueprintName = "VoyageTests"
+               ReferencedContainer = "container:Voyage.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "A9DA7EFA4AE891D63ADAF1DF"
+               BuildableName = "VoyageWidgetsTests.xctest"
+               BlueprintName = "VoyageWidgetsTests"
                ReferencedContainer = "container:Voyage.xcodeproj">
             </BuildableReference>
          </TestableReference>

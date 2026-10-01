@@ -7,8 +7,8 @@ options:
 # `Voyage/PrivacyInfo.xcprivacy` is picked up by the Voyage target's directory
 # source, but XcodeGen has no built-in phase for the extension, so declare it.
 # Resources flatten to the bundle root, which is where Apple looks for it.
-# Only the app target needs one: VoyageWidgets touches no required-reason API
-# (no UserDefaults, no file timestamps, no boot time, no disk space).
+# VoyageWidgets carries its own since the Home Screen widget reads the App
+# Group's UserDefaults suite (reason 1C8F.1, App Group defaults).
 fileTypes:
   xcprivacy:
     buildPhase: resources
@@ -35,6 +35,15 @@ targets:
     platform: iOS
     sources:
       - path: Voyage
+    # Shared with VoyageWidgets so the Home Screen widget can read the
+    # snapshot the app writes (Voyage/Shared/WidgetSnapshot.swift). The group
+    # must also be registered on the developer account and added to both App
+    # Store provisioning profiles ("Voyage", "Voyage Widgets") before Release.
+    entitlements:
+      path: Voyage/Support/Voyage.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.patrickliu.voyage
     preBuildScripts:
       # Ada's rule (app/vite.config.ts `refuseTestStoreKey`), applied at the
       # one point every Release build passes through: a Test Store key
@@ -102,6 +111,11 @@ targets:
     sources:
       - path: VoyageWidgets
       - path: Voyage/Shared
+    entitlements:
+      path: VoyageWidgets/VoyageWidgets.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.patrickliu.voyage
     info:
       path: VoyageWidgets/Info.plist
       properties:
@@ -141,6 +155,27 @@ targets:
         GENERATE_INFOPLIST_FILE: true
         TARGETED_DEVICE_FAMILY: "1"
         CODE_SIGN_STYLE: Automatic
+  # Renders every widget and Live Activity presentation to PNG (set
+  # VOYAGE_WIDGET_SNAPSHOT_DIR) and checks the entry logic. Hostless: it
+  # compiles the widget's view files directly, because an app extension
+  # cannot host tests and the app target cannot see the extension's views.
+  VoyageWidgetsTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: VoyageWidgetsTests
+      - path: Voyage/Shared
+      - path: VoyageWidgets/WidgetTheme.swift
+      - path: VoyageWidgets/FlightActivityViews.swift
+      - path: VoyageWidgets/NextFlightWidgetView.swift
+      - path: VoyageWidgets/NextFlightWidget.swift
+      - path: VoyageWidgets/Styles
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.patrickliu.voyage.widgettests
+        GENERATE_INFOPLIST_FILE: true
+        TARGETED_DEVICE_FAMILY: "1"
+        CODE_SIGN_STYLE: Automatic
   VoyageUITests:
     type: bundle.ui-testing
     platform: iOS
@@ -160,9 +195,11 @@ schemes:
       targets:
         Voyage: all
         VoyageTests: [test]
+        VoyageWidgetsTests: [test]
         VoyageUITests: [test]
     test:
       targets:
         - VoyageTests
+        - VoyageWidgetsTests
         - VoyageUITests
       gatherCoverageData: false

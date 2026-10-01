@@ -62,6 +62,7 @@ final class FlightActivityController {
     /// an `end` landing while the request is still running, is handled by
     /// `generation` rather than left to timing.
     func start(session: FlightSession) {
+        WidgetBridge.flight(session)
         guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
         // A new leg on an existing activity is an update, not a new request.
         if activity != nil {
@@ -113,6 +114,7 @@ final class FlightActivityController {
     }
 
     func update(session: FlightSession) {
+        WidgetBridge.flight(session)
         guard let activity else { return }
         let content = content(for: session)
         Task { await activity.update(content) }
@@ -120,6 +122,7 @@ final class FlightActivityController {
 
     /// Ends the activity with a final frame ("Landed in …" / "Diverted").
     func end(session: FlightSession) {
+        WidgetBridge.flight(nil)
         // Invalidate any request still in flight before looking at `activity`:
         // a session can end before the daemon has answered.
         generation &+= 1
@@ -142,6 +145,7 @@ final class FlightActivityController {
     /// before the app was killed, whose flight ended while we were suspended.
     /// Call it when the app becomes active with no session in hand.
     func endOrphaned() {
+        WidgetBridge.flight(nil)
         guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
         generation &+= 1
         startTask?.cancel()
@@ -216,13 +220,14 @@ final class FlightActivityController {
             departure: now.addingTimeInterval(-session.legElapsed),
             legNumber: session.legIndex + 1,
             legCount: session.itinerary.legs.count,
-            concluded: false
+            concluded: false,
+            graceDeadline: session.stage == .inFlight ? session.graceDeadline : nil
         )
     }
 #else
-    func start(session: FlightSession) {}
-    func update(session: FlightSession) {}
-    func end(session: FlightSession) {}
-    func endOrphaned() {}
+    func start(session: FlightSession) { WidgetBridge.flight(session) }
+    func update(session: FlightSession) { WidgetBridge.flight(session) }
+    func end(session: FlightSession) { WidgetBridge.flight(nil) }
+    func endOrphaned() { WidgetBridge.flight(nil) }
 #endif
 }
