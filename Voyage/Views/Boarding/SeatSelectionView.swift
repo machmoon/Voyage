@@ -260,7 +260,8 @@ struct SeatSelectionView: View {
                     Text(note)
                         .font(.caption2.weight(.medium))
                         .foregroundStyle(Theme.seatMapInk.opacity(0.55))
-                        .multilineTextAlignment(.center)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
                         .frame(width: fuselageWidth - edgeInset * 2)
                         .padding(.bottom, 2)
                 }
@@ -275,21 +276,21 @@ struct SeatSelectionView: View {
         }
     }
 
-    /// The line under a premium cabin that is not fully open: how close the
-    /// First class reward is ("First class unlocks after 8 focus hours ·
-    /// 6h 35m to go"), and which row is already open early.
+    /// One short line under a premium cabin that is not fully open: a row
+    /// already open early ("Row 1 open early"), else what opens the locked
+    /// seats ("Opens after 8 focus hours"). No progress countdown here (Pat,
+    /// 2026-10-01: "no need to say first class soon"); the upgrade offer a
+    /// locked seat raises carries the progress for a traveler who asks.
     private func premiumCabinNote(_ cabin: CabinPlan.Cabin) -> String? {
-        guard !session.isPremiumCabin else { return nil }
-        if membership.isFirstClass { return "Voyage First: every seat up front is yours" }
-        let progress = session.firstClass.progressLine
+        guard !session.isPremiumCabin, !membership.isFirstClass else { return nil }
         let early = LoyaltyProgram.earlyUpgradeRows(in: plan).sorted()
-        guard let first = early.first else { return progress }
-        let rowText = early.count == 1 ? "Row \(first)" : "Rows \(first)–\(early.last ?? first)"
-        let earlyText = session.premiumSeatAccess(row: first) == .earlyUpgrade
-            ? "\(rowText) open early for you"
-            : "\(rowText) opens after your first landing"
-        guard let progress, cabin.rows.count > early.count else { return earlyText }
-        return "\(progress)\n\(earlyText)"
+        if let first = early.first, session.premiumSeatAccess(row: first) == .earlyUpgrade {
+            return early.count == 1
+                ? "Row \(first) open early"
+                : "Rows \(first)–\(early.last ?? first) open early"
+        }
+        guard session.firstClass.progressLine != nil else { return nil }
+        return "Opens after \(Int(FirstClassReward.requiredFocusSeconds / 3_600)) focus hours"
     }
 
     /// The nose is empty cabin-side. The flight deck is drawn with the nose

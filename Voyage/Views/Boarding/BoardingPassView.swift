@@ -143,14 +143,11 @@ struct BoardingPassView: View {
                     .transition(.opacity)
                 }
 
-                Text("Or slide along the dotted line.")
-                    .font(.footnote.weight(.medium))
-                    .foregroundStyle(.white.opacity(printed && !ripped && cutProgress == 0 ? 0.55 : 0))
-                    .padding(.top, 14)
-                    .padding(.bottom, 24)
-                    .animation(.smooth(duration: 0.3), value: printed)
-                    .animation(.smooth(duration: 0.2), value: ripped)
-                    .animation(.smooth(duration: 0.2), value: cutProgress == 0)
+                // The dotted line and its scissors say it can be slid; the
+                // hint that spelled it out is gone. The space it held stays,
+                // so the pass sits where it always has.
+                Color.clear
+                    .frame(height: 56)
                     .accessibilityHidden(true)
             }
             .animation(.smooth(duration: 0.5), value: printed)

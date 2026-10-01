@@ -139,18 +139,8 @@ private struct WelcomeView: View {
                     .opacity(revealed ? 1 : 0)
                     .offset(y: rise(30))
 
-                if session.watersTaken > 0 {
-                    Label(
-                        session.watersTaken == 1
-                            ? "1 water en route"
-                            : "\(session.watersTaken) waters en route",
-                        systemImage: "cup.and.saucer.fill"
-                    )
-                    .font(.footnote.weight(.medium))
-                    .foregroundStyle(.white.opacity(0.7))
-                    .padding(.top, 14)
-                    .opacity(revealed ? 1 : 0)
-                }
+                // No "2 waters en route" line: a secondary stat. The welcome
+                // keeps to the three numbers above (de-clutter, 2026-10-01).
 
                 Spacer()
 
@@ -230,11 +220,11 @@ private struct WelcomeView: View {
                 .accessibilityValue(done ? "Finished" : "Not finished")
                 .accessibilityHint("Double tap to mark it \(done ? "not finished" : "finished")")
             }
-            Text(finished.count == session.intentions.count
-                 ? "Nice. Every bag made it."
-                 : "Anything unfinished rides your next flight.")
-                .font(.caption2)
-                .foregroundStyle(.white.opacity(0.5))
+            if finished.count == session.intentions.count {
+                Text("Nice. Every bag made it.")
+                    .font(.caption2)
+                    .foregroundStyle(.white.opacity(0.5))
+            }
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -362,7 +352,7 @@ private struct CustomsDeclarationView: View {
                         Text("Anything to declare?")
                             .font(.system(size: 30, weight: .bold))
                             .foregroundStyle(.white)
-                        Text("Three quick recalls, no notes. Writing it down beats rereading it a week later.")
+                        Text("Three quick recalls, no notes.")
                             .font(.subheadline)
                             .foregroundStyle(.white.opacity(0.6))
                     }
@@ -371,9 +361,8 @@ private struct CustomsDeclarationView: View {
                         .offset(y: appeared ? 0 : 40)
                         .opacity(appeared ? 1 : 0)
                         .scaleEffect(stamped && !reduceMotion ? 0.985 : 1)
-                    Text("Roediger & Karpicke, 2006. Recall with no feedback beat restudying at two days and a week.")
-                        .font(.caption2)
-                        .foregroundStyle(.white.opacity(0.4))
+                    // The citation lives in the Flight Manual (Settings),
+                    // not under the card.
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 12)
@@ -419,9 +408,6 @@ private struct CustomsDeclarationView: View {
             cardHeader
             VStack(alignment: .leading, spacing: 14) {
                 flightFields
-                Text("Each arriving traveler declares, from memory, what they are bringing back from this flight.")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(Self.paperInk.opacity(0.7))
                 ForEach(Self.prompts.indices, id: \.self) { index in
                     item(index)
                 }

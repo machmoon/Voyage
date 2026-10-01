@@ -590,7 +590,7 @@ enum IntelligenceAvailability: Equatable {
     var settingsFootnote: String {
         switch self {
         case .available:
-            return "Apple Intelligence splits your bags into steps that fit the flight, and the captain says one line about them at cruise. It runs on this iPhone. Your bags are not sent anywhere."
+            return "Splits your bags into steps, on this iPhone. Nothing is sent anywhere."
         case .appleIntelligenceNotEnabled:
             return "Turn on Apple Intelligence in the Settings app to get a flight plan and a note from the captain. Flights work the same without it."
         case .modelNotReady:

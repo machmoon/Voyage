@@ -112,7 +112,7 @@ struct SettingsView: View {
                                       systemImage: "exclamationmark.triangle.fill")
                                     .font(.subheadline.weight(.semibold))
                                     .foregroundStyle(.orange)
-                                Text("This device only has the synthesized voices iOS ships with, which sound robotic over the cabin PA. Download a better one in Settings, Accessibility, Spoken Content, Voices, English. Samantha (Enhanced) reads well as cabin crew. A Voyage Air voice above is recorded into the app and needs no download.")
+                                Text("Download a better one in Settings, Accessibility, Spoken Content, Voices. Voyage Air voices need no download.")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                                 Button("Open iOS Settings") {
@@ -128,7 +128,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Sound")
                 } footer: {
-                    Text("Sound cues confirm meaningful moments without demanding attention. Ambience is generated privately on device and mixes with your music. The Voyage Air voices are recorded into the app, so announcements play in airplane mode and no audio leaves your device.")
+                    Text("Everything plays on device and works in airplane mode.")
                 }
 
                 Section {
@@ -138,7 +138,7 @@ struct SettingsView: View {
                 } header: {
                     Text("In flight")
                 } footer: {
-                    Text("During cruise, optional cards suggest resting your eyes, stretching, or taking water. They disappear on their own, stop before descent, and never affect your flight or logbook.")
+                    Text("Short cards at cruise: rest your eyes, stretch, drink water.")
                 }
 
                 Section {
@@ -157,7 +157,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Origin")
                 } footer: {
-                    Text("You always take off from the airport nearest you. It sets the routes and focus durations on the globe. Override it here if you would rather fly from somewhere else.")
+                    Text("Defaults to the airport nearest you.")
                 }
 
 
@@ -179,7 +179,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Window")
                 } footer: {
-                    Text(settings.windowWorldMode.caption + " Illustrated window views work offline. If you choose Real world, map provider attribution appears in the airplane window.")
+                    Text(settings.windowWorldMode.caption)
                 }
 
                 Section {
@@ -188,7 +188,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Strict mode")
                 } footer: {
-                    Text("Leaving Voyage for more than 30 seconds ends the session. Completed legs still earn partial miles.")
+                    Text("Completed legs still earn partial miles.")
                 }
 
                 Section {
@@ -201,7 +201,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Flight Focus")
                 } footer: {
-                    Text("Add Voyage to an iOS Focus Filter, then enable that Focus before boarding. Voyage only asks for Focus access after you configure this integration.")
+                    Text("Add Voyage to an iOS Focus Filter, then turn that Focus on before boarding.")
                 }
 
                 if intelligence.offersSetting {
@@ -231,7 +231,7 @@ struct SettingsView: View {
                     }
                     .accessibilityIdentifier("settings-flight-manual")
                 } footer: {
-                    Text("Why Voyage works like an airline: the studies behind the boarding pass, bag tags, miles and streaks.")
+                    Text("The studies behind each part of a flight.")
                 }
 
                 Section {
@@ -249,7 +249,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Help")
                 } footer: {
-                    Text("The briefing walks through how a Voyage flight works, the same way it did on first launch. A note opens GitHub in your browser so you can post it publicly under your own account.")
+                    Text("A note opens GitHub, posted publicly under your account.")
                 }
 
                 Section {
@@ -257,7 +257,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Logbook")
                 } footer: {
-                    Text("One Markdown file: a debrief prompt, a 90-day summary, the recorder's findings, and the last 20 flights. Read it before you paste it anywhere.")
+                    Text("One Markdown file of your recent flights.")
                 }
 
                 // Seeded demo history is a development affordance, not a
@@ -281,7 +281,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Test mode")
                 } footer: {
-                    Text("Fills the logbook with a few weeks of focus flights: an active streak, Gold status, and a well-stamped passport, so you can see the app as a returning traveler would. Replaces any existing history.")
+                    Text("A few weeks of sample flights. Replaces any existing history.")
                 }
                 #endif
 
@@ -291,7 +291,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Weather data")
                 } footer: {
-                    Text("Conditions in the window scene and the arrival announcement come from Open-Meteo, licensed under CC BY 4.0. When no reading is available Voyage falls back to clear skies computed on device.")
+                    Text("Weather from Open-Meteo, licensed under CC BY 4.0.")
                 }
 
                 Section {

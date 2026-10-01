@@ -27,10 +27,12 @@ final class LoyaltyCaptureUITests: XCTestCase {
         ]
         app.launch()
 
-        // Regional routes open, next band announced under the greeting.
+        // Regional routes open. Nothing is announced under the greeting
+        // (2026-10-01 de-clutter): each locked card says what opens it.
         let lax = app.buttons["destination-LAX"]
         XCTAssertTrue(lax.waitForExistence(timeout: 20))
-        XCTAssertTrue(app.descendants(matching: .any)["next-unlock"].exists)
+        XCTAssertFalse(app.descendants(matching: .any)["next-unlock"].exists)
+        XCTAssertFalse(app.descendants(matching: .any)["first-class-progress"].exists)
         sleep(3)
         save("loyalty-01-home-locked-destinations")
 

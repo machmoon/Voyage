@@ -125,9 +125,14 @@ struct CheckBagView: View {
                             .padding(.top, 16)
                     }
 
-                    focusNote
-                        .padding(.horizontal, 20)
-                        .padding(.top, 14)
+                    // Only the one reminder that asks for an action: Focus
+                    // is set up for Voyage but not on. "Focus is on" and the
+                    // first-time setup line live in Settings → Flight Focus.
+                    if focus.filterConfigured && !focus.systemFocusEnabled {
+                        focusNote
+                            .padding(.horizontal, 20)
+                            .padding(.top, 14)
+                    }
                 }
             }
             .onChange(of: printedSlots) { old, new in
@@ -334,18 +339,9 @@ struct CheckBagView: View {
     @ViewBuilder
     private var tagRack: some View {
         let tags = taskTags
-        if tags.isEmpty {
-            VStack(spacing: 6) {
-                Image(systemName: "tag")
-                    .font(.system(size: 16, weight: .semibold))
-                Text("Each bag gets its own tag here")
-                    .font(.caption.weight(.medium))
-            }
-            .foregroundStyle(Theme.seatMapInk.opacity(0.4))
-            .frame(maxWidth: .infinity)
-            .padding(.top, 26)
-            .padding(.bottom, 8)
-        } else {
+        // Empty until the first line is written: the tag appearing is the
+        // explanation, so there is no placeholder saying one will.
+        if !tags.isEmpty {
             HStack(alignment: .top, spacing: 10) {
                 ForEach(tags) { taskTag in
                     tagColumn(taskTag)

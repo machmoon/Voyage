@@ -57,7 +57,7 @@ struct HomeView: View {
     /// QA, UI-test and demo launches see every route (`LoyaltyProgram.bypassesLocks`).
     private static let loyaltyBypass = LoyaltyProgram.bypassesLocks()
 
-    /// Folded from the logbook once per change, like `ratingLine`.
+    /// Folded from the logbook once per change of it, not per clock tick.
     @State private var standing = LoyaltyStanding.newTraveler
 
     private var destinationAccess: [String: DestinationAccess] {
@@ -69,15 +69,6 @@ struct HomeView: View {
 
     private func isUnlocked(_ airport: Airport) -> Bool {
         destinationAccess[airport.code]?.isUnlocked ?? true
-    }
-
-    /// "Short-haul opens at 2h focus · 1h 20m to go", under the greeting.
-    private var nextUnlockLine: String? {
-        guard let next = LoyaltyProgram.nextUnlock(from: origin, standing: standing,
-                                                   bypass: Self.loyaltyBypass) else { return nil }
-        return "\(next.band.title) opens at "
-            + "\(PilotRatings.hoursText(next.band.requiredFocusSeconds)) focus · "
-            + "\(PilotRatings.hoursText(next.remainingFocusSeconds)) to go"
     }
 
     /// The miles still needed for the next tier, as a route from here.
@@ -313,7 +304,9 @@ struct HomeView: View {
                         // A chosen origin is not a location fix, so it does not
                         // get the location glyph either.
                         glyph: settings.originIsFromLocation ? "location.fill" : "airplane.departure",
-                        trailing: ratingLine,
+                        // The rating lives in the Logbook's status card;
+                        // Home names the airport and nothing else.
+                        trailing: nil,
                         showsChevron: false
                     )
                 }
@@ -380,13 +373,6 @@ struct HomeView: View {
         .minimumScaleFactor(0.75)
     }
 
-    /// "Student pilot · 12h 40m of 40h toward Private". Computed once per
-    /// change of the logbook, not per body evaluation: the rating folds
-    /// every entry, and Home redraws on every clock tick.
-    @State private var ratingLine: String?
-    /// "3-day streak", from two days up. Same once-per-change rule.
-    @State private var streakLine: String?
-
     private struct LogbookKey: Equatable {
         let count: Int
         let lastDate: Date?
@@ -397,8 +383,6 @@ struct HomeView: View {
     }
 
     private func refreshRatingLine() {
-        ratingLine = entries.isEmpty ? nil : RatingProgress.evaluate(entries: entries).summaryLine
-        streakLine = LogbookStats.streak(entries).line
         standing = LoyaltyStanding(entries: entries)
     }
 
@@ -523,32 +507,13 @@ struct HomeView: View {
             if let itinerary = selectedItinerary {
                 routeSummary(itinerary)
             } else {
-                VStack(spacing: 4) {
-                    Text(greeting)
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                        .shadow(color: .black.opacity(0.6), radius: 3)
-                    if let nextUnlockLine {
-                        Label(nextUnlockLine, systemImage: "lock.open")
-                            .font(.caption.weight(.medium))
-                            .foregroundStyle(.white.opacity(0.8))
-                            .shadow(color: .black.opacity(0.6), radius: 3)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
-                            .padding(.horizontal, 20)
-                            .accessibilityIdentifier("next-unlock")
-                    }
-                    if let firstClassLine = FirstClassReward(standing: standing).progressLine {
-                        Label(firstClassLine, systemImage: "carseat.right.fill")
-                            .font(.caption.weight(.medium))
-                            .foregroundStyle(Theme.seatFirstGoldLight.opacity(0.9))
-                            .shadow(color: .black.opacity(0.6), radius: 3)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.75)
-                            .padding(.horizontal, 20)
-                            .accessibilityIdentifier("first-class-progress")
-                    }
-                }
+                // Just the greeting (Pat, 2026-10-01: "no need to say first
+                // class soon"). A locked card already says what opens it,
+                // and First class announces itself when it is earned.
+                Text(greeting)
+                    .font(.headline)
+                    .foregroundStyle(.white)
+                    .shadow(color: .black.opacity(0.6), radius: 3)
             }
 
             ScrollView(.horizontal, showsIndicators: false) {
@@ -575,8 +540,8 @@ struct HomeView: View {
         .padding(.bottom, 12)
     }
 
-    /// Two calm lines: the route on top, the focus math underneath.
-    /// Never wraps mid-pill.
+    /// The route, one line, never wrapping mid-pill. The focus time is on
+    /// the selected card right under it, so the pill does not repeat it.
     private func routeSummary(_ itinerary: Itinerary) -> some View {
         VStack(spacing: 3) {
             HStack(spacing: 8) {
@@ -596,10 +561,6 @@ struct HomeView: View {
                 Text(itinerary.destination.code)
                     .font(.system(size: 16, weight: .heavy, design: .monospaced))
             }
-            Text(itinerary.totalFocusDuration.shortDurationText + " focus"
-                 + (itinerary.isConnection ? " · lounge break" : ""))
-                .font(.caption.weight(.medium))
-                .foregroundStyle(.white.opacity(0.7))
         }
         .foregroundStyle(.white)
         .fixedSize()
@@ -692,10 +653,6 @@ struct HomeView: View {
                 Text("Surprise me")
                     .font(.caption.weight(.medium))
                     .lineLimit(1)
-                Text("Random destination")
-                    .font(.system(size: 10, weight: .semibold))
-                    .lineLimit(1)
-                    .opacity(0.65)
             }
             .padding(12)
             .frame(width: 132, alignment: .leading)
@@ -717,7 +674,7 @@ struct HomeView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("\(access.band.title) · \(access.unlockHint)")
                     .font(.subheadline.weight(.semibold))
-                Text("\(access.remainingText). Every landing counts toward it.")
+                Text(access.remainingText)
                     .font(.caption)
                     .opacity(0.75)
             }
