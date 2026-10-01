@@ -129,21 +129,113 @@ final class LoyaltyProgramTests: XCTestCase {
 
     // MARK: Premium seats
 
-    func testFrontRowOpensAfterFirstLandingRestAtSilver() {
+    private func reward(hours: Double, days: Int, heldFirst: Bool = false) -> FirstClassReward {
+        FirstClassReward(standing: LoyaltyStanding(
+            landedFocusSeconds: hours * hour, landedFlights: days, visitedCodes: [],
+            flightDays: days, heldFirstSeat: heldFirst))
+    }
+
+    func testFrontRowOpensAfterFirstLandingRestWithTheReward() {
         let plan = AircraftProfile.boeing737800.cabinPlan
-        func access(_ row: Int, _ tier: FlyerTier, _ landings: Int) -> PremiumSeatAccess {
-            LoyaltyProgram.premiumSeatAccess(row: row, plan: plan, tier: tier, landedFlights: landings)
+        func access(_ row: Int, _ reward: FirstClassReward, _ landings: Int) -> PremiumSeatAccess {
+            LoyaltyProgram.premiumSeatAccess(row: row, plan: plan, reward: reward, landedFlights: landings)
         }
-        XCTAssertEqual(access(1, .member, 0), .lockedUntilFirstLanding)
-        XCTAssertEqual(access(2, .member, 0), .lockedUntilSilver)
-        XCTAssertEqual(access(1, .member, 1), .earlyUpgrade)
-        XCTAssertEqual(access(4, .member, 2), .lockedUntilSilver)
-        XCTAssertEqual(access(1, .silver, 5), .open)
-        XCTAssertEqual(access(4, .silver, 5), .open)
+        let fresh = FirstClassReward.newTraveler
+        let earned = reward(hours: 8, days: 5)
+        XCTAssertEqual(access(1, fresh, 0), .lockedUntilFirstLanding)
+        XCTAssertEqual(access(2, fresh, 0), .lockedUntilReward)
+        XCTAssertEqual(access(1, fresh, 1), .earlyUpgrade)
+        XCTAssertEqual(access(4, reward(hours: 4, days: 3), 3), .lockedUntilReward)
+        XCTAssertEqual(access(1, earned, 5), .open)
+        XCTAssertEqual(access(4, earned, 5), .open)
         // Economy is never gated.
-        XCTAssertEqual(access(14, .member, 0), .open)
-        XCTAssertTrue(access(1, .member, 1).isBookable)
-        XCTAssertFalse(access(2, .member, 1).isBookable)
+        XCTAssertEqual(access(14, fresh, 0), .open)
+        XCTAssertTrue(access(1, fresh, 1).isBookable)
+        XCTAssertFalse(access(2, fresh, 1).isBookable)
+    }
+
+    // MARK: First class reward
+
+    func testRewardNeedsBothTheHoursAndTheDays() {
+        XCTAssertFalse(reward(hours: 0, days: 0).isUnlocked)
+        // One long cram day is not regular use.
+        XCTAssertFalse(reward(hours: 9, days: 1).isUnlocked)
+        // Five days of short sessions is not enough focus.
+        XCTAssertFalse(reward(hours: 7.9, days: 6).isUnlocked)
+        XCTAssertTrue(reward(hours: 8, days: 5).isUnlocked)
+        XCTAssertTrue(reward(hours: 20, days: 12).isUnlocked)
+    }
+
+    /// Silver comes with the Solo rating at three landings. Three hops on
+    /// day one must not open the cabin any more.
+    func testSoloSilverOnDayOneDoesNotOpenFirst() {
+        let day = Date(timeIntervalSince1970: 1_790_000_000)
+        let entries = (0..<3).map { index in
+            LogbookEntry(date: day.addingTimeInterval(Double(index) * 2 * hour),
+                         originCode: "SFO", destinationCode: "LAX", flightNumber: "VOY 1",
+                         seat: "C14", miles: 337, focusSeconds: 90 * 60, completed: true)
+        }
+        XCTAssertGreaterThanOrEqual(LogbookStats.tier(entries), .silver)
+        let reward = FirstClassReward(standing: LoyaltyStanding(entries: entries))
+        XCTAssertFalse(reward.isUnlocked)
+        XCTAssertEqual(reward.flightDays, 1)
+    }
+
+    /// An hour a day, every day: locked on day seven, open on day eight.
+    func testAnHourADayOpensFirstInTheSecondWeek() {
+        let calendar = Calendar(identifier: .gregorian)
+        let start = Date(timeIntervalSince1970: 1_790_000_000)
+        func logbook(days: Int) -> [LogbookEntry] {
+            (0..<days).map { day in
+                LogbookEntry(date: calendar.date(byAdding: .day, value: day, to: start)!,
+                             originCode: "SFO", destinationCode: "LAX", flightNumber: "VOY 1",
+                             seat: "C14", miles: 337, focusSeconds: hour, completed: true)
+            }
+        }
+        XCTAssertFalse(FirstClassReward(standing: LoyaltyStanding(entries: logbook(days: 7), calendar: calendar)).isUnlocked)
+        XCTAssertTrue(FirstClassReward(standing: LoyaltyStanding(entries: logbook(days: 8), calendar: calendar)).isUnlocked)
+    }
+
+    func testRewardCopySaysHowCloseItIs() {
+        XCTAssertEqual(reward(hours: 0, days: 0).progressLine,
+                       "First class unlocks after 8 focus hours · 8h to go")
+        XCTAssertEqual(reward(hours: 1 + 25.0 / 60, days: 1).progressLine,
+                       "First class unlocks after 8 focus hours · 6h 35m to go")
+        // Twenty seconds short rounds up, never "0h to go".
+        XCTAssertEqual(reward(hours: 8 - 20.0 / 3_600, days: 5).progressLine,
+                       "First class unlocks after 8 focus hours · 1m to go")
+        XCTAssertEqual(reward(hours: 9, days: 3).progressLine,
+                       "First class unlocks on your 5th flying day · 2 more days to go")
+        XCTAssertEqual(reward(hours: 9, days: 4).progressLine,
+                       "First class unlocks on your 5th flying day · 1 more day to go")
+        XCTAssertNil(reward(hours: 8, days: 5).progressLine)
+    }
+
+    func testUnlockMomentFiresOnceOnTheCrossingLanding() {
+        let before = reward(hours: 7.5, days: 5)
+        let after = reward(hours: 8.5, days: 6)
+        XCTAssertTrue(after.unlocks(comparedTo: before))
+        XCTAssertFalse(after.unlocks(comparedTo: after))
+        XCTAssertFalse(before.unlocks(comparedTo: .newTraveler))
+    }
+
+    /// Earned stays earned: a logbook that already sat in row 2+ of First
+    /// under the old Silver rule keeps the cabin.
+    func testTravelerWhoAlreadyFlewFirstKeepsIt() {
+        let plan = AircraftProfile.boeing737800.cabinPlan
+        let rowTwo = plan.cabins.first(where: \.isPremium)!.rows.sorted()[1]
+        let flown = LogbookEntry(originCode: "SFO", destinationCode: "LAX", flightNumber: "VOY 1",
+                                 seat: "\(rowTwo)A", miles: 337, focusSeconds: 90 * 60, completed: true,
+                                 aircraft: .boeing737800)
+        let standing = LoyaltyStanding(entries: [flown])
+        XCTAssertTrue(standing.heldFirstSeat)
+        XCTAssertTrue(FirstClassReward(standing: standing).isUnlocked)
+        // The early-upgrade front row is not proof of the whole cabin.
+        let rowOne = plan.cabins.first(where: \.isPremium)!.rows.min()!
+        let early = LogbookEntry(originCode: "SFO", destinationCode: "LAX", flightNumber: "VOY 1",
+                                 seat: "\(rowOne)A", miles: 337, focusSeconds: 90 * 60, completed: true,
+                                 aircraft: .boeing737800)
+        XCTAssertFalse(LoyaltyStanding(entries: [early]).heldFirstSeat)
     }
 
     func testEarlyRowIsTheFrontPremiumRowOnEveryAircraft() {
@@ -165,11 +257,11 @@ final class LoyaltyProgramTests: XCTestCase {
         for aircraft in AircraftProfile.allCases {
             let plan = aircraft.cabinPlan
             for row in plan.cabins.flatMap(\.rows) {
-                for tier in FlyerTier.allCases {
+                for reward in [FirstClassReward.newTraveler, reward(hours: 4, days: 3), reward(hours: 8, days: 5)] {
                     for landings in [0, 1, 5] {
-                        let free = LoyaltyProgram.premiumSeatAccess(row: row, plan: plan, tier: tier,
+                        let free = LoyaltyProgram.premiumSeatAccess(row: row, plan: plan, reward: reward,
                                                                     landedFlights: landings)
-                        let member = LoyaltyProgram.premiumSeatAccess(row: row, plan: plan, tier: tier,
+                        let member = LoyaltyProgram.premiumSeatAccess(row: row, plan: plan, reward: reward,
                                                                       landedFlights: landings,
                                                                       isFirstMember: true)
                         XCTAssertTrue(member.isBookable)
@@ -193,7 +285,11 @@ final class LoyaltyProgramTests: XCTestCase {
         }
     }
 
-    func testSilverPerkMatchesTheSeatMapName() {
-        XCTAssertEqual(FlyerTier.silver.perkDescription, "First-class seats")
+    /// First-class seats are the reward, not a tier perk, so no tier may
+    /// promise them on the tier-up card.
+    func testNoTierPromisesFirstClassSeats() {
+        for tier in FlyerTier.allCases {
+            XCTAssertFalse(tier.perkDescription.localizedCaseInsensitiveContains("first-class seat"), "\(tier)")
+        }
     }
 }

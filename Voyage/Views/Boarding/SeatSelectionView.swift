@@ -23,7 +23,6 @@ struct SeatSelectionView: View {
     @State private var selected: String?
     /// Observed so a purchase re-renders the map with First open.
     @State private var membership = Membership.shared
-    @Query private var entries: [LogbookEntry]
     /// The locked First seat whose upgrade offer is showing.
     @State private var upgradeOffer: UpgradeOfferTarget?
     /// The seat that just opened through Voyage First, for its unlock burst.
@@ -126,19 +125,13 @@ struct SeatSelectionView: View {
             UpgradeOfferSheet(
                 seat: target.seat,
                 currentSeat: selected,
-                progress: milesProgress,
-                suggestion: MilesRouteSuggestion.best(
-                    remaining: milesProgress.remaining,
-                    from: SettingsStore.shared.homeAirport,
-                    standing: LoyaltyStanding(entries: entries),
-                    bypass: LoyaltyProgram.bypassesLocks())
+                reward: session.firstClass
             ) {
                 celebrateUpgrade(to: target.seat)
             }
         }
     }
 
-    private var milesProgress: MilesProgress { MilesProgress(entries: entries) }
 
     /// The demo shot: the seat the traveler reached for turns from locked to
     /// selected, with a gold burst, the premium chime and the upgrade haptic.
@@ -282,19 +275,21 @@ struct SeatSelectionView: View {
         }
     }
 
-    /// One line under a premium cabin that is not fully open, phrased as a
-    /// status benefit: which row opens early and what opens the rest.
+    /// The line under a premium cabin that is not fully open: how close the
+    /// First class reward is ("First class unlocks after 8 focus hours ·
+    /// 6h 35m to go"), and which row is already open early.
     private func premiumCabinNote(_ cabin: CabinPlan.Cabin) -> String? {
         guard !session.isPremiumCabin else { return nil }
         if membership.isFirstClass { return "Voyage First: every seat up front is yours" }
+        let progress = session.firstClass.progressLine
         let early = LoyaltyProgram.earlyUpgradeRows(in: plan).sorted()
-        guard let first = early.first else { return nil }
+        guard let first = early.first else { return progress }
         let rowText = early.count == 1 ? "Row \(first)" : "Rows \(first)–\(early.last ?? first)"
-        let rest = cabin.rows.count > early.count ? ", the rest at Silver" : ""
-        if session.premiumSeatAccess(row: first) == .earlyUpgrade {
-            return "\(rowText) open early for you\(rest)"
-        }
-        return "\(rowText) opens after your first landing\(rest)"
+        let earlyText = session.premiumSeatAccess(row: first) == .earlyUpgrade
+            ? "\(rowText) open early for you"
+            : "\(rowText) opens after your first landing"
+        guard let progress, cabin.rows.count > early.count else { return earlyText }
+        return "\(progress)\n\(earlyText)"
     }
 
     /// The nose is empty cabin-side. The flight deck is drawn with the nose
@@ -501,12 +496,13 @@ struct SeatSelectionView: View {
     /// Premium seats are announced by cabin; every other seat is plain
     /// "Seat C10", which is also the contract the UI tests select on. A
     /// partly open cabin says which seats are open early and what opens the
-    /// rest, the way a status benefit is phrased ("opens at Silver").
+    /// rest ("opens after 8 focus hours").
     private func accessibilityLabel(id: String, cabin: CabinPlan.Cabin,
                                     taken: Bool, access: PremiumSeatAccess) -> String {
         let prefix = cabin.isPremium ? "First class seat" : "Seat"
         switch access {
-        case .lockedUntilSilver: return "\(prefix) \(id), locked, opens at Silver status"
+        case .lockedUntilReward:
+            return "\(prefix) \(id), locked, opens after \(Int(FirstClassReward.requiredFocusSeconds / 3_600)) focus hours"
         case .lockedUntilFirstLanding: return "\(prefix) \(id), locked, opens after your first landed flight"
         case .earlyUpgrade where !taken: return "\(prefix) \(id), early upgrade seat"
         case .voyageFirst where !taken: return "\(prefix) \(id), Voyage First seat"
@@ -554,7 +550,7 @@ struct SeatSelectionView: View {
     /// First available (non-taken, non-locked) seat — used when the traveler
     /// skips seat selection. Early upgrade seats are never auto-assigned: a
     /// partly open premium cabin is skipped whole, as before, so Skip behaves
-    /// the same until Silver opens the cabin.
+    /// the same until the First class reward opens the cabin.
     private var defaultSeat: String? {
         for cabin in plan.cabins where !(cabin.isPremium && !session.isPremiumCabin) {
             for row in cabin.rows {

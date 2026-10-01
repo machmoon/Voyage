@@ -676,6 +676,10 @@ private struct StampView: View {
     /// The logbook after this landing, for the tier-up card.
     @Query private var loggedEntries: [LogbookEntry]
     @State private var tierUp: MilesProgress?
+    /// This landing earned the First class reward. Shown before a tier-up
+    /// that lands on the same flight, which then follows on dismiss.
+    @State private var firstClassUnlocked = false
+    @State private var pendingTierUp: MilesProgress?
     /// The rating this landing completed, read back off the saved entry
     /// after the bags were marked. Printed under the cachet on its own beat.
     @State private var endorsement: PilotRating?
@@ -735,6 +739,14 @@ private struct StampView: View {
         .onAppear { runStampSequence() }
         .sheet(item: $tierUp) { progress in
             TierUpCard(progress: progress)
+        }
+        .sheet(isPresented: $firstClassUnlocked, onDismiss: {
+            if let pendingTierUp {
+                self.pendingTierUp = nil
+                tierUp = pendingTierUp
+            }
+        }) {
+            FirstClassUnlockedCard()
         }
         .onChange(of: shareCaption) { _, _ in
             // Persisting is cheap and wants to be immediate; drawing the card
@@ -846,7 +858,14 @@ private struct StampView: View {
             // crossed a tier shows the new perk, then straight away the next
             // tier's bar with the surplus already on it.
             let after = MilesProgress(entries: loggedEntries)
-            if session.logEntry?.completed == true, after.tier > session.tier {
+            let tierCrossed = session.logEntry?.completed == true && after.tier > session.tier
+            if earnedFirstClass() {
+                try? await Task.sleep(for: .milliseconds(600))
+                pendingTierUp = tierCrossed ? after : nil
+                firstClassUnlocked = true
+                Haptics.upgrade()
+                CabinAudioEngine.shared.playChime(premium: true)
+            } else if tierCrossed {
                 try? await Task.sleep(for: .milliseconds(600))
                 tierUp = after
                 Haptics.upgrade()
@@ -854,6 +873,18 @@ private struct StampView: View {
             }
             await askForReviewIfEarned()
         }
+    }
+
+    /// Whether the landing that was just saved is the one that opened First
+    /// class. Compares the logbook with and without that entry, the way the
+    /// endorsement does, so a session built without a booking-time standing
+    /// cannot fake an unlock.
+    private func earnedFirstClass() -> Bool {
+        guard let entry = session.logEntry, entry.completed,
+              loggedEntries.contains(where: { $0 === entry }) else { return false }
+        let before = FirstClassReward(standing: LoyaltyStanding(entries: loggedEntries.filter { $0 !== entry }))
+        let after = FirstClassReward(standing: LoyaltyStanding(entries: loggedEntries))
+        return after.unlocks(comparedTo: before)
     }
 
     /// Whether the landing that was just saved raised the rating. Reads the

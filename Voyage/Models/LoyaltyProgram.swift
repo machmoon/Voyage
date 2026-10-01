@@ -4,7 +4,7 @@ import Foundation
 //
 // Destinations open up as the traveler logs study time, and the front row of
 // the premium cabin opens after the first landing, ahead of the rest of the
-// cabin at Silver. Everything here is cosmetic, like `FlyerTier`: it changes
+// cabin, which is the reward for real use (`FirstClassReward`). Everything here is cosmetic, like `FlyerTier`: it changes
 // which cards can be booked and which seats can be picked, never timing,
 // strict mode or the logbook.
 //
@@ -34,19 +34,99 @@ struct LoyaltyStanding: Equatable {
     /// have already flown to never locks again, whatever the rules say later.
     var visitedCodes: Set<String>
 
+    /// Distinct local calendar days with a landing: how *regular* the use
+    /// has been, which focus hours alone cannot tell apart from one cram day.
+    var flightDays: Int
+    /// A landed flight sat in a premium seat outside the early-upgrade rows,
+    /// which only the whole cabin being open allowed. Proof the cabin was
+    /// already earned under an earlier rule, so it never locks again.
+    var heldFirstSeat: Bool
+
     static let newTraveler = LoyaltyStanding(landedFocusSeconds: 0, landedFlights: 0, visitedCodes: [])
 
-    init(landedFocusSeconds: TimeInterval, landedFlights: Int, visitedCodes: Set<String>) {
+    init(landedFocusSeconds: TimeInterval, landedFlights: Int, visitedCodes: Set<String>,
+         flightDays: Int = 0, heldFirstSeat: Bool = false) {
         self.landedFocusSeconds = landedFocusSeconds
         self.landedFlights = landedFlights
         self.visitedCodes = visitedCodes
+        self.flightDays = flightDays
+        self.heldFirstSeat = heldFirstSeat
     }
 
-    init(entries: [LogbookEntry]) {
+    init(entries: [LogbookEntry], calendar: Calendar = .current) {
         let landed = entries.filter(\.completed)
         self.landedFocusSeconds = LogbookStats.totalFocusSeconds(entries)
         self.landedFlights = landed.count
         self.visitedCodes = Set(landed.flatMap { [$0.originCode, $0.destinationCode] })
+        self.flightDays = Set(landed.map { calendar.startOfDay(for: $0.date) }).count
+        self.heldFirstSeat = landed.contains { entry in
+            guard let row = Int(entry.seat.filter(\.isNumber)) else { return false }
+            let plan = entry.aircraft.cabinPlan
+            return plan.isPremiumRow(row) && !LoyaltyProgram.earlyUpgradeRows(in: plan).contains(row)
+        }
+    }
+}
+
+/// First class as the reward for real use: the whole premium cabin opens
+/// after `requiredFocusSeconds` of landed focus spread over at least
+/// `requiredFlightDays` different days. About a week and a half at an hour
+/// a day; never day one, however long that day is.
+///
+/// Shaped like the rest of this file (a threshold that is data, one pure
+/// predicate, a locked seat that says what opens it) and like Trease, the
+/// open-source Forest alternative, where a tree is bought with coins earned
+/// one per focused minute (Trease-Focus/trease-app @ 2db6756,
+/// composeApp/.../viewmodels/HomeScreenViewModel.kt `calculateRewardedCoin`).
+/// The days half is Duolingo's finding that a learner who reaches a 7-day
+/// streak is 3.6x as likely to finish the course
+/// (blog.duolingo.com/how-duolingo-streak-builds-habit).
+struct FirstClassReward: Equatable {
+    static let requiredFocusSeconds: TimeInterval = 8 * 3_600
+    static let requiredFlightDays = 5
+
+    let focusSeconds: TimeInterval
+    let flightDays: Int
+    /// Already earned under the earlier rule (see `heldFirstSeat`).
+    let grandfathered: Bool
+
+    init(standing: LoyaltyStanding) {
+        focusSeconds = standing.landedFocusSeconds
+        flightDays = standing.flightDays
+        grandfathered = standing.heldFirstSeat
+    }
+
+    static let newTraveler = FirstClassReward(standing: .newTraveler)
+
+    var remainingFocusSeconds: TimeInterval { max(0, Self.requiredFocusSeconds - focusSeconds) }
+    var remainingDays: Int { max(0, Self.requiredFlightDays - flightDays) }
+    var isUnlocked: Bool { grandfathered || (remainingFocusSeconds == 0 && remainingDays == 0) }
+
+    /// 0...1, the slower of the two halves, for a progress bar.
+    var fraction: Double {
+        if isUnlocked { return 1 }
+        let hours = min(1, focusSeconds / Self.requiredFocusSeconds)
+        let days = min(1, Double(flightDays) / Double(Self.requiredFlightDays))
+        return min(hours, days)
+    }
+
+    /// Whether the landing that produced `self` is the one that opened the
+    /// cabin, for the unlock moment on the stamp page.
+    func unlocks(comparedTo before: FirstClassReward) -> Bool {
+        isUnlocked && !before.isUnlocked
+    }
+
+    /// "First class unlocks after 8 focus hours · 6h 35m to go", or, with the
+    /// hours banked but not yet on enough days, "First class unlocks on your
+    /// 5th flying day · 2 more days to go". Nil once unlocked.
+    var progressLine: String? {
+        guard !isUnlocked else { return nil }
+        if remainingFocusSeconds > 0 {
+            // Rounded up to the minute, so 20 seconds left never reads "0h to go".
+            let left = (remainingFocusSeconds / 60).rounded(.up) * 60
+            let leftText = left < 3_600 ? "\(Int(left / 60))m" : PilotRatings.hoursText(left)
+            return "First class unlocks after \(Int(Self.requiredFocusSeconds / 3_600)) focus hours · \(leftText) to go"
+        }
+        return "First class unlocks on your \(Self.requiredFlightDays)th flying day · \(remainingDays) more \(remainingDays == 1 ? "day" : "days") to go"
     }
 }
 
@@ -131,12 +211,12 @@ struct NextUnlock: Equatable {
 enum PremiumSeatAccess: Equatable {
     /// Not a premium seat, or the whole premium cabin is open.
     case open
-    /// A front-row seat opened early, before Silver.
+    /// A front-row seat opened early, before the First class reward.
     case earlyUpgrade
     /// Still closed; opens after the first landed flight.
     case lockedUntilFirstLanding
-    /// Still closed; opens at Silver status.
-    case lockedUntilSilver
+    /// Still closed; opens with the First class reward (`FirstClassReward`).
+    case lockedUntilReward
     /// A seat free status has not opened yet, open because the traveler
     /// flies Voyage First. Only ever replaces one of the two locked cases:
     /// a seat status already opened stays `.open`/`.earlyUpgrade`.
@@ -145,7 +225,7 @@ enum PremiumSeatAccess: Equatable {
     var isBookable: Bool {
         switch self {
         case .open, .earlyUpgrade, .voyageFirst: return true
-        case .lockedUntilFirstLanding, .lockedUntilSilver: return false
+        case .lockedUntilFirstLanding, .lockedUntilReward: return false
         }
     }
 }
@@ -233,8 +313,8 @@ enum LoyaltyProgram {
     // MARK: Premium cabin
 
     /// Rows at the front of the premium cabin that open after the first
-    /// landing, before Silver opens the rest. One row: four seats on the
-    /// narrowbodies, two on the Overture.
+    /// landing, a taste of the cabin before the reward opens the rest. One
+    /// row: four seats on the narrowbodies, two on the Overture.
     static let earlyUpgradeRowCount = 1
 
     /// Landings before the early rows open.
@@ -249,23 +329,25 @@ enum LoyaltyProgram {
 
     /// Whether a seat in `row` can be booked.
     ///
+    /// Status tiers no longer open the cabin: Silver came with the Solo
+    /// rating at three landings, which a traveler can reach on day one.
     /// `isFirstMember` only adds: Voyage First opens every premium seat the
-    /// free rules still hold closed, and never changes a seat that status
+    /// free rules still hold closed, and never changes a seat the reward
     /// already opened. Free travellers keep the front row after their first
-    /// landing and the whole cabin at Silver, forever.
+    /// landing and the whole cabin once the reward is earned, forever.
     static func premiumSeatAccess(
         row: Int,
         plan: CabinPlan,
-        tier: FlyerTier,
+        reward: FirstClassReward,
         landedFlights: Int,
         isFirstMember: Bool = false
     ) -> PremiumSeatAccess {
-        guard plan.isPremiumRow(row), tier < .silver else { return .open }
+        guard plan.isPremiumRow(row), !reward.isUnlocked else { return .open }
         let free: PremiumSeatAccess
         if earlyUpgradeRows(in: plan).contains(row) {
             free = landedFlights >= earlyUpgradeLandings ? .earlyUpgrade : .lockedUntilFirstLanding
         } else {
-            free = .lockedUntilSilver
+            free = .lockedUntilReward
         }
         if isFirstMember && !free.isBookable { return .voyageFirst }
         return free

@@ -50,10 +50,10 @@ final class LoyaltyCaptureUITests: XCTestCase {
         depart.tap()
         XCTAssertTrue(app.staticTexts["Choose your seat"].waitForExistence(timeout: 10))
 
-        // Front row open early, the rest of First still at Silver.
+        // Front row open early, the rest of First until the reward.
         let early = app.buttons.matching(NSPredicate(format: "label ENDSWITH %@", "early upgrade seat"))
         XCTAssertGreaterThan(early.count, 0, "Expected early upgrade seats in row 1")
-        let silver = app.buttons.matching(NSPredicate(format: "label ENDSWITH %@", "opens at Silver status"))
+        let silver = app.buttons.matching(NSPredicate(format: "label ENDSWITH %@", "opens after 8 focus hours"))
         XCTAssertGreaterThan(silver.count, 0, "Expected the rest of First to stay locked")
         sleep(1)
         save("loyalty-03-seatmap-early-first")
@@ -63,6 +63,14 @@ final class LoyaltyCaptureUITests: XCTestCase {
             .firstMatch.waitForExistence(timeout: 3))
         sleep(1)
         save("loyalty-04-seatmap-early-first-selected")
+
+        // A seat the reward has not opened raises the offer, which says how
+        // close the free reward is before it mentions Voyage First.
+        let rewardLocked = app.buttons.matching(NSPredicate(format: "label ENDSWITH %@", "opens after 8 focus hours"))
+        rewardLocked.firstMatch.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["upgrade-offer-reward"].waitForExistence(timeout: 5))
+        sleep(2)
+        save("loyalty-05-upgrade-offer-reward-progress")
     }
 
     private func save(_ name: String) {

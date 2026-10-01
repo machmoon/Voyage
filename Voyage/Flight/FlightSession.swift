@@ -54,10 +54,13 @@ final class FlightSession {
 
     /// Frequent-flyer tier at booking time; drives cosmetic unlocks only.
     let tier: FlyerTier
-    var isPremiumCabin: Bool { tier >= .silver }
+    /// Where the First class reward stood at booking time. The whole premium
+    /// cabin opens with it (`LoyaltyProgram.premiumSeatAccess`), not with a
+    /// status tier. A new session starts locked; Home sets it at booking.
+    var firstClass: FirstClassReward = .newTraveler
+    var isPremiumCabin: Bool { firstClass.isUnlocked }
     /// Landed flights in the logbook at booking time. The front row of the
-    /// premium cabin opens after the first one, ahead of Silver
-    /// (`LoyaltyProgram.premiumSeatAccess`).
+    /// premium cabin opens after the first one, ahead of the reward.
     var landedFlights: Int = 0
 
     /// Whether a seat in `row` of the current aircraft can be booked.
@@ -65,7 +68,7 @@ final class FlightSession {
     /// `Membership`) rather than read here, so the session stays testable.
     func premiumSeatAccess(row: Int, isFirstMember: Bool = false) -> PremiumSeatAccess {
         LoyaltyProgram.premiumSeatAccess(row: row, plan: aircraft.cabinPlan,
-                                         tier: tier, landedFlights: landedFlights,
+                                         reward: firstClass, landedFlights: landedFlights,
                                          isFirstMember: isFirstMember)
     }
     var hasPremiumChime: Bool { tier == .platinum }

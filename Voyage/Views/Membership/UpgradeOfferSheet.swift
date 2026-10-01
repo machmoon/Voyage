@@ -1,8 +1,8 @@
 import SwiftUI
 
 /// The upgrade prompt a locked First seat raises: both ways to the front of
-/// the plane, side by side. Free first ("Earn it", with the real miles and a
-/// real route), paid second ("Fly First today"). It is shaped like the
+/// the plane, side by side. Free first ("Earn it", with the focus hours and
+/// flying days still to go), paid second ("Fly First today"). It is shaped like the
 /// upgrade offer an airline app shows at seat selection: the seat, the
 /// cabin, what it would take, and a way to keep the seat you have.
 ///
@@ -15,8 +15,8 @@ struct UpgradeOfferSheet: View {
     let seat: String
     /// The seat the traveler holds now, if any ("Keep 14C").
     let currentSeat: String?
-    let progress: MilesProgress
-    let suggestion: MilesRouteSuggestion?
+    /// How close the free First class reward is.
+    let reward: FirstClassReward
     let onUpgraded: () -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -93,30 +93,26 @@ struct UpgradeOfferSheet: View {
 
     private var earnCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            cardLabel("EARN IT FREE AT SILVER", trailing: "free, always")
-            if progress.next != nil {
-                Text(progress.headline + ".")
+            cardLabel("EARN IT FREE BY STUDYING", trailing: "free, always")
+            if let line = reward.progressLine {
+                Text(line + ".")
                     .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(progress.isAlmostThere ? Theme.seatFirstGold : Theme.textPrimary)
-                    .accessibilityIdentifier("upgrade-offer-miles")
-                Text(suggestion?.sentence ?? MilesRouteSuggestion.hoursSentence(remaining: progress.remaining))
+                    .foregroundStyle(reward.fraction >= 0.8 ? Theme.seatFirstGold : Theme.textPrimary)
+                    .accessibilityIdentifier("upgrade-offer-reward")
+                Text("Every landed flight counts. The front row opens after your first one.")
                     .font(.subheadline)
                     .foregroundStyle(Theme.textSecondary)
-                MilesBar(progress: progress, fill: barFill)
+                FirstClassRewardBar(reward: reward, fill: barFill)
                     .frame(height: 12)
                 HStack {
-                    if progress.bonusMiles > 0 {
-                        Label("500 welcome bonus", systemImage: "gift.fill")
-                    }
+                    Text("\(PilotRatings.hoursText(min(reward.focusSeconds, FirstClassReward.requiredFocusSeconds))) of \(Int(FirstClassReward.requiredFocusSeconds / 3_600))h")
                     Spacer()
-                    if let next = progress.next {
-                        Text("\(next.rawValue) at \(MilesFormat.number(next.threshold))")
-                    }
+                    Text("\(min(reward.flightDays, FirstClassReward.requiredFlightDays)) of \(FirstClassReward.requiredFlightDays) flying days")
                 }
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(Theme.textSecondary)
             } else {
-                Text("Your status already opens this cabin.")
+                Text("You've earned this cabin.")
                     .font(.headline)
                     .foregroundStyle(Theme.textPrimary)
             }
@@ -134,7 +130,7 @@ struct UpgradeOfferSheet: View {
                 .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(Theme.textPrimary)
             VStack(alignment: .leading, spacing: 6) {
-                perk("carseat.right.fill", "Every First seat now, free at Silver")
+                perk("carseat.right.fill", "Every First seat now, free after \(Int(FirstClassReward.requiredFocusSeconds / 3_600)) focus hours")
                 perk("tag.fill", "Priority tags now, free at Gold")
                 perk("paintpalette.fill", "Livery tags now, free at Platinum")
                 perk("heart.fill", "Keeps Voyage free and open source")
@@ -244,6 +240,26 @@ struct MilesBar: View {
         }
         .accessibilityElement()
         .accessibilityLabel("\(Int((progress.fraction * 100).rounded())) percent of the way to \(progress.next?.rawValue ?? "the top tier")")
+    }
+}
+
+/// Progress toward the First class reward: the slower of focus hours and
+/// flying days, in First gold.
+struct FirstClassRewardBar: View {
+    let reward: FirstClassReward
+    var fill: Double = 1
+
+    var body: some View {
+        GeometryReader { proxy in
+            ZStack(alignment: .leading) {
+                Capsule().fill(Color.white.opacity(0.10))
+                Capsule()
+                    .fill(Theme.seatFirstGold)
+                    .frame(width: max(0, proxy.size.width * reward.fraction * fill))
+            }
+        }
+        .accessibilityElement()
+        .accessibilityLabel("\(Int((reward.fraction * 100).rounded())) percent of the way to First class")
     }
 }
 

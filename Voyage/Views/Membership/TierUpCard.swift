@@ -24,7 +24,7 @@ struct TierUpCard: View {
             Text("Welcome to \(progress.tier.rawValue).")
                 .font(.title.bold())
                 .foregroundStyle(Theme.textPrimary)
-            Text(progress.tier.perkDescription + " are yours.")
+            Text(progress.tier.perkDescription + ". Yours now.")
                 .font(.headline)
                 .foregroundStyle(Theme.textSecondary)
             if let line = progress.carryOverLine {

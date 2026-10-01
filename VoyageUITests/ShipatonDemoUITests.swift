@@ -54,8 +54,8 @@ final class ShipatonDemoUITests: XCTestCase {
         pause(1.5)
         save("shipaton-01-seatmap-locked")
 
-        // 1. Tap a First seat that only Silver opens.
-        let locked = app.buttons.matching(NSPredicate(format: "label ENDSWITH %@", "opens at Silver status"))
+        // 1. Tap a First seat that only the First class reward opens.
+        let locked = app.buttons.matching(NSPredicate(format: "label ENDSWITH %@", "opens after 8 focus hours"))
         XCTAssertGreaterThan(locked.count, 0, "Expected locked First seats")
         let target = locked.firstMatch
         let seatID = seatName(from: target.label)
@@ -129,7 +129,7 @@ final class ShipatonDemoUITests: XCTestCase {
 
     // MARK: Helpers
 
-    /// "First class seat B2, locked, opens at Silver status" → "B2".
+    /// "First class seat B2, locked, opens after 8 focus hours" → "B2".
     private func seatName(from label: String) -> String {
         let afterSeat = label.components(separatedBy: "seat ").dropFirst().first ?? ""
         return afterSeat.components(separatedBy: ",").first ?? ""

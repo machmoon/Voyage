@@ -226,11 +226,14 @@ enum FlyerTier: String, CaseIterable, Identifiable, Comparable {
         }
     }
 
-    /// Cosmetic perks unlocked at this tier and below.
+    /// Cosmetic perks unlocked at this tier and below. First-class seats are
+    /// not a tier perk: they are the reward for focus hours over several
+    /// days (`FirstClassReward`), because Silver also comes with the Solo
+    /// rating at three landings, which can all be on day one.
     var perkDescription: String {
         switch self {
         case .member: return "Economy cabin"
-        case .silver: return "First-class seats"
+        case .silver: return "The Silver card"
         case .gold: return "Sunset scenes & priority bag tags"
         case .platinum: return "Aurora, livery tags & first-class chime"
         }

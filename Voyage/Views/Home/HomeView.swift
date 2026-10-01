@@ -25,6 +25,9 @@ struct HomeView: View {
     @State private var showingLogbook = false
     @State private var showingSettings = false
     @State private var showingMembershipCard = false
+    /// QA capture of the First class unlock card (`-VoyageDebugFirstClassUnlock`,
+    /// DEBUG only): the real moment needs a whole landed flight.
+    @State private var showingFirstClassUnlockPreview = false
     @State private var nowTick = Date()
     /// A fresh line each time Home is built, i.e. every launch. Picked once so
     /// it stays put while you browse, and never repeats the previous launch.
@@ -142,7 +145,15 @@ struct HomeView: View {
         .sheet(isPresented: $showingMembershipCard) {
             MembershipCardView()
         }
+        .sheet(isPresented: $showingFirstClassUnlockPreview) {
+            FirstClassUnlockedCard()
+        }
         .onAppear {
+            #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("-VoyageDebugFirstClassUnlock") {
+                showingFirstClassUnlockPreview = true
+            }
+            #endif
             locationManager.resolveHomeAirport()
             scheduler.pruneExpired()
             recenter(animated: false)
@@ -527,6 +538,16 @@ struct HomeView: View {
                             .padding(.horizontal, 20)
                             .accessibilityIdentifier("next-unlock")
                     }
+                    if let firstClassLine = FirstClassReward(standing: standing).progressLine {
+                        Label(firstClassLine, systemImage: "carseat.right.fill")
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(Theme.seatFirstGoldLight.opacity(0.9))
+                            .shadow(color: .black.opacity(0.6), radius: 3)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
+                            .padding(.horizontal, 20)
+                            .accessibilityIdentifier("first-class-progress")
+                    }
                 }
             }
 
@@ -755,6 +776,9 @@ struct HomeView: View {
                                     modelContext: modelContext,
                                     tier: LogbookStats.tier(entries))
         session.landedFlights = standing.landedFlights
+        // Not bypassed for QA launches: seats never were, and the demo tours
+        // tap a locked First seat to raise the upgrade offer.
+        session.firstClass = FirstClassReward(standing: standing)
         session.departurePlan = plan
         session.prepareRealWorldTwin()
 
