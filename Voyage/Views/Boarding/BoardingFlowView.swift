@@ -1,13 +1,15 @@
 import SwiftUI
 
-/// The pre-flight ritual, three beats: seat → check a bag → boarding pass.
-/// Ripping the pass IS the departure — no extra confirmation page after.
+/// The pre-flight ritual, two beats: seat → boarding pass. The purpose of
+/// the trip is written on the pass itself (there is no separate check-a-bag
+/// step any more; see `BoardingPassView`). Ripping the pass IS the
+/// departure — no extra confirmation page after.
 struct BoardingFlowView: View {
     @Bindable var session: FlightSession
     let onCancel: () -> Void
 
     enum Step: Int, Comparable {
-        case seat, bag, pass
+        case seat, pass
         static func < (lhs: Step, rhs: Step) -> Bool { lhs.rawValue < rhs.rawValue }
     }
 
@@ -27,8 +29,6 @@ struct BoardingFlowView: View {
             Group {
                 switch step {
                 case .seat:
-                    Theme.seatMapBackground
-                case .bag:
                     Theme.seatMapBackground
                 case .pass:
                     Theme.boardingBackdrop
@@ -84,9 +84,8 @@ struct BoardingFlowView: View {
             } else {
                 Button { retreat(by: -1) } label: {
                     backButtonIcon("chevron.left",
-                                   ink: step == .seat ? Theme.seatMapInk : (step == .bag ? .secondary : .white.opacity(0.9)),
-                                   background: step == .seat ? Theme.seatMapInk.opacity(0.06)
-                                       : (step == .bag ? Theme.cardBackground : .white.opacity(0.12)))
+                                   ink: step == .seat ? Theme.seatMapInk : .white.opacity(0.9),
+                                   background: step == .seat ? Theme.seatMapInk.opacity(0.06) : .white.opacity(0.12))
                 }
                 .accessibilityLabel("Back")
             }
@@ -112,7 +111,7 @@ struct BoardingFlowView: View {
 
     private var stepIndicator: some View {
         HStack(spacing: 6) {
-            ForEach(0..<3) { i in
+            ForEach(0..<2) { i in
                 Capsule()
                     .fill(
                         i <= step.rawValue
@@ -130,11 +129,6 @@ struct BoardingFlowView: View {
         switch step {
         case .seat:
             SeatSelectionView(session: session) {
-                advance(to: .bag)
-            }
-            .transition(stepTransition)
-        case .bag:
-            CheckBagView(session: session) {
                 advance(to: .pass)
             }
             .transition(stepTransition)

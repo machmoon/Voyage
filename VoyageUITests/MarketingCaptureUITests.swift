@@ -115,25 +115,14 @@ final class MarketingCaptureUITests: XCTestCase {
         require(takeSeat, "Take seat", timeout: 6)
         takeSeat.tap()
 
-        // 5. Bags: two intentions typed in, so the pass carries them.
-        let bag1 = app.textFields["Bag 1, e.g. Review chapter 4"]
-        require(bag1, "the first bag field", timeout: 10)
-        bag1.tap()
-        bag1.typeText("Finish the problem set")
-        let bag2 = app.textFields["Bag 2, e.g. Review chapter 4"]
-        require(bag2, "the second bag field")
-        bag2.tap()
-        bag2.typeText("Read chapter 7")
-        settle(1)
-        capture(app, "mk-05-check-bags")
-        let checkBags = app.buttons["Check 2 bags"]
-        require(checkBags, "Check 2 bags")
-        checkBags.tap()
-
-        // 6. The printed pass, ready to tear.
+        // 5-6. The printed pass, with the purpose of the trip written on it.
         require(app.otherElements["boarding-pass-stub"], "the boarding pass stub", timeout: 15)
         let tear = app.buttons["Tear and board"]
         require(tear, "Tear and board", timeout: 20)
+        let purpose = app.textFields["boarding-pass-purpose"]
+        require(purpose, "the purpose of trip line on the pass")
+        purpose.tap()
+        purpose.typeText("Finish the problem set\n")
         settle(1)
         capture(app, "mk-06-boarding-pass")
         tear.tap()

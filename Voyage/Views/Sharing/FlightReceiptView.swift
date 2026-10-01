@@ -14,16 +14,19 @@ struct FlightReceiptView: View {
     let caption: String?
     let intentionsCompleted: Int
     let intentionsTotal: Int
-    /// "OCP ✓  ESS ✓  RCH mishandled": each bag's code, claimed or not.
-    var bagCodesLine: String? = nil
+    /// The purpose of the trip, when there was exactly one.
+    var purpose: String? = nil
     let viaCode: String?
 
-    static func makeBagCodesLine(codes: [String], completed: [Bool]) -> String? {
-        guard !codes.isEmpty else { return nil }
-        return codes.enumerated().map { index, code in
-            let done = index < completed.count && completed[index]
-            return done ? "\(code) ✓" : "\(code) mishandled"
-        }.joined(separator: "  ")
+    /// "Finish problem set 3 ✓" or "Finish problem set 3 · not yet". Flights
+    /// logged with several bags (before the purpose line) keep a count.
+    static func makePurposeLine(intentions: [String], completed: [Bool]) -> String? {
+        guard !intentions.isEmpty else { return nil }
+        let done = completed.prefix(intentions.count).filter { $0 }.count
+        guard intentions.count == 1 else {
+            return "\(done)/\(intentions.count) bags claimed at arrival"
+        }
+        return done == 1 ? "\(intentions[0]) ✓" : "\(intentions[0]) · not yet"
     }
 
     init(session: FlightSession, caption: String?) {
@@ -38,8 +41,8 @@ struct FlightReceiptView: View {
         self.caption = caption?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
         intentionsTotal = session.intentions.count
         intentionsCompleted = session.logEntry?.intentionsCompleted.filter(\.self).count ?? 0
-        bagCodesLine = Self.makeBagCodesLine(codes: session.logEntry?.tagCodes ?? [],
-                                         completed: session.logEntry?.intentionsCompleted ?? [])
+        purpose = Self.makePurposeLine(intentions: session.intentions,
+                                       completed: session.logEntry?.intentionsCompleted ?? [])
         viaCode = session.itinerary.connection?.code
     }
 
@@ -55,7 +58,7 @@ struct FlightReceiptView: View {
         caption = entry.shareCaption
         intentionsTotal = entry.intentions.count
         intentionsCompleted = zip(entry.intentions, entry.intentionsCompleted).filter(\.1).count
-        bagCodesLine = Self.makeBagCodesLine(codes: entry.tagCodes, completed: entry.intentionsCompleted)
+        purpose = Self.makePurposeLine(intentions: entry.intentions, completed: entry.intentionsCompleted)
         viaCode = entry.connectionCode
     }
 
@@ -87,7 +90,7 @@ struct FlightReceiptView: View {
                     captionBlock(caption)
                         .padding(.top, 16)
                 } else if intentionsTotal > 0 {
-                    captionBlock(bagsSummary)
+                    captionBlock(purpose ?? "")
                         .padding(.top, 16)
                 }
                 Spacer(minLength: 16)
@@ -190,11 +193,6 @@ struct FlightReceiptView: View {
             .padding(.vertical, 10)
             .frame(maxWidth: .infinity)
             .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-    }
-
-    private var bagsSummary: String {
-        let summary = "\(intentionsCompleted)/\(intentionsTotal) bags claimed at arrival"
-        return bagCodesLine.map { "\(summary)\n\($0)" } ?? summary
     }
 
     private var stampBadge: some View {

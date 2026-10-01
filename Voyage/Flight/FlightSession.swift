@@ -43,13 +43,14 @@ final class FlightSession {
     let itinerary: Itinerary
     var seat: String = "—"
     var aircraft: AircraftProfile = .boeing737800
+    /// The purpose of the trip, written on the boarding pass: one line, or
+    /// empty. An array because the logbook stores it that way.
     var intentions: [String] = []
-    /// One 3-letter code per checked bag, parallel to `intentions`.
-    var tagCodes: [String] = []
     /// The if-then plan from a scheduled departure, read back on the pass.
     var departurePlan: String?
-    /// The tag stock this booking prints on (priority and livery are Voyage First).
-    var bagTagStyle: BagTagStyle = .standard
+    /// The pass stock this booking prints on (priority and livery are earned
+    /// by status, or opened early by Voyage First).
+    var passStyle: PassStyle = .standard
     let bookedAt: Date
 
     /// Frequent-flyer tier at booking time; drives cosmetic unlocks only.
@@ -274,7 +275,7 @@ final class FlightSession {
                                     modelContext: modelContext,
                                     tier: .gold)
         session.seat = "C10"
-        session.intentions = ["Finish problem set 4", "Read chapter 9"]
+        session.intentions = ["Finish problem set 4"]
         session.completedMiles = itinerary.legs.reduce(0) { $0 + $1.distanceMiles }
         session.completedFocusSeconds = itinerary.totalFocusDuration
         session.watersTaken = 2
@@ -1025,7 +1026,6 @@ final class FlightSession {
             departedAt: departedAt,
             outcome: outcome
         )
-        entry.tagCodes = TaskCode.codes(for: intentions, existing: tagCodes)
         // A flight that ended within its first minute is a false start, not
         // a trip: the diverted screen still shows it, the logbook does not.
         // Tearing a pass and backing out immediately used to leave rows of

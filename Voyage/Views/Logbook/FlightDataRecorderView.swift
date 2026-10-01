@@ -146,7 +146,7 @@ struct RecorderReadout<Coach: View>: View {
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(.white)
                     .fixedSize(horizontal: false, vertical: true)
-                Text("Your hours, lengths, days and bags all land inside each other's margin of error. That is a result, not a gap. Keep flying and the recorder will report the moment a difference is real.")
+                Text("Your hours, lengths, days and purposes all land inside each other's margin of error. That is a result, not a gap. Keep flying and the recorder will report the moment a difference is real.")
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.68))
                     .fixedSize(horizontal: false, vertical: true)

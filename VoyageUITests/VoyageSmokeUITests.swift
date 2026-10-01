@@ -66,10 +66,6 @@ final class VoyageSmokeUITests: XCTestCase {
         XCTAssertTrue(takeSeat.waitForExistence(timeout: 3))
         takeSeat.tap()
 
-        let continueWithoutBags = app.buttons["Skip for now"]
-        XCTAssertTrue(continueWithoutBags.waitForExistence(timeout: 5))
-        continueWithoutBags.tap()
-
         let stub = app.otherElements["boarding-pass-stub"]
         XCTAssertTrue(stub.waitForExistence(timeout: 8), "Expected boarding pass stub")
 

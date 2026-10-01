@@ -1,11 +1,34 @@
 import SwiftUI
+import SwiftData
 
 /// The boarding pass prints down into view (with the dot-matrix sound to
 /// match), then a drag-to-tear gesture along the perforation starts the
 /// flight. Tearing IS departing — this is the commitment moment.
+///
+/// The pass carries one optional line, PURPOSE OF TRIP: what will be done
+/// when you land. It replaced the separate check-a-bag step (2026-09-30),
+/// because a checked bag is something you hand over and do not see again
+/// until landing, the opposite of the thing you will work on. One purpose,
+/// stated before the session and recorded after it: planning helps one goal
+/// and stops helping across many (Dalton & Spiller 2012, doi:10.1086/664500),
+/// and an intention made in advance is what works (Gollwitzer & Sheeran 2006,
+/// doi:10.1016/S0065-2601(06)38002-1). FocusFlight prints the task on its
+/// pass and Session opens each session with one intention; the open-source
+/// precedent is Super Productivity's focus mode, one task per session, typed
+/// or picked from suggestions shown before you search
+/// (super-productivity/super-productivity, MIT, `src/app/features/focus-mode/
+/// focus-mode-task-selector/focus-mode-task-selector.component.html`).
+/// Tearing the pass is the commitment, so nothing else is asked: no code, no
+/// category, no estimate.
 struct BoardingPassView: View {
     @Bindable var session: FlightSession
     let onBoarded: () -> Void
+
+    @State private var purpose = ""
+    @FocusState private var purposeFocused: Bool
+    @Query(sort: \LogbookEntry.date, order: .reverse) private var entries: [LogbookEntry]
+    @State private var membership = Membership.shared
+    @State private var showsPaywall = false
 
     @State private var printed = false
     /// 0→1 feed progress: the pass emerges below the slot in line-feed steps.
@@ -41,6 +64,31 @@ struct BoardingPassView: View {
         var hash: UInt64 = 5381
         for byte in leg.flightNumber.utf8 { hash = hash &* 33 &+ UInt64(byte) }
         return "B\(hash % 22 + 1)"
+    }
+
+    private var carrier: Carrier {
+        Carrier(rawValue: String(leg.flightNumber.prefix { !$0.isWhitespace })) ?? .voyageAir
+    }
+
+    private var trimmedPurpose: String { purpose.trimmingCharacters(in: .whitespacesAndNewlines) }
+
+    /// Up to four purposes to reuse with one tap: unfinished ones you chose
+    /// to bring along first, then recent ones, never the one already written.
+    private var recentPurposes: [String] {
+        var seen: Set<String> = [trimmedPurpose.lowercased()]
+        var result: [String] = []
+        let candidates = CarriedPurposes.pending(in: Array(entries))
+            + entries.prefix(20).flatMap(\.intentions)
+        for candidate in candidates where !seen.contains(candidate.lowercased()) {
+            seen.insert(candidate.lowercased())
+            result.append(candidate)
+            if result.count == 4 { break }
+        }
+        return result
+    }
+
+    private var carried: Set<String> {
+        Set(CarriedPurposes.pending(in: Array(entries)).map { $0.lowercased() })
     }
 
     private var cabinClass: String {
@@ -117,6 +165,18 @@ struct BoardingPassView: View {
                     .accessibilityIdentifier("boarding-pass-plan")
                 }
 
+                if printed && !ripped && !recentPurposes.isEmpty {
+                    recentPurposesRow
+                        .padding(.top, 14)
+                        .transition(.opacity)
+                }
+
+                if printed && !ripped && membership.isConfigured {
+                    stylePicker
+                        .padding(.top, 10)
+                        .transition(.opacity)
+                }
+
                 Spacer()
 
                 // Always in the layout once printed, faded rather than removed:
@@ -155,7 +215,14 @@ struct BoardingPassView: View {
             }
             .animation(.smooth(duration: 0.5), value: printed)
         }
-        .onAppear { startPrinting() }
+        // The pass stays put while the purpose is typed; Done drops the
+        // keyboard and the Tear button is back.
+        .ignoresSafeArea(.keyboard, edges: .bottom)
+        .onAppear {
+            if purpose.isEmpty, let first = session.intentions.first { purpose = first }
+            startPrinting()
+        }
+        .firstClassPaywall(isPresented: $showsPaywall)
         .accessibilityElement(children: .contain)
         .accessibilityAction(named: Text("Tear & board")) {
             guard printed, !ripped else { return }
@@ -293,9 +360,21 @@ struct BoardingPassView: View {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 2) {
                     FieldLabel("Boarding pass")
-                    Text(carrierName)
-                        .font(.system(size: 15, weight: .heavy))
-                        .kerning(2)
+                    HStack(spacing: 6) {
+                        Text(carrierName)
+                            .font(.system(size: 15, weight: .heavy))
+                            .kerning(2)
+                        if session.passStyle == .priority {
+                            Text("PRIORITY")
+                                .font(.system(size: 8, weight: .black))
+                                .kerning(1.2)
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 2)
+                                .background(Self.priorityRed, in: RoundedRectangle(cornerRadius: 3))
+                                .accessibilityLabel("Priority")
+                        }
+                    }
                 }
                 Spacer()
                 Text(leg.flightNumber)
@@ -345,14 +424,114 @@ struct BoardingPassView: View {
             // Only fields the session actually holds. A passenger name, a
             // gate and a boarding call would be invented, and an invented
             // field is the kind of detail that reads as a prop.
+            purposeRow
+
             HStack(spacing: 12) {
                 passField("Class", cabinClass)
                 passField("Focus", session.itinerary.totalFocusDuration.shortDurationText)
-                passField("Bags", session.intentions.isEmpty ? "—" : "\(session.intentions.count)")
             }
         }
         .padding(22)
+        .overlay(alignment: .leading) {
+            if session.passStyle == .livery {
+                LinearGradient(colors: carrier.livery, startPoint: .top, endPoint: .bottom)
+                    .frame(width: 6)
+                    .accessibilityHidden(true)
+            }
+        }
         .padding(.bottom, ripped ? 4 : 0)
+    }
+
+    static let priorityRed = Color(hex: "D2232A")
+
+    /// PURPOSE OF TRIP, written by hand on the printed pass. Editable until
+    /// the pass is torn; empty is fine and simply skips the loop at landing.
+    private var purposeRow: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            FieldLabel("Purpose of trip")
+            TextField("What will be done when you land?", text: $purpose)
+                .font(.custom("Noteworthy-Bold", size: 18, relativeTo: .body))
+                .foregroundStyle(Theme.passportInk)
+                .tint(Theme.accent)
+                .focused($purposeFocused)
+                .submitLabel(.done)
+                .onSubmit { purposeFocused = false }
+                .disabled(!printed || ripped)
+                .accessibilityIdentifier("boarding-pass-purpose")
+                .accessibilityLabel("Purpose of trip")
+            Rectangle()
+                .fill(Color.primary.opacity(0.12))
+                .frame(height: 1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// One-tap chips for purposes you have flown with before, unfinished
+    /// ones you chose to bring along first (Session's past intentions,
+    /// Super Productivity's suggestions shown before you search).
+    private var recentPurposesRow: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(recentPurposes, id: \.self) { item in
+                    Button {
+                        Haptics.tap()
+                        purpose = item
+                        purposeFocused = false
+                    } label: {
+                        Label(item, systemImage: carried.contains(item.lowercased())
+                              ? "arrow.uturn.forward" : "plus")
+                            .font(.caption.weight(.medium))
+                            .lineLimit(1)
+                            .foregroundStyle(.white.opacity(0.9))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 7)
+                            .background(.white.opacity(0.12), in: Capsule())
+                    }
+                    .accessibilityLabel(carried.contains(item.lowercased())
+                                        ? "Bring along: \(item)" : "Reuse: \(item)")
+                }
+            }
+            .padding(.horizontal, 28)
+        }
+        .accessibilityLabel("Recent purposes")
+    }
+
+    /// Pass stock. Standard is free; priority is earned at Gold and livery
+    /// at Platinum, and Voyage First opens both early. Tapping a locked one
+    /// opens the paywall (trigger 3 in SPEC.md, moved here from the bag tags).
+    private var stylePicker: some View {
+        HStack(spacing: 8) {
+            ForEach(PassStyle.allCases) { style in
+                let locked = !style.isUnlocked(tier: session.tier, isFirstMember: membership.isFirstClass)
+                let chosen = session.passStyle == style
+                Button {
+                    if locked {
+                        _ = membership.requireFirstClass(from: "pass-style-\(style.rawValue)", paywall: $showsPaywall)
+                        return
+                    }
+                    Haptics.tap()
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) { session.passStyle = style }
+                } label: {
+                    HStack(spacing: 4) {
+                        if locked { Image(systemName: "lock.fill").font(.system(size: 9, weight: .bold)) }
+                        Text(style.title)
+                        if locked {
+                            Text(style.earnedAt.rawValue)
+                                .font(.system(size: 9, weight: .heavy))
+                                .opacity(0.7)
+                        }
+                    }
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(chosen ? .white : .white.opacity(locked ? 0.45 : 0.75))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 7)
+                    .background(chosen ? Theme.accent : .white.opacity(0.08), in: Capsule())
+                }
+                .accessibilityIdentifier("pass-style-\(style.rawValue)")
+                .accessibilityLabel(locked ? "\(style.title) pass, free at \(style.earnedAt.rawValue) or with Voyage First" : "\(style.title) pass")
+            }
+        }
+        .frame(maxWidth: .infinity)
     }
 
     private func passField(_ label: String, _ value: String) -> some View {
@@ -543,6 +722,8 @@ struct BoardingPassView: View {
 
     private func rip() {
         guard !ripped else { return }
+        purposeFocused = false
+        session.intentions = trimmedPurpose.isEmpty ? [] : [trimmedPurpose]
         ripped = true
         Haptics.rip()
         CabinAudioEngine.shared.playRip()
@@ -597,6 +778,22 @@ struct BarcodeView: View {
                 context.fill(Path(rect), with: .color(.primary.opacity(0.85)))
                 x += barWidth + gap
             }
+        }
+    }
+}
+
+extension Carrier {
+    /// Livery colours for the fictional carriers, used by the livery pass
+    /// stock. Chosen to be none of the real US legacy carriers' marks
+    /// (SPEC.md (e)).
+    var livery: [Color] {
+        switch self {
+        case .harborline: return [Color(hex: "0F6E6E"), Color(hex: "13A3A3")]
+        case .ridgeway: return [Color(hex: "5B3A8C"), Color(hex: "8C5BD6")]
+        case .voyageAir: return [Color(hex: "1D2F5C"), Color(hex: "5E8FFF")]
+        case .baywater: return [Color(hex: "0E4D92"), Color(hex: "2E86C1")]
+        case .northline: return [Color(hex: "2F4F3A"), Color(hex: "4E8A5F")]
+        case .lantern: return [Color(hex: "B3541E"), Color(hex: "E3893B")]
         }
     }
 }

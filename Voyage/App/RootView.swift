@@ -132,8 +132,8 @@ struct RootView: View {
 
     private static var debugStampScreenshot: Bool {
         #if DEBUG
-        // -VoyageDebugArrival opens the whole arrival flow (welcome,
-        // baggage claim, customs) on the same seeded session.
+        // -VoyageDebugArrival opens the whole arrival flow (welcome with
+        // the purpose card, customs) on the same seeded session.
         ProcessInfo.processInfo.arguments.contains("-VoyageDebugStamp")
             || ProcessInfo.processInfo.arguments.contains("-VoyageDebugArrival")
         #else

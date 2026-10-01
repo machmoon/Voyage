@@ -202,7 +202,7 @@ enum FindingKind: String, CaseIterable {
         case .departureTime: return "Departure time"
         case .blockTime: return "Block time"
         case .weekPattern: return "Week pattern"
-        case .bags: return "Checked bags"
+        case .bags: return "Trip purposes"
         case .interruption: return "Interruptions"
         case .recentForm: return "Recent form"
         }
@@ -516,7 +516,7 @@ struct BagDetector: FindingDetector {
         return Finding(
             kind: kind,
             mode: .comparative,
-            headline: "\(worst.display) is the bag you finish least.",
+            headline: "\(worst.display) is the purpose you finish least.",
             detail: "Finished on \(worst.subject.successes) of \(worst.subject.trials) landed \(agreeing(worst.subject.trials, "flight")). Everything else: \(worst.rest.successes) of \(worst.rest.trials). Pack it first next time, on a short flight.",
             evidence: [
                 FindingEvidence(label: worst.display, interval: worst.subject, isSubject: true),

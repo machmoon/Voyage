@@ -147,7 +147,7 @@ final class SettingsStore {
 
     /// The seat the traveler departed in last time, and the aircraft it was
     /// on. Written at departure, read as the seat map's default when the
-    /// aircraft matches, the way `CheckBagView` prefills recent bags. Nil
+    /// aircraft matches, the way the boarding pass offers recent purposes. Nil
     /// until the first departure.
     var lastSeat: String? {
         didSet { defaults.set(lastSeat, forKey: "lastSeat") }

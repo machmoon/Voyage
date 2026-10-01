@@ -81,9 +81,15 @@ final class LogbookEntry {
     var declarations: [String] = []
 
     /// One 3-letter bag tag code per intention ("OCP"), parallel to
-    /// `intentions`. Empty on rows written before tags carried codes; the
-    /// default keeps SwiftData's lightweight migration working.
+    /// `intentions`. Written only by builds that had bag tags (retired
+    /// 2026-09-30); kept so older stores still open. Nothing writes it now.
     var tagCodes: [String] = []
+
+    /// Parallel to `intentions`: true where an unfinished purpose was let go
+    /// at landing rather than brought along to the next flight. Empty on rows
+    /// written before the choice existed; the default keeps SwiftData's
+    /// lightweight migration working.
+    var intentionsDropped: [Bool] = []
 
     /// The rating this landing completed, if any.
     var endorsement: PilotRating? {
@@ -231,8 +237,8 @@ enum FlyerTier: String, CaseIterable, Identifiable, Comparable {
         switch self {
         case .member: return "Economy cabin"
         case .silver: return "First-class seats"
-        case .gold: return "Sunset scenes & priority bag tags"
-        case .platinum: return "Aurora, livery tags & first-class chime"
+        case .gold: return "Sunset scenes & priority passes"
+        case .platinum: return "Aurora, livery passes & first-class chime"
         }
     }
 }

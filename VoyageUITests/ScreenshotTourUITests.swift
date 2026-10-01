@@ -128,10 +128,6 @@ final class ScreenshotTourUITests: XCTestCase {
         require(takeSeat, "the Take seat button once a seat is selected", timeout: 6)
         takeSeat.tap()
 
-        let skipBags = app.buttons["Skip for now"]
-        require(skipBags, "the bag-check skip action", timeout: 10)
-        skipBags.tap()
-
         require(app.otherElements["boarding-pass-stub"], "the boarding pass stub", timeout: 15)
         // The button reads "Tear & board"; its accessibility label is
         // "Tear and board" (BoardingPassView.swift:89). Match the label.
@@ -226,26 +222,14 @@ final class ScreenshotTourUITests: XCTestCase {
         require(takeSeat, "the Take seat button once a seat is selected", timeout: 20)
         takeSeat.tap()
 
-        // Check one bag so baggage claim has something to claim at arrival.
-        let bagField = app.textFields.firstMatch
-        require(bagField, "the first intention field on bag check", timeout: 10)
-        bagField.tap()
-        bagField.typeText("Finish the problem set")
-        capture(app, "qa-20-check-bag")
-
-        let board = app.buttons
-            .matching(NSPredicate(format: "label BEGINSWITH %@", "Check"))
-            .firstMatch
-        if board.waitForExistence(timeout: 3) {
-            board.tap()
-        } else {
-            let skipBags = app.buttons["Skip for now"]
-            require(skipBags, "a way off the bag-check screen", timeout: 6)
-            skipBags.tap()
-        }
-
+        // Write a purpose on the pass so arrival has something to answer.
         let tear = app.buttons["Tear and board"]
         require(tear, "Tear and board", timeout: 25)
+        let purpose = app.textFields["boarding-pass-purpose"]
+        require(purpose, "the purpose of trip line on the pass", timeout: 10)
+        purpose.tap()
+        purpose.typeText("Finish the problem set\n")
+        capture(app, "qa-20-purpose-on-pass")
         tear.tap()
 
         // A 60s demo leg plus the boarding beats. Generous, because a loaded
@@ -256,24 +240,12 @@ final class ScreenshotTourUITests: XCTestCase {
         settle(2)
         capture(app, "qa-21-arrival-welcome")
 
-        let toBaggage = app.buttons["Head to baggage claim"]
-        require(toBaggage, "the baggage claim action (a bag was checked)", timeout: 10)
-        toBaggage.tap()
-
-        require(app.staticTexts["Baggage claim"], "the baggage claim screen", timeout: 10)
+        // Answer the purpose so the entry records a completed intention.
+        let done = app.buttons["purpose-done"]
+        require(done, "the purpose card's Done button", timeout: 10)
+        done.tap()
         settle(1)
-        capture(app, "qa-22-baggage-claim")
-
-        // Claim the bag so the entry records a completed intention: one tap.
-        let bagCard = app.descendants(matching: .any)["claim-tag-0"]
-        require(bagCard, "the checked bag on the carousel", timeout: 6)
-        bagCard.tap()
-        settle(1)
-        capture(app, "qa-23-baggage-claimed")
-
-        let toPassport = app.buttons["Continue to passport control"]
-        require(toPassport, "the passport control action", timeout: 6)
-        toPassport.tap()
+        capture(app, "qa-22-purpose-done")
 
         // Customs: the retrieval check is optional.
         let nothing = app.buttons["Nothing to declare"]
@@ -455,10 +427,6 @@ final class ScreenshotTourUITests: XCTestCase {
             .firstMatch
         require(takeSeat, "the Take seat button once a seat is selected", timeout: 20)
         takeSeat.tap()
-
-        let skipBags = app.buttons["Skip for now"]
-        require(skipBags, "the bag-check skip action", timeout: 20)
-        skipBags.tap()
 
         let tear = app.buttons["Tear and board"]
         require(tear, "Tear and board once the pass finishes printing", timeout: 30)

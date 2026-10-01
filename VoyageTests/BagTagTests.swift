@@ -164,68 +164,22 @@ final class BagTagTests: XCTestCase {
     }
 }
 
-final class TaskBagTagTests: XCTestCase {
-    func testCodesFromTheSpecExamples() {
-        XCTAssertEqual(TaskCode.make(from: "Organic chem problem set"), "OCP")
-        XCTAssertEqual(TaskCode.make(from: "Essay"), "ESS")
-        XCTAssertEqual(TaskCode.make(from: "Read ch 4"), "RCH")
-        XCTAssertEqual(TaskCode.make(from: "The history of art"), "HAR")
-        XCTAssertEqual(TaskCode.make(from: "Écrire l'essai"), "ELE")
-        XCTAssertEqual(TaskCode.make(from: "   "), "XXX")
-    }
-
-    func testCodesAreThreeUppercaseASCIILetters() {
-        for title in ["math", "a", "Go", "Lab report 3", "🧪 chem", "Ü"] {
-            let code = TaskCode.make(from: title)
-            XCTAssertEqual(code.count, 3, title)
-            XCTAssertTrue(code.allSatisfy { $0.isASCII && $0.isUppercase }, "\(title) → \(code)")
-        }
-    }
-
-    func testCollisionsBumpTheLastLetter() {
-        XCTAssertEqual(TaskCode.make(from: "Organic chem problem set", avoiding: ["OCP"]), "OCQ")
-        XCTAssertEqual(TaskCode.make(from: "Organic chem problem set", avoiding: ["OCP", "OCQ"]), "OCR")
-        XCTAssertEqual(TaskCode.make(from: "Zebra yak zoo"), "ZYZ")
-        XCTAssertEqual(TaskCode.make(from: "Zebra yak zoo", avoiding: ["ZYZ"]), "ZYA")
-    }
-
-    func testCatalogAirportCodesAreAvoided() {
-        XCTAssertEqual(TaskCode.make(from: "Lecture about X-rays"), "LAY")
-        XCTAssertEqual(TaskCode.make(from: "Big old syllabus"), "BOT")
-        for airport in Airport.all {
-            XCTAssertNotEqual(TaskCode.codes(for: [airport.code]).first, airport.code)
-        }
-    }
-
-    func testCodesForABookingAreDistinctAndKeepEdits() {
-        let codes = TaskCode.codes(for: ["Read ch 4", "Read ch 5", "Essay"])
-        XCTAssertEqual(codes, ["RCH", "RCI", "ESS"])
-        XCTAssertEqual(TaskCode.codes(for: ["Read ch 4", "Essay"], existing: ["mth", ""]), ["MTH", "ESS"])
-    }
-
-    func testTagsCarryConsecutiveSerialsAndSpokenLabels() {
-        let base = BagTagLicensePlate(leadingDigit: 0, issuerCode: 868, serial: 482_913)
-        let tags = TaskBagTag.tags(titles: ["Organic chem problem set", "Essay"], codes: [], base: base)
-        XCTAssertEqual(tags.map(\.plate.serial), [482_913, 482_914])
-        XCTAssertEqual(tags[0].bagLine, "BAG 1 OF 2")
-        XCTAssertEqual(tags[0].accessibilityLabel, "Bag 1 of 2, O C P, Organic chem problem set")
-    }
-
+final class PassPurposeTests: XCTestCase {
     func testStandardStockIsFreeAndTheRestAreVoyageFirst() {
-        XCTAssertFalse(BagTagStyle.standard.requiresVoyageFirst)
-        XCTAssertTrue(BagTagStyle.priority.requiresVoyageFirst)
-        XCTAssertTrue(BagTagStyle.livery.requiresVoyageFirst)
+        XCTAssertFalse(PassStyle.standard.requiresVoyageFirst)
+        XCTAssertTrue(PassStyle.priority.requiresVoyageFirst)
+        XCTAssertTrue(PassStyle.livery.requiresVoyageFirst)
     }
 
     /// Every paid stock is also earned free by flying: priority at Gold,
     /// livery at Platinum. Voyage First only opens them early.
     func testPaidStockIsEarnedByStatus() {
-        XCTAssertTrue(BagTagStyle.standard.isUnlocked(tier: .member, isFirstMember: false))
-        XCTAssertFalse(BagTagStyle.priority.isUnlocked(tier: .silver, isFirstMember: false))
-        XCTAssertTrue(BagTagStyle.priority.isUnlocked(tier: .gold, isFirstMember: false))
-        XCTAssertFalse(BagTagStyle.livery.isUnlocked(tier: .gold, isFirstMember: false))
-        XCTAssertTrue(BagTagStyle.livery.isUnlocked(tier: .platinum, isFirstMember: false))
-        for style in BagTagStyle.allCases {
+        XCTAssertTrue(PassStyle.standard.isUnlocked(tier: .member, isFirstMember: false))
+        XCTAssertFalse(PassStyle.priority.isUnlocked(tier: .silver, isFirstMember: false))
+        XCTAssertTrue(PassStyle.priority.isUnlocked(tier: .gold, isFirstMember: false))
+        XCTAssertFalse(PassStyle.livery.isUnlocked(tier: .gold, isFirstMember: false))
+        XCTAssertTrue(PassStyle.livery.isUnlocked(tier: .platinum, isFirstMember: false))
+        for style in PassStyle.allCases {
             XCTAssertTrue(style.isUnlocked(tier: .member, isFirstMember: true))
         }
     }
@@ -242,6 +196,32 @@ final class TaskBagTagTests: XCTestCase {
             entry(["Essay", "Lab report"], [true, false]),
             entry(["Essay", "Flashcards"], [false, false]),
         ]
-        XCTAssertEqual(MishandledBags.pending(in: entries), ["Lab report", "Flashcards"])
+        XCTAssertEqual(CarriedPurposes.pending(in: entries), ["Lab report", "Flashcards"])
+    }
+
+    /// "Let it go" at landing ends a purpose; "Bring it next trip" keeps it.
+    @MainActor
+    func testDroppedPurposesDoNotComeBack() {
+        let carried = LogbookEntry(originCode: "SFO", destinationCode: "LAX", flightNumber: "VOY 1", seat: "C1",
+                                   miles: 1, focusSeconds: 1, completed: true,
+                                   intentions: ["Lab report"], intentionsCompleted: [false])
+        let dropped = LogbookEntry(originCode: "SFO", destinationCode: "LAX", flightNumber: "VOY 2", seat: "C1",
+                                   miles: 1, focusSeconds: 1, completed: true,
+                                   intentions: ["Flashcards"], intentionsCompleted: [false])
+        dropped.intentionsDropped = [true]
+        XCTAssertEqual(CarriedPurposes.pending(in: [dropped, carried]), ["Lab report"])
+        // A later flight that finishes it takes it off the list too.
+        let finished = LogbookEntry(originCode: "SFO", destinationCode: "LAX", flightNumber: "VOY 3", seat: "C1",
+                                    miles: 1, focusSeconds: 1, completed: true,
+                                    intentions: ["lab report"], intentionsCompleted: [true])
+        XCTAssertEqual(CarriedPurposes.pending(in: [finished, dropped, carried]), [])
+    }
+
+    func testReceiptPurposeLine() {
+        XCTAssertNil(FlightReceiptView.makePurposeLine(intentions: [], completed: []))
+        XCTAssertEqual(FlightReceiptView.makePurposeLine(intentions: ["Essay"], completed: [true]), "Essay ✓")
+        XCTAssertEqual(FlightReceiptView.makePurposeLine(intentions: ["Essay"], completed: [false]), "Essay · not yet")
+        XCTAssertEqual(FlightReceiptView.makePurposeLine(intentions: ["Essay", "Lab"], completed: [true, false]),
+                       "1/2 bags claimed at arrival")
     }
 }

@@ -135,8 +135,8 @@ struct UpgradeOfferSheet: View {
                 .foregroundStyle(Theme.textPrimary)
             VStack(alignment: .leading, spacing: 6) {
                 perk("carseat.right.fill", "Every First seat now, free at Silver")
-                perk("tag.fill", "Priority tags now, free at Gold")
-                perk("paintpalette.fill", "Livery tags now, free at Platinum")
+                perk("tag.fill", "Priority passes now, free at Gold")
+                perk("paintpalette.fill", "Livery passes now, free at Platinum")
                 perk("heart.fill", "Keeps Voyage free and open source")
             }
             HStack(spacing: 10) {

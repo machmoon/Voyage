@@ -50,7 +50,7 @@ final class LogbookExportTests: XCTestCase {
         let text = LogbookExport.markdown(entries: [entry(daysAgo: 3)], now: now, calendar: calendar)
         XCTAssertTrue(text.contains("- Flights: 1, landed 1 (100%)"))
         XCTAssertTrue(text.contains("- Departures by band: not recorded"))
-        XCTAssertTrue(text.contains("- Bags checked: 2, claimed: 1 (50%)"))
+        XCTAssertTrue(text.contains("- Purposes set: 2, done: 1 (50%)"))
         XCTAssertTrue(text.contains("2026-09-11, BOS-JFK, , 90, landed, 1/2, C10"))
     }
 

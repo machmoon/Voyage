@@ -67,14 +67,6 @@ final class DemoTourUITests: XCTestCase {
         XCTAssertTrue(takeSeat.waitForExistence(timeout: 3))
         takeSeat.tap()
 
-        // Skip bags — keep boarding moving
-        // CheckBagView.swift:84. The tour packs nothing, so the button reads
-        // "Skip for now"; it becomes "Check N bags" only once something is in.
-        let continueWithoutBags = app.buttons["Skip for now"]
-        XCTAssertTrue(continueWithoutBags.waitForExistence(timeout: 4))
-        pause(0.5)
-        continueWithoutBags.tap()
-
         let stub = app.otherElements["boarding-pass-stub"]
         XCTAssertTrue(stub.waitForExistence(timeout: 10))
         pause(2.0) // printer finish + linger on pass

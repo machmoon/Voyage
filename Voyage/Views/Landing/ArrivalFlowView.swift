@@ -5,14 +5,15 @@ import StoreKit
 import MapKit
 import SwiftData
 
-/// The peak-end payoff after touchdown: a typographic welcome, baggage
-/// claim for your checked intentions, and a passport stamp into the logbook.
+/// The peak-end payoff after touchdown: a typographic welcome that asks
+/// whether the purpose of the trip got done, the customs recall, and a
+/// passport stamp into the logbook.
 struct ArrivalFlowView: View {
     @Bindable var session: FlightSession
     let onDone: () -> Void
 
     private enum Step {
-        case welcome, baggage, declaration, stamp
+        case welcome, declaration, stamp
     }
 
     @State private var step: Step = {
@@ -30,15 +31,9 @@ struct ArrivalFlowView: View {
             switch step {
             case .welcome:
                 WelcomeView(session: session) {
-                    advance(session.intentions.isEmpty ? .declaration : .baggage)
-                }
-                .transition(.opacity)
-            case .baggage:
-                BaggageClaimView(session: session) {
                     advance(.declaration)
                 }
-                .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity),
-                                        removal: .opacity))
+                .transition(.opacity)
             case .declaration:
                 CustomsDeclarationView(session: session) {
                     advance(.stamp)
@@ -68,6 +63,12 @@ private struct WelcomeView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var revealed = false
+    /// The purpose card's answer: nil until tapped. "Not yet" first asks
+    /// whether to bring it along or let it go.
+    @State private var purposeAnswer: PurposeAnswer?
+    @State private var askingCarry = false
+
+    enum PurposeAnswer { case done, carried, dropped }
 
     private var city: Airport { session.itinerary.destination }
 
@@ -157,17 +158,23 @@ private struct WelcomeView: View {
 
                 Spacer()
 
-                Button(action: onContinue) {
-                    Text(session.intentions.isEmpty ? "Continue to passport control" : "Head to baggage claim")
-                        .font(.headline)
-                        .foregroundStyle(Theme.textPrimary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(Theme.accent, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .strokeBorder(.white.opacity(0.14), lineWidth: 1)
-                        )
+                Group {
+                    if let purpose = session.intentions.first {
+                        purposeCard(purpose)
+                    } else {
+                        Button(action: onContinue) {
+                            Text("Continue to passport control")
+                                .font(.headline)
+                                .foregroundStyle(Theme.textPrimary)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(Theme.accent, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                        .strokeBorder(.white.opacity(0.14), lineWidth: 1)
+                                )
+                        }
+                    }
                 }
                 .padding(.horizontal, 24)
                 .padding(.bottom, 30)
@@ -180,6 +187,116 @@ private struct WelcomeView: View {
                 try? await Task.sleep(for: .milliseconds(400))
                 Haptics.success()
             }
+        }
+    }
+
+    /// PURPOSE OF TRIP, read back from the pass, answered with one tap.
+    /// Done is recorded and the stamp reprints it with a check; Not yet asks
+    /// whether to bring it along or let it go, the way Sunsama's shutdown
+    /// review asks of each unfinished task and Pomatez offers Done / Skip /
+    /// Delete (`app/renderer/src/routes/Timer/PriorityCard.tsx`, MIT). A
+    /// physically recorded check is what makes monitoring work (Harkin et al.
+    /// 2016, doi:10.1037/bul0000025).
+    private func purposeCard(_ purpose: String) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("PURPOSE OF TRIP")
+                    .font(.system(size: 9, weight: .bold))
+                    .kerning(1.2)
+                    .foregroundStyle(.white.opacity(0.6))
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    if purposeAnswer == .done {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(Theme.positive)
+                            .transition(.scale.combined(with: .opacity))
+                    }
+                    Text(purpose)
+                        .font(.custom("Noteworthy-Bold", size: 20, relativeTo: .title3))
+                        .foregroundStyle(.white)
+                        .strikethrough(purposeAnswer == .dropped, color: .white.opacity(0.6))
+                        .lineLimit(3)
+                }
+            }
+            .accessibilityElement(children: .combine)
+
+            if purposeAnswer != nil {
+                Text(purposeAnswerText)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.white.opacity(0.75))
+                    .transition(.opacity)
+            } else if askingCarry {
+                Text("Not done yet. Bring it on your next flight?")
+                    .font(.footnote)
+                    .foregroundStyle(.white.opacity(0.7))
+                HStack(spacing: 10) {
+                    answerButton("Bring it next trip", filled: true, id: "purpose-carry") { answer(.carried) }
+                    answerButton("Let it go", filled: false, id: "purpose-drop") { answer(.dropped) }
+                }
+            } else {
+                Text("Did it get done?")
+                    .font(.footnote)
+                    .foregroundStyle(.white.opacity(0.7))
+                HStack(spacing: 10) {
+                    answerButton("Done", filled: true, id: "purpose-done") { answer(.done) }
+                    answerButton("Not yet", filled: false, id: "purpose-not-yet") {
+                        Haptics.tap()
+                        withAnimation(.snappy) { askingCarry = true }
+                    }
+                }
+            }
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.surfaceElevated.opacity(0.9), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(.white.opacity(0.1), lineWidth: 1)
+        )
+        .animation(.snappy, value: purposeAnswer)
+        .animation(.snappy, value: askingCarry)
+    }
+
+    private var purposeAnswerText: String {
+        switch purposeAnswer {
+        case .done: return "Done. On to passport control."
+        case .carried: return "It rides your next flight."
+        case .dropped: return "Let go. On to passport control."
+        case nil: return ""
+        }
+    }
+
+    private func answerButton(_ title: String, filled: Bool, id: String,
+                              action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.headline)
+                .foregroundStyle(filled ? Theme.textPrimary : .white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(filled ? Theme.accent : .white.opacity(0.1),
+                            in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+        .accessibilityIdentifier(id)
+        .disabled(purposeAnswer != nil)
+    }
+
+    private func answer(_ value: PurposeAnswer) {
+        guard purposeAnswer == nil else { return }
+        if let entry = session.logEntry {
+            let count = session.intentions.count
+            entry.intentionsCompleted = Array(repeating: value == .done, count: count)
+            entry.intentionsDropped = Array(repeating: value == .dropped, count: count)
+        }
+        if value == .done {
+            Haptics.claim()
+            CabinAudioEngine.shared.playScanBeep()
+        } else {
+            Haptics.tap()
+        }
+        purposeAnswer = value
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(reduceMotion ? 300 : 900))
+            onContinue()
         }
     }
 
@@ -217,153 +334,6 @@ private struct WelcomeView: View {
                 .foregroundStyle(.white)
         }
         .frame(maxWidth: .infinity)
-    }
-}
-
-// MARK: - Baggage claim
-
-/// Your checked bags come round on Carousel 3, one tag per task. Tap a tag
-/// to claim it: that is the task done. A bag left on the belt is mishandled
-/// and rides your next flight (it comes back first among the recent bags at
-/// check-in).
-private struct BaggageClaimView: View {
-    @Bindable var session: FlightSession
-    let onContinue: () -> Void
-
-    @State private var claimed: Set<Int> = []
-    @State private var arrived = false
-
-    private var claimPlate: BagTagLicensePlate {
-        BagTagLicensePlate.make(flightNumber: session.itinerary.legs[0].flightNumber,
-                                seat: session.seat, bookedAt: session.bookedAt)
-    }
-
-    private var tags: [TaskBagTag] {
-        TaskBagTag.tags(titles: session.intentions, codes: session.tagCodes,
-                        base: claimPlate, style: session.bagTagStyle)
-    }
-
-    private var carrier: Carrier {
-        Carrier(rawValue: String(session.itinerary.legs[0].flightNumber.prefix { !$0.isWhitespace })) ?? .voyageAir
-    }
-
-    private var tagContent: BagTagContent {
-        BagTagContent(itinerary: session.itinerary, seat: session.seat, bookedAt: session.bookedAt)
-    }
-
-    var body: some View {
-        ZStack {
-            Theme.surfaceDark.ignoresSafeArea()
-
-            VStack(spacing: 0) {
-                ScrollView {
-                    VStack(spacing: 6) {
-                        Image(systemName: "arrow.triangle.2.circlepath")
-                            .font(.system(size: 28))
-                            .foregroundStyle(Theme.accent)
-                            .rotationEffect(.degrees(arrived ? 360 : 0))
-                            .animation(.easeInOut(duration: 1.2), value: arrived)
-                        Text("Baggage claim")
-                            .font(.title2.bold())
-                            .foregroundStyle(.white)
-                        Text("Carousel 3 · tap what you finished")
-                            .font(.subheadline)
-                            .foregroundStyle(.white.opacity(0.55))
-                        // Recomputed, not stored: the plate is a pure
-                        // function of the booking.
-                        Text("Claim check \(claimPlate.printed)")
-                            .font(.caption.weight(.semibold).monospaced())
-                            .foregroundStyle(.white.opacity(0.45))
-                            .accessibilityLabel("Claim check \(claimPlate.spoken)")
-                    }
-                    .padding(.top, 40)
-
-                    // The same long tags you checked, side by side off the
-                    // belt, one per task.
-                    HStack(alignment: .top, spacing: 10) {
-                        ForEach(tags) { tag in
-                            ClaimableTag(tag: tag, carrier: carrier, content: tagContent,
-                                         claimed: claimed.contains(tag.index)) {
-                                withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
-                                    _ = claimed.insert(tag.index)
-                                }
-                            }
-                            // Round the belt: each bag slides in from the side.
-                            .offset(x: arrived ? 0 : 420)
-                            .animation(.spring(response: 0.7, dampingFraction: 0.8)
-                                .delay(0.25 + 0.35 * Double(tag.index)), value: arrived)
-                        }
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.horizontal, 16)
-                    .padding(.top, 24)
-                    Text(claimed.count == tags.count
-                         ? "All bags claimed."
-                         : "Unclaimed bags are mishandled: they go on your next flight.")
-                        .font(.caption2)
-                        .foregroundStyle(.white.opacity(0.45))
-                        .padding(.top, 10)
-                        .padding(.bottom, 20)
-                }
-
-                Button(action: finish) {
-                    Text("Continue to passport control")
-                        .font(.headline)
-                        .foregroundStyle(.black)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(.white, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 30)
-            }
-        }
-        .onAppear { arrived = true }
-    }
-
-    private func finish() {
-        if let entry = session.logEntry {
-            entry.intentionsCompleted = session.intentions.indices.map { claimed.contains($0) }
-            entry.tagCodes = tags.map(\.code)
-        }
-        onContinue()
-    }
-}
-
-/// A task tag you claim with a tap: a claim haptic and the scan beep, then
-/// a CLAIMED stamp. No stub to tear (Pat, 2026-09-30: "no need to tear").
-private struct ClaimableTag: View {
-    let tag: TaskBagTag
-    let carrier: Carrier
-    var content: BagTagContent?
-    let claimed: Bool
-    let onClaim: () -> Void
-
-    var body: some View {
-        VStack(spacing: 8) {
-            TaskBagTagView(tag: tag, carrier: carrier, content: content, showsStub: false, claimed: claimed,
-                           width: Self.width)
-            Text(claimed ? "Claimed" : "Tap to claim")
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(.white.opacity(claimed ? 0.35 : 0.6))
-        }
-        .frame(width: Self.width)
-        .scaleEffect(claimed ? 0.97 : 1)
-        .contentShape(Rectangle())
-        .onTapGesture { claim() }
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isButton)
-        .accessibilityIdentifier("claim-tag-\(tag.index)")
-        .accessibilityAction(named: Text("Claim bag")) { claim() }
-    }
-
-    static let width: CGFloat = 104
-
-    private func claim() {
-        guard !claimed else { return }
-        Haptics.claim()
-        CabinAudioEngine.shared.playScanBeep()
-        onClaim()
     }
 }
 
@@ -743,7 +713,7 @@ private struct StampView: View {
     @Query private var loggedEntries: [LogbookEntry]
     @State private var tierUp: MilesProgress?
     /// The rating this landing completed, read back off the saved entry
-    /// after baggage claim. Printed under the cachet on its own beat.
+    /// after the purpose was answered. Printed under the cachet on its own beat.
     @State private var endorsement: PilotRating?
     @State private var endorsed = false
     @State private var shareCaption = ""
@@ -923,7 +893,7 @@ private struct StampView: View {
     }
 
     /// Whether the landing that was just saved raised the rating. Reads the
-    /// logbook as stored, after baggage claim, rather than the session's own
+    /// logbook as stored, after the purpose was answered, rather than the session's own
     /// intentions: the entry is the fact, and an entry the session failed to
     /// save cannot earn anything. Writes the endorsement onto that entry.
     private func recordEndorsementIfEarned() -> PilotRating? {
@@ -1046,7 +1016,9 @@ private struct StampView: View {
                     destination: city,
                     flightNumber: session.itinerary.primaryFlightNumber,
                     seat: session.seat,
-                    dateText: stampDateText
+                    dateText: stampDateText,
+                    donePurpose: session.logEntry?.intentionsCompleted.first == true
+                        ? session.intentions.first : nil
                 )
                 .rotationEffect(.degrees(3.5))
                 .offset(x: 4, y: 104)
@@ -2024,6 +1996,8 @@ private struct TuckedTicket: View {
     let flightNumber: String
     let seat: String
     let dateText: String
+    /// The purpose of the trip, printed with a check only when it got done.
+    var donePurpose: String? = nil
 
     private let paper = Color(hex: "FBF8F1")
     private let ink = Color(hex: "2A2F3A")
@@ -2051,6 +2025,14 @@ private struct TuckedTicket: View {
                 Text(dateText)
                     .font(.system(size: 6, weight: .semibold, design: .monospaced))
                     .foregroundStyle(ink.opacity(0.55))
+
+                if let donePurpose {
+                    Label(donePurpose, systemImage: "checkmark")
+                        .font(.custom("Noteworthy-Bold", size: 8))
+                        .foregroundStyle(Theme.passportInk)
+                        .lineLimit(1)
+                        .accessibilityLabel("Done: \(donePurpose)")
+                }
             }
 
             Spacer(minLength: 6)

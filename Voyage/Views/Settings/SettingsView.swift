@@ -231,7 +231,7 @@ struct SettingsView: View {
                     }
                     .accessibilityIdentifier("settings-flight-manual")
                 } footer: {
-                    Text("Why Voyage works like an airline: the studies behind the boarding pass, bag tags, miles and streaks.")
+                    Text("Why Voyage works like an airline: the studies behind the boarding pass, its purpose line, miles and streaks.")
                 }
 
                 Section {

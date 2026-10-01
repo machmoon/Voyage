@@ -22,7 +22,8 @@ enum LogbookExport {
     You are reading a student's focus-session log from Voyage, an app that
     frames study sessions as flights. A flight "lands" when the session runs
     to its planned end; it is "stopped early" when the app was left or the
-    session was ended early. "Bags" are tasks the student set out to finish. Use only
+    session was ended early. A "purpose" is the task the student set out to finish
+    on a flight (older flights could carry up to three, called bags). Use only
     the numbers below. Do not invent data, do not diagnose, do not praise.
     Give three plain observations and one concrete suggestion for next week.
     Then name one study method that fits this log, such as active recall,
@@ -127,7 +128,7 @@ enum LogbookExport {
 
         let bagsTotal = recent.reduce(0) { $0 + $1.bagsTotal }
         let bagsClaimed = recent.reduce(0) { $0 + $1.bagsClaimed }
-        lines.append("- Bags checked: \(bagsTotal), claimed: \(bagsClaimed) (\(percent(bagsClaimed, of: bagsTotal)))")
+        lines.append("- Purposes set: \(bagsTotal), done: \(bagsClaimed) (\(percent(bagsClaimed, of: bagsTotal)))")
 
         let perWeek = Double(recent.count) / (Double(summaryWindowDays) / 7)
         let gap = longestGapDays(recent.map(\.endedAt), calendar: calendar)
@@ -158,7 +159,7 @@ enum LogbookExport {
 
     static func recentFlights(rows: [Row], calendar: Calendar) -> String {
         var lines = ["## Recent flights"]
-        lines.append("date, route, planned min, completed min, outcome, bags claimed/total, seat")
+        lines.append("date, route, planned min, completed min, outcome, purposes done/total, seat")
         let recent = rows.sorted { $0.endedAt > $1.endedAt }.prefix(recentFlightLimit)
         for row in recent {
             let planned = row.scheduledSeconds.map { String(Int(($0 / 60).rounded())) } ?? ""

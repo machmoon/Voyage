@@ -66,7 +66,7 @@ struct OnDeviceCaption: View {
     }
 }
 
-/// Takes the place of the bag tags under the clock once a plan exists: the
+/// Takes the place of the purpose line under the clock once a plan exists: the
 /// step you should be on now and how long it has left.
 struct FlightPlanStrip: View {
     let plan: FlightPlan
@@ -138,7 +138,7 @@ struct FlightPlanSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    Text("Your bags, split into steps that fit the \(TimeInterval(plan.totalMinutes * 60).shortDurationText) of cruise to \(destinationCity). Minutes count from the top of climb.")
+                    Text("Your purpose, split into steps that fit the \(TimeInterval(plan.totalMinutes * 60).shortDurationText) of cruise to \(destinationCity). Minutes count from the top of climb.")
                         .font(.subheadline)
                         .foregroundStyle(.white.opacity(0.65))
                         .fixedSize(horizontal: false, vertical: true)
@@ -154,7 +154,7 @@ struct FlightPlanSheet: View {
                     .background(Theme.surfaceElevated, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
 
                     OnDeviceCaption()
-                    Text("Your bags stay on this iPhone. Turn this off in Settings under Apple Intelligence.")
+                    Text("Your purpose stays on this iPhone. Turn this off in Settings under Apple Intelligence.")
                         .font(.caption)
                         .foregroundStyle(.white.opacity(0.4))
                         .fixedSize(horizontal: false, vertical: true)

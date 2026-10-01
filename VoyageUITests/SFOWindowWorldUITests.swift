@@ -49,14 +49,6 @@ final class SFOWindowWorldUITests: XCTestCase {
         XCTAssertTrue(takeSeat.waitForExistence(timeout: 3))
         takeSeat.tap()
 
-        // CheckBagView.swift:84: "Skip for now" until something is packed,
-        // "Check N bags" after. This test packs nothing.
-        let skip = app.buttons["Skip for now"]
-        let packedSkip = app.buttons.matching(
-            NSPredicate(format: "label BEGINSWITH %@", "Check ")).firstMatch
-        if skip.waitForExistence(timeout: 4) { skip.tap() }
-        else { XCTAssertTrue(packedSkip.waitForExistence(timeout: 2)); packedSkip.tap() }
-
         let stub = app.otherElements["boarding-pass-stub"]
         XCTAssertTrue(stub.waitForExistence(timeout: 10))
         Thread.sleep(forTimeInterval: 2)

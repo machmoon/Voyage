@@ -191,12 +191,6 @@ final class E2EWalkthroughUITests: XCTestCase {
             .firstMatch
         require(takeSeat, "the seat CTA at AX-L", timeout: 8)
         takeSeat.tap()
-        settle(1)
-        capture(app, "e2e-ax-05-checkbag")
-
-        let skip = app.buttons["Skip for now"]
-        require(skip, "the bag skip at AX-L", timeout: 10)
-        skip.tap()
 
         let tear = app.buttons["Tear and board"]
         require(tear, "the boarding pass at AX-L", timeout: 25)
@@ -370,9 +364,6 @@ final class E2EWalkthroughUITests: XCTestCase {
             .firstMatch
         require(takeSeat, "the seat CTA", timeout: 8)
         takeSeat.tap()
-        let skip = app.buttons["Skip for now"]
-        require(skip, "the bag skip", timeout: 12)
-        skip.tap()
         let tear = app.buttons["Tear and board"]
         require(tear, "the boarding pass", timeout: 25)
         tear.tap()
@@ -425,9 +416,6 @@ final class E2EWalkthroughUITests: XCTestCase {
             .firstMatch
         require(takeSeat, "the seat CTA", timeout: 8)
         takeSeat.tap()
-        let skip = app.buttons["Skip for now"]
-        require(skip, "the bag skip", timeout: 12)
-        skip.tap()
         let tear = app.buttons["Tear and board"]
         require(tear, "the boarding pass", timeout: 25)
         capture(app, "\(prefix)-pass")

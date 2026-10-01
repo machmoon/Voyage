@@ -17,7 +17,7 @@ final class RedesignCaptureUITests: XCTestCase {
     }
 
     @MainActor
-    func testCheckInTags() throws {
+    func testPurposeOnPass() throws {
         let app = XCUIApplication()
         app.launchArguments += baseArguments
         app.launch()
@@ -34,50 +34,32 @@ final class RedesignCaptureUITests: XCTestCase {
         let skip = app.buttons["Skip seat selection"]
         XCTAssertTrue(skip.waitForExistence(timeout: 12))
         skip.tap()
-        let bag1 = app.textFields["Bag 1, e.g. Review chapter 4"]
-        XCTAssertTrue(bag1.waitForExistence(timeout: 15))
-        pause(1)
-        save("redesign-01-checkin-empty")
-        bag1.tap()
-        bag1.typeText("Finish problem set 3\n")
-        pause(0.5)
-        save("redesign-02-checkin-printing")
-        pause(1.5)
-        let bag2 = app.textFields["Bag 2, e.g. Review chapter 4"]
-        bag2.tap()
-        bag2.typeText("Read chapter 7\n")
-        pause(1)
-        let bag3 = app.textFields["Bag 3, e.g. Review chapter 4"]
-        bag3.tap()
-        bag3.typeText("Outline the history essay\n")
-        pause(2.5)
-        save("redesign-03-checkin-three")
-        let check = app.buttons["Check 3 bags"]
-        XCTAssertTrue(check.waitForExistence(timeout: 4))
-        check.tap()
-        pause(0.3)
-        save("redesign-04-checkin-check")
+        let purpose = app.textFields["boarding-pass-purpose"]
+        XCTAssertTrue(purpose.waitForExistence(timeout: 15), "The seat goes straight to the pass")
         XCTAssertTrue(app.buttons["Tear and board"].waitForExistence(timeout: 15))
+        pause(1)
+        save("redesign-01-pass-empty")
+        purpose.tap()
+        purpose.typeText("Finish problem set 3\n")
+        pause(1)
+        save("redesign-02-pass-purpose")
+        XCTAssertEqual(purpose.value as? String, "Finish problem set 3")
     }
 
     @MainActor
-    func testArrivalClaimAndCustoms() throws {
+    func testArrivalPurposeAndCustoms() throws {
         let app = XCUIApplication()
         app.launchArguments += baseArguments + ["-VoyageDebugArrival"]
         app.launch()
-        let toClaim = app.buttons["Head to baggage claim"]
-        XCTAssertTrue(toClaim.waitForExistence(timeout: 20))
+        let done = app.buttons["purpose-done"]
+        XCTAssertTrue(done.waitForExistence(timeout: 20), "Arrival asks about the purpose")
         pause(2)
         save("redesign-05-welcome")
-        toClaim.tap()
-        let tag0 = app.descendants(matching: .any)["claim-tag-0"]
-        XCTAssertTrue(tag0.waitForExistence(timeout: 4), "The first tap on 'Head to baggage claim' should advance")
-        pause(2)
-        tag0.tap()
-        pause(1.5)
-        XCTAssertTrue(tag0.label.contains("Claimed"), "A tap claims the bag; label was \(tag0.label)")
-        save("redesign-06-claim")
-        app.buttons["Continue to passport control"].tap()
+        app.buttons["purpose-not-yet"].tap()
+        XCTAssertTrue(app.buttons["purpose-carry"].waitForExistence(timeout: 3), "Not yet asks to bring it or let it go")
+        pause(0.5)
+        save("redesign-06-not-yet")
+        app.buttons["purpose-carry"].tap()
         XCTAssertTrue(app.staticTexts["Anything to declare?"].waitForExistence(timeout: 8))
         pause(1.5)
         save("redesign-07-customs-empty")

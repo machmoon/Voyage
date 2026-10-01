@@ -39,7 +39,7 @@ struct InFlightView: View {
     //
     // Apple Intelligence's plan and captain's note for this leg. `nil`, or a
     // briefing with nothing in it, leaves this screen exactly as it is without
-    // Apple Intelligence: the bag tags, and the recorded PA.
+    // Apple Intelligence: the purpose of the trip, and the recorded PA.
     @State private var briefing: FlightBriefing?
     @State private var showsFlightPlan = false
 

@@ -452,7 +452,7 @@ private struct TakeoffPage: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            CardText("Pack up to three bags, the things you want to finish. Then tear the pass. That's takeoff, and the clock starts.")
+            CardText("Write the purpose of the trip on your pass: the thing you want done when you land. Then tear the pass. That's takeoff, and the clock starts.")
             MiniBoardingPass(itinerary: itinerary, torn: $torn)
             Text(torn ? "Cleared for takeoff. Tap the pass to try again."
                       : "Try it. Tap the stub.")

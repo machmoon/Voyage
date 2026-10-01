@@ -124,7 +124,7 @@ enum FlightManual {
         "No dark patterns: the paywall never appears during a flight, at launch or in onboarding, and closing it costs nothing.",
         "Easy cancel: Settings, Voyage First, Manage opens RevenueCat's Customer Center, where you can cancel in two taps.",
         "The trial reminder is real: when a free trial starts, Voyage schedules a notification two days before it ends.",
-        "Every paid perk is also earned free by flying: First seats at Silver, priority tags at Gold, livery tags at Platinum. Voyage First only gets you there now, and never buys miles, tiers, routes or anything you need to study.",
+        "Every paid perk is also earned free by flying: First seats at Silver, priority passes at Gold, livery passes at Platinum. Voyage First only gets you there now, and never buys miles, tiers, routes or anything you need to study.",
     ]
 
     // swiftlint:disable line_length

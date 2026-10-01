@@ -55,7 +55,7 @@ enum StudyCoach {
             case .activeRecall: return "Recall before you reread"
             case .spacedReview: return "Space the same topic out"
             case .interleaving: return "Mix problem types"
-            case .specificBags: return "Pack bags you can finish"
+            case .specificBags: return "Write a purpose you can finish"
             case .phoneAway: return "Put the phone out of reach"
             case .breaks: return "Rest between flights"
             }
@@ -68,9 +68,9 @@ enum StudyCoach {
             case .spacedReview:
                 return "Fly the same topic again one day later, then three days, then a week. Short reviews spread out beat one long session."
             case .interleaving:
-                return "Put problems from different chapters in one bag instead of twenty of the same kind, so you practise choosing the method."
+                return "Mix problems from different chapters instead of twenty of the same kind, so you practise choosing the method."
             case .specificBags:
-                return "\"Problems 1 to 10\" is a bag you can claim. \"Study calculus\" is not. Name the page, the set or the section."
+                return "\"Problems 1 to 10\" is a purpose you can finish. \"Study calculus\" is not. Name the page, the set or the section."
             case .phoneAway:
                 return "Leaving the app ends the flight after 30 seconds. Turn on a Focus and put the phone face down before you tear the pass."
             case .breaks:

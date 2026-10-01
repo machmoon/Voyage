@@ -159,15 +159,6 @@ final class NinetySecondTourUITests: XCTestCase {
             NSPredicate(format: "label BEGINSWITH %@", "Take seat")).firstMatch, timeout: 3)
         pause(0.5)
 
-        // Bags.
-        // CheckBagView.swift:84: "Skip for now" until something is packed,
-        // "Check N bags" after. The tour packs nothing.
-        if !tap(app.buttons["Skip for now"], timeout: 4) {
-            _ = tap(app.buttons.matching(
-                NSPredicate(format: "label BEGINSWITH %@", "Check ")).firstMatch, timeout: 2)
-        }
-        pause(0.8)
-
         // Boarding pass prints, then the stub tear commits to the flight.
         // Designs differ across builds: the current pass pulls the stub down,
         // The cut runs sideways: BoardingPassView.swift:380 discards a

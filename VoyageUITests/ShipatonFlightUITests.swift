@@ -2,8 +2,8 @@ import XCTest
 
 /// The Shipaton video's flight beat, recorded on a CI simulator next to
 /// `ShipatonDemoUITests`: a clean Home, the
-/// if-then plan in the departure board, one bag tag per task and the
-/// check-in tap, the torn pass, a demo-length flight, baggage claim, the
+/// if-then plan in the departure board, the purpose of the trip written on
+/// the pass, the torn pass, a demo-length flight, "Done" at landing, the
 /// customs recall and the stamp, then the Flight Manual.
 ///
 /// Nothing here asserts for its own sake: it keeps going past a missed step
@@ -77,26 +77,14 @@ final class ShipatonFlightUITests: XCTestCase {
         let skip = app.buttons["Skip seat selection"]
         XCTAssertTrue(skip.waitForExistence(timeout: 6), "Expected the seat picker's skip button")
         skip.tap()
-        XCTAssertTrue(app.textFields["Bag 1, e.g. Review chapter 4"].waitForExistence(timeout: 15),
-                      "Expected check-in after the seat picker")
-
-        // One bag tag per task.
-        let bag1 = app.textFields["Bag 1, e.g. Review chapter 4"]
-        if bag1.waitForExistence(timeout: 10) {
-            bag1.tap()
-            bag1.typeText("Finish problem set 3\n")
-            pause(1.5)
-            let bag2 = app.textFields["Bag 2, e.g. Review chapter 4"]
-            if bag2.waitForExistence(timeout: 3) {
-                bag2.tap()
-                bag2.typeText("Read chapter 7\n")
-            }
-            pause(2.5)
-            save("flight-02-bag-tags")
-
-            let check = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Check ")).firstMatch
-            if check.exists, check.isHittable, !app.buttons["Tear and board"].exists { check.tap() }
-        }
+        // The pass, with the purpose of the trip written on it.
+        let purpose = app.textFields["boarding-pass-purpose"]
+        XCTAssertTrue(purpose.waitForExistence(timeout: 15), "Expected the boarding pass after the seat picker")
+        pause(2.5)
+        purpose.tap()
+        purpose.typeText("Finish problem set 3\n")
+        pause(1)
+        save("flight-02-purpose")
 
         // The pass: slide along the tear line.
         let tear = app.buttons["Tear and board"]
@@ -111,29 +99,15 @@ final class ShipatonFlightUITests: XCTestCase {
         }
 
         // The demo leg flies itself; landing brings the arrival flow.
-        let toClaim = app.buttons["Head to baggage claim"]
+        let done = app.buttons["purpose-done"]
         let toPassport = app.buttons["Continue to passport control"]
-        _ = toClaim.waitForExistence(timeout: 300) || toPassport.waitForExistence(timeout: 5)
+        _ = done.waitForExistence(timeout: 300) || toPassport.waitForExistence(timeout: 5)
         pause(3)
         save("flight-04-landed")
-        if toClaim.exists {
-            // The arrival fades in over ~1.25 s; retry a tap that lands on a
-            // screen that has not taken it, and say so in the log if none do.
-            let firstTag = app.descendants(matching: .any)["claim-tag-0"]
-            for attempt in 0..<3 where !firstTag.exists {
-                if attempt == 0 { toClaim.tap() }
-                else { toClaim.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap() }
-                if firstTag.waitForExistence(timeout: 4) { break }
-                print("ARRIVAL-DEBUG attempt \(attempt): claim-tag-0 absent after tapping 'Head to baggage claim'")
-                if attempt == 2 { print("ARRIVAL-DEBUG tree:\n\(app.debugDescription)") }
-            }
-            pause(2.5)
-            // Claim the bag you finished; leave the other one.
-            let claim = app.descendants(matching: .any)["claim-tag-0"]
-            if claim.waitForExistence(timeout: 6) { claim.tap() }
-            pause(3)
-            save("flight-05-baggage-claim")
-            if toPassport.waitForExistence(timeout: 4) { toPassport.tap() }
+        if done.exists {
+            done.tap()
+            pause(1.5)
+            save("flight-05-purpose-done")
         } else if toPassport.exists {
             toPassport.tap()
         }

@@ -336,16 +336,11 @@ final class DemoReelUITests: XCTestCase {
         _ = tap(app.buttons["depart-now"], timeout: 5)
     }
 
-    /// Clears the bag screen. The button is `CheckBagView.swift:84`, which reads
-    /// "Skip for now" until something is packed and "Check N bags" after. The
-    /// reel packs nothing, so the first spelling is the one it meets; the
-    /// second is here so a seeded run does not stall on the screen.
+    /// The bag screen was retired (2026-09-30): the seat goes straight to the
+    /// boarding pass, so there is nothing to clear. Kept as a no-op so the
+    /// reel's call sites read the same.
     @MainActor
-    private func skipBags(in app: XCUIApplication) {
-        if tap(app.buttons["Skip for now"], timeout: 6) { return }
-        _ = tap(app.buttons.matching(
-            NSPredicate(format: "label BEGINSWITH %@", "Check ")).firstMatch, timeout: 3)
-    }
+    private func skipBags(in app: XCUIApplication) {}
 
     @MainActor
     private func pickASeat(in app: XCUIApplication) {

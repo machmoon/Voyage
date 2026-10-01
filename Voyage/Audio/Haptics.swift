@@ -77,7 +77,7 @@ enum Haptics {
         after(0.56) { notify.notificationOccurred(.success) }
     }
 
-    /// A bag tag's claim stub tearing off: shorter than the boarding pass.
+    /// A purpose marked done at landing: shorter than the boarding pass rip.
     static func claim() {
         rigid.impactOccurred(intensity: 0.8)
         after(0.07) { light.impactOccurred(intensity: 0.6) }
