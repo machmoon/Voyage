@@ -41,10 +41,18 @@ struct BoardingFlowView: View {
             // transition let SwiftUI draw the outgoing view behind the step
             // backdrop, so the torn pass, back button and step dots vanished
             // in one frame before the curtain had faded in.
+            //
+            // Flattened before it fades. Without the group, SwiftUI faded each
+            // layer on its own, so where two opaque layers stack — the pass
+            // body's paper and the perforation strip's own paper under it —
+            // the strip composited as 1 - (1 - a)^2 and stayed a bright band
+            // of torn ticket after the rest had dimmed into the curtain
+            // (measured on the tear video: body at 39 %, strip at 61 %).
             VStack(spacing: 0) {
                 topBar
                 content
             }
+            .compositingGroup()
             .opacity(boardingHidden ? 0 : 1)
             .allowsHitTesting(!boardingHidden)
             .accessibilityHidden(boardingHidden)
