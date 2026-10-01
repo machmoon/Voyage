@@ -3,7 +3,7 @@ import XCTest
 /// The Shipaton video's flight beat, recorded on a CI simulator next to
 /// `ShipatonDemoUITests`: a clean Home, the
 /// if-then plan in the departure board, one bag tag per task and the
-/// check-in tap, the torn pass, a demo-length flight, baggage claim, the
+/// check-in tap, the torn pass, a demo-length flight, the bags at arrival, the
 /// customs recall and the stamp, then the Flight Manual.
 ///
 /// Nothing here asserts for its own sake: it keeps going past a missed step
@@ -111,32 +111,18 @@ final class ShipatonFlightUITests: XCTestCase {
         }
 
         // The demo leg flies itself; landing brings the arrival flow.
-        let toClaim = app.buttons["Head to baggage claim"]
         let toPassport = app.buttons["Continue to passport control"]
-        _ = toClaim.waitForExistence(timeout: 300) || toPassport.waitForExistence(timeout: 5)
+        _ = toPassport.waitForExistence(timeout: 300)
         pause(3)
         save("flight-04-landed")
-        if toClaim.exists {
-            // The arrival fades in over ~1.25 s; retry a tap that lands on a
-            // screen that has not taken it, and say so in the log if none do.
-            let firstTag = app.descendants(matching: .any)["claim-tag-0"]
-            for attempt in 0..<3 where !firstTag.exists {
-                if attempt == 0 { toClaim.tap() }
-                else { toClaim.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap() }
-                if firstTag.waitForExistence(timeout: 4) { break }
-                print("ARRIVAL-DEBUG attempt \(attempt): claim-tag-0 absent after tapping 'Head to baggage claim'")
-                if attempt == 2 { print("ARRIVAL-DEBUG tree:\n\(app.debugDescription)") }
-            }
-            pause(2.5)
-            // Claim the bag you finished; leave the other one.
-            let claim = app.descendants(matching: .any)["claim-tag-0"]
-            if claim.waitForExistence(timeout: 6) { claim.tap() }
-            pause(3)
-            save("flight-05-baggage-claim")
-            if toPassport.waitForExistence(timeout: 4) { toPassport.tap() }
-        } else if toPassport.exists {
-            toPassport.tap()
+        // Mark the bag you finished; leave the other one.
+        let firstBag = app.buttons["arrival-bag-0"]
+        if firstBag.waitForExistence(timeout: 6) {
+            firstBag.tap()
+            pause(2)
+            save("flight-05-bags")
         }
+        if toPassport.exists { toPassport.tap() }
 
         // Customs: three quick recalls.
         if app.staticTexts["Anything to declare?"].waitForExistence(timeout: 8) {

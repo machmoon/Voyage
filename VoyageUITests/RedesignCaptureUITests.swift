@@ -65,17 +65,13 @@ final class RedesignCaptureUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments += baseArguments + ["-VoyageDebugArrival"]
         app.launch()
-        let toClaim = app.buttons["Head to baggage claim"]
-        XCTAssertTrue(toClaim.waitForExistence(timeout: 20))
+        let bag0 = app.buttons["arrival-bag-0"]
+        XCTAssertTrue(bag0.waitForExistence(timeout: 20), "The welcome screen lists the checked bags")
         pause(2)
         save("redesign-05-welcome")
-        toClaim.tap()
-        let tag0 = app.descendants(matching: .any)["claim-tag-0"]
-        XCTAssertTrue(tag0.waitForExistence(timeout: 4), "The first tap on 'Head to baggage claim' should advance")
-        pause(2)
-        tag0.tap()
-        pause(1.5)
-        XCTAssertTrue(tag0.label.contains("Claimed"), "A tap claims the bag; label was \(tag0.label)")
+        bag0.tap()
+        pause(1)
+        XCTAssertEqual(bag0.value as? String, "Finished", "A tap marks the bag finished")
         save("redesign-06-claim")
         app.buttons["Continue to passport control"].tap()
         XCTAssertTrue(app.staticTexts["Anything to declare?"].waitForExistence(timeout: 8))

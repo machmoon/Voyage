@@ -5,14 +5,15 @@ import StoreKit
 import MapKit
 import SwiftData
 
-/// The peak-end payoff after touchdown: a typographic welcome, baggage
-/// claim for your checked intentions, and a passport stamp into the logbook.
+/// The peak-end payoff after touchdown: a typographic welcome that asks which
+/// of your checked bags you finished, the customs recall, and a passport
+/// stamp into the logbook.
 struct ArrivalFlowView: View {
     @Bindable var session: FlightSession
     let onDone: () -> Void
 
     private enum Step {
-        case welcome, baggage, declaration, stamp
+        case welcome, declaration, stamp
     }
 
     @State private var step: Step = {
@@ -30,15 +31,9 @@ struct ArrivalFlowView: View {
             switch step {
             case .welcome:
                 WelcomeView(session: session) {
-                    advance(session.intentions.isEmpty ? .declaration : .baggage)
-                }
-                .transition(.opacity)
-            case .baggage:
-                BaggageClaimView(session: session) {
                     advance(.declaration)
                 }
-                .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity),
-                                        removal: .opacity))
+                .transition(.opacity)
             case .declaration:
                 CustomsDeclarationView(session: session) {
                     advance(.stamp)
@@ -68,6 +63,8 @@ private struct WelcomeView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var revealed = false
+    /// Indices of the bags tapped as finished on the welcome card.
+    @State private var finished: Set<Int> = []
 
     private var city: Airport { session.itinerary.destination }
 
@@ -157,8 +154,15 @@ private struct WelcomeView: View {
 
                 Spacer()
 
-                Button(action: onContinue) {
-                    Text(session.intentions.isEmpty ? "Continue to passport control" : "Head to baggage claim")
+                if !session.intentions.isEmpty {
+                    bagsCard
+                        .padding(.horizontal, 24)
+                        .padding(.bottom, 14)
+                        .opacity(revealed ? 1 : 0)
+                }
+
+                Button(action: continueToPassport) {
+                    Text("Continue to passport control")
                         .font(.headline)
                         .foregroundStyle(Theme.textPrimary)
                         .frame(maxWidth: .infinity)
@@ -181,6 +185,83 @@ private struct WelcomeView: View {
                 Haptics.success()
             }
         }
+    }
+
+    /// The bags you checked, on the arrival screen itself: tap the ones you
+    /// finished. Replaced the separate baggage-claim carousel (2026-09-30):
+    /// one glance and a tap, no extra screen. Anything not tapped rides your
+    /// next flight, first among the recent bags at check-in.
+    private var bagsCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("YOUR BAGS")
+                    .font(.system(size: 9, weight: .bold))
+                    .kerning(1.2)
+                    .foregroundStyle(.white.opacity(0.6))
+                Text(session.intentions.count == 1 ? "Tap it if you finished it." : "Tap the ones you finished.")
+                    .font(.footnote)
+                    .foregroundStyle(.white.opacity(0.75))
+            }
+            ForEach(Array(session.intentions.enumerated()), id: \.offset) { index, bag in
+                let done = finished.contains(index)
+                Button {
+                    toggle(index)
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: done ? "checkmark.circle.fill" : "circle")
+                            .font(.title3)
+                            .foregroundStyle(done ? Theme.positive : .white.opacity(0.45))
+                            .contentTransition(.symbolEffect(.replace))
+                        Text(bag)
+                            .font(.custom("Noteworthy-Bold", size: 18, relativeTo: .body))
+                            .foregroundStyle(.white.opacity(done ? 1 : 0.85))
+                            .multilineTextAlignment(.leading)
+                            .lineLimit(2)
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 12)
+                    .background(.white.opacity(done ? 0.12 : 0.06),
+                                in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("arrival-bag-\(index)")
+                .accessibilityLabel(bag)
+                .accessibilityValue(done ? "Finished" : "Not finished")
+                .accessibilityHint("Double tap to mark it \(done ? "not finished" : "finished")")
+            }
+            Text(finished.count == session.intentions.count
+                 ? "Nice. Every bag made it."
+                 : "Anything unfinished rides your next flight.")
+                .font(.caption2)
+                .foregroundStyle(.white.opacity(0.5))
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.surfaceElevated.opacity(0.9), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(.white.opacity(0.1), lineWidth: 1)
+        )
+        .animation(.snappy, value: finished)
+    }
+
+    private func toggle(_ index: Int) {
+        if finished.contains(index) {
+            finished.remove(index)
+            Haptics.tap()
+        } else {
+            finished.insert(index)
+            Haptics.claim()
+            CabinAudioEngine.shared.playScanBeep()
+        }
+    }
+
+    private func continueToPassport() {
+        if let entry = session.logEntry, !session.intentions.isEmpty {
+            entry.intentionsCompleted = session.intentions.indices.map { finished.contains($0) }
+        }
+        onContinue()
     }
 
     private var statsCard: some View {
@@ -217,153 +298,6 @@ private struct WelcomeView: View {
                 .foregroundStyle(.white)
         }
         .frame(maxWidth: .infinity)
-    }
-}
-
-// MARK: - Baggage claim
-
-/// Your checked bags come round on Carousel 3, one tag per task. Tap a tag
-/// to claim it: that is the task done. A bag left on the belt is mishandled
-/// and rides your next flight (it comes back first among the recent bags at
-/// check-in).
-private struct BaggageClaimView: View {
-    @Bindable var session: FlightSession
-    let onContinue: () -> Void
-
-    @State private var claimed: Set<Int> = []
-    @State private var arrived = false
-
-    private var claimPlate: BagTagLicensePlate {
-        BagTagLicensePlate.make(flightNumber: session.itinerary.legs[0].flightNumber,
-                                seat: session.seat, bookedAt: session.bookedAt)
-    }
-
-    private var tags: [TaskBagTag] {
-        TaskBagTag.tags(titles: session.intentions, codes: session.tagCodes,
-                        base: claimPlate, style: session.bagTagStyle)
-    }
-
-    private var carrier: Carrier {
-        Carrier(rawValue: String(session.itinerary.legs[0].flightNumber.prefix { !$0.isWhitespace })) ?? .voyageAir
-    }
-
-    private var tagContent: BagTagContent {
-        BagTagContent(itinerary: session.itinerary, seat: session.seat, bookedAt: session.bookedAt)
-    }
-
-    var body: some View {
-        ZStack {
-            Theme.surfaceDark.ignoresSafeArea()
-
-            VStack(spacing: 0) {
-                ScrollView {
-                    VStack(spacing: 6) {
-                        Image(systemName: "arrow.triangle.2.circlepath")
-                            .font(.system(size: 28))
-                            .foregroundStyle(Theme.accent)
-                            .rotationEffect(.degrees(arrived ? 360 : 0))
-                            .animation(.easeInOut(duration: 1.2), value: arrived)
-                        Text("Baggage claim")
-                            .font(.title2.bold())
-                            .foregroundStyle(.white)
-                        Text("Carousel 3 · tap what you finished")
-                            .font(.subheadline)
-                            .foregroundStyle(.white.opacity(0.55))
-                        // Recomputed, not stored: the plate is a pure
-                        // function of the booking.
-                        Text("Claim check \(claimPlate.printed)")
-                            .font(.caption.weight(.semibold).monospaced())
-                            .foregroundStyle(.white.opacity(0.45))
-                            .accessibilityLabel("Claim check \(claimPlate.spoken)")
-                    }
-                    .padding(.top, 40)
-
-                    // The same long tags you checked, side by side off the
-                    // belt, one per task.
-                    HStack(alignment: .top, spacing: 10) {
-                        ForEach(tags) { tag in
-                            ClaimableTag(tag: tag, carrier: carrier, content: tagContent,
-                                         claimed: claimed.contains(tag.index)) {
-                                withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
-                                    _ = claimed.insert(tag.index)
-                                }
-                            }
-                            // Round the belt: each bag slides in from the side.
-                            .offset(x: arrived ? 0 : 420)
-                            .animation(.spring(response: 0.7, dampingFraction: 0.8)
-                                .delay(0.25 + 0.35 * Double(tag.index)), value: arrived)
-                        }
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.horizontal, 16)
-                    .padding(.top, 24)
-                    Text(claimed.count == tags.count
-                         ? "All bags claimed."
-                         : "Unclaimed bags are mishandled: they go on your next flight.")
-                        .font(.caption2)
-                        .foregroundStyle(.white.opacity(0.45))
-                        .padding(.top, 10)
-                        .padding(.bottom, 20)
-                }
-
-                Button(action: finish) {
-                    Text("Continue to passport control")
-                        .font(.headline)
-                        .foregroundStyle(.black)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(.white, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 30)
-            }
-        }
-        .onAppear { arrived = true }
-    }
-
-    private func finish() {
-        if let entry = session.logEntry {
-            entry.intentionsCompleted = session.intentions.indices.map { claimed.contains($0) }
-            entry.tagCodes = tags.map(\.code)
-        }
-        onContinue()
-    }
-}
-
-/// A task tag you claim with a tap: a claim haptic and the scan beep, then
-/// a CLAIMED stamp. No stub to tear (Pat, 2026-09-30: "no need to tear").
-private struct ClaimableTag: View {
-    let tag: TaskBagTag
-    let carrier: Carrier
-    var content: BagTagContent?
-    let claimed: Bool
-    let onClaim: () -> Void
-
-    var body: some View {
-        VStack(spacing: 8) {
-            TaskBagTagView(tag: tag, carrier: carrier, content: content, showsStub: false, claimed: claimed,
-                           width: Self.width)
-            Text(claimed ? "Claimed" : "Tap to claim")
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(.white.opacity(claimed ? 0.35 : 0.6))
-        }
-        .frame(width: Self.width)
-        .scaleEffect(claimed ? 0.97 : 1)
-        .contentShape(Rectangle())
-        .onTapGesture { claim() }
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isButton)
-        .accessibilityIdentifier("claim-tag-\(tag.index)")
-        .accessibilityAction(named: Text("Claim bag")) { claim() }
-    }
-
-    static let width: CGFloat = 104
-
-    private func claim() {
-        guard !claimed else { return }
-        Haptics.claim()
-        CabinAudioEngine.shared.playScanBeep()
-        onClaim()
     }
 }
 
@@ -743,7 +677,7 @@ private struct StampView: View {
     @Query private var loggedEntries: [LogbookEntry]
     @State private var tierUp: MilesProgress?
     /// The rating this landing completed, read back off the saved entry
-    /// after baggage claim. Printed under the cachet on its own beat.
+    /// after the bags were marked. Printed under the cachet on its own beat.
     @State private var endorsement: PilotRating?
     @State private var endorsed = false
     @State private var shareCaption = ""
@@ -923,7 +857,7 @@ private struct StampView: View {
     }
 
     /// Whether the landing that was just saved raised the rating. Reads the
-    /// logbook as stored, after baggage claim, rather than the session's own
+    /// logbook as stored, after the bags were marked, rather than the session's own
     /// intentions: the entry is the fact, and an entry the session failed to
     /// save cannot earn anything. Writes the endorsement onto that entry.
     private func recordEndorsementIfEarned() -> PilotRating? {

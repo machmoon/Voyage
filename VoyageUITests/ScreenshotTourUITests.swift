@@ -256,20 +256,12 @@ final class ScreenshotTourUITests: XCTestCase {
         settle(2)
         capture(app, "qa-21-arrival-welcome")
 
-        let toBaggage = app.buttons["Head to baggage claim"]
-        require(toBaggage, "the baggage claim action (a bag was checked)", timeout: 10)
-        toBaggage.tap()
-
-        require(app.staticTexts["Baggage claim"], "the baggage claim screen", timeout: 10)
+        // Mark the bag finished so the entry records a completed intention.
+        let bag = app.buttons["arrival-bag-0"]
+        require(bag, "the checked bag on the welcome screen", timeout: 10)
+        bag.tap()
         settle(1)
-        capture(app, "qa-22-baggage-claim")
-
-        // Claim the bag so the entry records a completed intention: one tap.
-        let bagCard = app.descendants(matching: .any)["claim-tag-0"]
-        require(bagCard, "the checked bag on the carousel", timeout: 6)
-        bagCard.tap()
-        settle(1)
-        capture(app, "qa-23-baggage-claimed")
+        capture(app, "qa-22-bag-finished")
 
         let toPassport = app.buttons["Continue to passport control"]
         require(toPassport, "the passport control action", timeout: 6)
