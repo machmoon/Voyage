@@ -13,9 +13,11 @@ import SwiftUI
 ///
 ///  1. a pre-printed carrier band in the carrier's colours;
 ///  2. the three-letter code as the biggest thing on the tag. Real tags put
-///     the destination airport there; Voyage puts the task's code, and the
-///     real destination goes in a reversed routing block under it with its
-///     flight and date (Routing Area);
+///     the destination airport there under "TO"; Voyage puts the task's code
+///     there, labelled "BAG" because a "TO" over a code that is not an
+///     airport read as a destination (Pat, 2026-10-01), and the real
+///     destination goes in a reversed routing block under it with its flight
+///     and date (Routing Area);
 ///  3. the passenger's name, which on Voyage is the task itself, in the
 ///     printed caps real tags use (Information Area);
 ///  4. the "ladder" and "picket fence" ITF license plates, both orientations,
@@ -43,7 +45,9 @@ struct TaskBagTagView: View {
     static func bodyHeight(for width: CGFloat) -> CGFloat { width * 4.2 }
     static func stubHeight(for width: CGFloat) -> CGFloat { width * 0.62 }
 
-    static let ink = Color(hex: "14161C")
+    /// Voyage Air's navy (`Carrier.voyageAir.livery[0]`), not black: the tag
+    /// prints in the app's dark blue (Pat, 2026-10-01).
+    static let ink = Color(hex: "1D2F5C")
     static let priorityRed = Color(hex: "D2232A")
 
     var body: some View {
@@ -160,7 +164,7 @@ struct TaskBagTagView: View {
 
     private var codeBlock: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("TO")
+            Text("BAG")
                 .font(.system(size: 7, weight: .heavy, design: .monospaced))
                 .opacity(0.7)
             Text(tag.code)
@@ -188,7 +192,7 @@ struct TaskBagTagView: View {
         }
     }
 
-    /// The reversed (white on black) routing block real tags print for the
+    /// The reversed (white on navy) routing block real tags print for the
     /// final destination, then each transfer point with its inbound flight.
     private func routingBlock(_ content: BagTagContent) -> some View {
         VStack(alignment: .leading, spacing: 3) {
