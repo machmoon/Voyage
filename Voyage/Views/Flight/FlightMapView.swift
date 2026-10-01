@@ -56,6 +56,15 @@ struct FlightMapView: View {
             routes: legRoutes,
             planeCoordinate: session.currentCoordinate,
             planeCourse: session.currentCourse,
+            trajectory: session.stage == .inFlight ? session.currentTrajectory : nil,
+            seat: session.seat,
+            // Anchored on the session's own clock reading, not on when this
+            // body happens to run: a body re-evaluated between ticks would
+            // otherwise pin an old elapsed to a later date and step the
+            // aircraft backwards.
+            clockAnchor: FlightVisualClockAnchor(legElapsed: session.legElapsed,
+                                                 displayDate: session.now),
+            isVisible: showsControls,
             cameraMode: cameraMode,
             style: style,
             bottomInset: showsControls ? controlsHeight : 0,
@@ -112,8 +121,15 @@ struct FlightMapView: View {
                 origin: leg.origin,
                 destination: leg.destination,
                 coordinates: coordinates,
+                progress: sampleProgress(index: index, count: coordinates.count),
                 isFlown: index < session.legIndex,
-                flownFraction: isCurrent ? flownFraction(along: coordinates, index: index) : nil
+                flownFraction: isCurrent
+                    ? FlightMapRoute.flownFraction(
+                        coordinates: coordinates,
+                        progress: sampleProgress(index: index, count: coordinates.count),
+                        routeProgress: session.legProgress,
+                        aircraft: session.currentCoordinate)
+                    : nil
             )
         }
     }
@@ -132,21 +148,12 @@ struct FlightMapView: View {
         )
     }
 
-    /// How much of the current leg's line is flown, by length, so the solid
-    /// stroke ends at the aircraft.
-    private func flownFraction(along coordinates: [CLLocationCoordinate2D], index: Int) -> Double {
-        let progress = session.legProgress
-        let split: Int
-        if session.legMapSamples.indices.contains(index),
-           session.legMapSamples[index].count >= 2 {
-            split = session.legMapSamples[index].lastIndex { $0.routeProgress <= progress } ?? 0
-        } else {
-            split = min(coordinates.count - 1, max(0, Int(progress * Double(coordinates.count - 1))))
-        }
-        let flown = Array(coordinates.prefix(split + 1)) + [session.currentCoordinate]
-        let total = FlightMapRoute.length(of: coordinates)
-        guard total > 0 else { return 0 }
-        return min(1, max(0, FlightMapRoute.length(of: flown) / total))
+    /// Route progress at each drawn point, when the line is the shared
+    /// trajectory's samples; nil for the great-circle fallback.
+    private func sampleProgress(index: Int, count: Int) -> [Double]? {
+        guard session.legMapSamples.indices.contains(index),
+              session.legMapSamples[index].count == count, count >= 2 else { return nil }
+        return session.legMapSamples[index].map(\.routeProgress)
     }
 
     // MARK: Controls
@@ -207,9 +214,33 @@ struct FlightMapRoute: Equatable {
     let origin: Airport
     let destination: Airport
     let coordinates: [CLLocationCoordinate2D]
+    /// Route progress (0…1) at each coordinate, for the trajectory's samples.
+    var progress: [Double]? = nil
     let isFlown: Bool
     /// Set on the leg being flown: the share of the line behind the aircraft.
     let flownFraction: Double?
+
+    /// How much of a leg's line is flown, by length, so the solid stroke ends
+    /// at the aircraft: the samples up to `routeProgress`, plus the stretch
+    /// from the last of them to the aircraft itself.
+    static func flownFraction(
+        coordinates: [CLLocationCoordinate2D],
+        progress: [Double]?,
+        routeProgress: Double,
+        aircraft: CLLocationCoordinate2D
+    ) -> Double {
+        guard coordinates.count >= 2 else { return 0 }
+        let split: Int
+        if let progress, progress.count == coordinates.count {
+            split = progress.lastIndex { $0 <= routeProgress } ?? 0
+        } else {
+            split = min(coordinates.count - 1, max(0, Int(routeProgress * Double(coordinates.count - 1))))
+        }
+        let flown = Array(coordinates.prefix(split + 1)) + [aircraft]
+        let total = length(of: coordinates)
+        guard total > 0 else { return 0 }
+        return min(1, max(0, length(of: flown) / total))
+    }
 
     static func length(of coordinates: [CLLocationCoordinate2D]) -> Double {
         zip(coordinates, coordinates.dropFirst()).reduce(0) {
@@ -230,6 +261,14 @@ private struct FlightMapCanvas: UIViewRepresentable {
     let routes: [FlightMapRoute]
     let planeCoordinate: CLLocationCoordinate2D
     let planeCourse: Double
+    /// The leg being flown, sampled every display frame for the aircraft and
+    /// the Follow camera. Nil outside the air (the tick position is used).
+    let trajectory: FlightTrajectory?
+    let seat: String
+    let clockAnchor: FlightVisualClockAnchor
+    /// False while the card only warms MapKit behind the window: nothing
+    /// visible, so no display link.
+    let isVisible: Bool
     let cameraMode: FlightMapView.CameraMode
     let style: FlightMapView.Style
     let bottomInset: CGFloat
@@ -282,6 +321,30 @@ private struct FlightMapCanvas: UIViewRepresentable {
         private var flownLine: RouteLine?
         private weak var flownRenderer: MKPolylineRenderer?
 
+        // Per-frame motion (see `FlightFollowCameraPlan`).
+        private var trajectory: FlightTrajectory?
+        private var seat = ""
+        private var clockAnchor: FlightVisualClockAnchor?
+        private var displayLink: CADisplayLink?
+        /// The aircraft's last frame, for its ground speed.
+        private var lastAircraft: (point: MKMapPoint, time: CFTimeInterval)?
+        private var groundSpeed: Double = 0
+        /// The Follow camera's current (eased) distance, in metres; 0 until
+        /// Follow first drives the camera.
+        private var followDistance: Double = 0
+        private var lastCameraFrame: CFTimeInterval?
+        /// The glide onto the aircraft when Follow starts or resumes.
+        private var entryGlide: (path: ReplayCameraPlan.Glide, start: CFTimeInterval,
+                                 duration: TimeInterval, offset: (dx: Double, dy: Double))?
+        private var needsEntryGlide = true
+        /// Visible ground per metre of camera distance, per view size.
+        private var screenfulPerDistance: Double?
+        private var measuredSize: CGSize = .zero
+        /// Follow lets go while a finger is on the map, so a pan or pinch is
+        /// never fought, and glides back shortly after it lifts.
+        private var touchHoldUntil: CFTimeInterval = 0
+        private var isTouching = false
+
         init(tilesChanged: @escaping @MainActor (WorldSceneryLoadState) -> Void) {
             self.tilesChanged = tilesChanged
         }
@@ -289,12 +352,16 @@ private struct FlightMapCanvas: UIViewRepresentable {
         func attach(to map: LayoutReportingMapView) {
             self.map = map
             map.addAnnotation(plane)
+            let touches = TouchTracker { [weak self] touching in self?.touchesChanged(touching) }
+            map.addGestureRecognizer(touches)
             // The first camera is set at the first real layout, before MapKit
             // requests tiles, so it never loads the whole world first.
             map.didLayout = { [weak self] in self?.fitRouteIfNeeded() }
         }
 
         func detach() {
+            displayLink?.invalidate()
+            displayLink = nil
             map?.didLayout = nil
             map?.delegate = nil
             map = nil
@@ -329,18 +396,32 @@ private struct FlightMapCanvas: UIViewRepresentable {
             }
             routes = view.routes
 
-            if let fraction = view.routes.compactMap(\.flownFraction).first,
-               let renderer = flownRenderer,
-               abs(renderer.strokeEnd - fraction) > 0.000_1 {
-                renderer.strokeEnd = fraction
-                renderer.setNeedsDisplay()
-            }
-
-            movePlane(to: view.planeCoordinate, course: view.planeCourse, on: map)
+            trajectory = view.trajectory
+            seat = view.seat
+            clockAnchor = view.clockAnchor
+            let animates = view.isVisible && view.trajectory != nil
+            setDisplayLinkRunning(animates)
 
             let modeChanged = view.cameraMode != cameraMode
             let isFirstMode = cameraMode == nil
             cameraMode = view.cameraMode
+            if modeChanged {
+                needsEntryGlide = !isFirstMode
+                lastCameraFrame = nil
+                entryGlide = nil
+                if view.cameraMode == .follow, isFirstMode { followDistance = 0 }
+            }
+
+            // Without a display link (on the ground, between legs, or warming
+            // behind the window) the session tick places the aircraft: set,
+            // never animated, so there is no second clock to disagree with.
+            if !animates {
+                if let fraction = view.routes.compactMap(\.flownFraction).first {
+                    setStrokeEnd(fraction)
+                }
+                movePlane(to: view.planeCoordinate, course: view.planeCourse, on: map)
+            }
+
             switch view.cameraMode {
             case .route:
                 if modeChanged && !isFirstMode {
@@ -349,24 +430,96 @@ private struct FlightMapCanvas: UIViewRepresentable {
                     fitRouteIfNeeded()
                 }
             case .follow:
-                let camera = MKMapCamera(
-                    lookingAtCenter: view.planeCoordinate,
-                    fromDistance: 220_000,
-                    pitch: 0,
-                    heading: 0
-                )
-                if modeChanged {
-                    map.setCamera(camera, animated: !isFirstMode)
-                } else if !coordinatesNearlyEqual(map.camera.centerCoordinate, view.planeCoordinate) {
-                    // Constant-velocity glide matched to the session tick; an
-                    // eased animation restarts every 0.5 s and makes the
-                    // tracking pulse.
-                    UIView.animate(withDuration: 0.55, delay: 0,
-                                   options: [.curveLinear, .allowUserInteraction]) {
-                        map.camera = camera
-                    }
+                if !animates {
+                    followStatic(view.planeCoordinate, on: map, animated: modeChanged && !isFirstMode)
                 }
             }
+        }
+
+        // MARK: Display link
+
+        private func setDisplayLinkRunning(_ running: Bool) {
+            if running {
+                if displayLink == nil {
+                    let link = CADisplayLink(target: self, selector: #selector(frame(_:)))
+                    // The replay clock's range (`FlightReplayView.swift`,
+                    // `ReplayDisplayLinkClock`).
+                    link.preferredFrameRateRange = CAFrameRateRange(minimum: 30, maximum: 60, preferred: 60)
+                    link.add(to: .main, forMode: .common)
+                    displayLink = link
+                } else if displayLink?.isPaused == true {
+                    // Coming back from the window: the aircraft has moved on
+                    // while the map was hidden, so Follow glides to it.
+                    needsEntryGlide = true
+                    entryGlide = nil
+                }
+                displayLink?.isPaused = false
+            } else {
+                displayLink?.isPaused = true
+                lastAircraft = nil
+                lastCameraFrame = nil
+            }
+        }
+
+        /// One display frame: sample the trajectory once and give the same
+        /// pose to the aircraft, the flown line and the camera.
+        @objc private func frame(_ link: CADisplayLink) {
+            guard let map, let trajectory, let clockAnchor else { return }
+            let now = link.targetTimestamp
+            // The anchor is in wall-clock time; the link's target is in media
+            // time. Same offset, read once per frame.
+            let date = Date().addingTimeInterval(now - CACurrentMediaTime())
+            let elapsed = clockAnchor.elapsed(at: date, legDuration: trajectory.schedule.legEnd)
+            let state = trajectory.state(at: elapsed, seat: seat)
+            let aircraft = state.aircraft
+
+            movePlane(to: aircraft.coordinate, course: aircraft.courseDegrees, on: map)
+            if let current = routes.first(where: { $0.flownFraction != nil }) {
+                setStrokeEnd(FlightMapRoute.flownFraction(
+                    coordinates: current.coordinates,
+                    progress: current.progress,
+                    routeProgress: state.routeProgress,
+                    aircraft: aircraft.coordinate))
+            }
+            measureSpeed(MKMapPoint(aircraft.coordinate), at: now)
+
+            guard cameraMode == .follow else { return }
+            if isTouching || now < touchHoldUntil {
+                lastCameraFrame = nil
+                return
+            }
+            let field = state.routeProgress < 0.5
+                ? trajectory.departureRunway.threshold.altitudeMeters
+                : trajectory.arrivalRunway.threshold.altitudeMeters
+            driveFollow(aircraft.coordinate, altitude: aircraft.altitudeMeters - field, at: now, on: map)
+        }
+
+        /// Ground speed off consecutive frames, smoothed over a few frames so
+        /// one that lands late does not jolt the zoom.
+        private func measureSpeed(_ point: MKMapPoint, at now: CFTimeInterval) {
+            defer { lastAircraft = (point, now) }
+            guard let last = lastAircraft else { return }
+            let dt = now - last.time
+            guard dt > 0.001, dt < 0.25 else { return }
+            let speed = last.point.distance(to: point) / dt
+            let blend = 1 - exp(-dt / 0.3)
+            groundSpeed += (speed - groundSpeed) * blend
+        }
+
+        private func setStrokeEnd(_ fraction: Double) {
+            guard let renderer = flownRenderer, abs(renderer.strokeEnd - fraction) > 0.000_1 else { return }
+            renderer.strokeEnd = fraction
+            renderer.setNeedsDisplay()
+        }
+
+        private func touchesChanged(_ touching: Bool) {
+            isTouching = touching
+            guard !touching, cameraMode == .follow else { return }
+            // Let the gesture's own deceleration finish, then glide back.
+            touchHoldUntil = CACurrentMediaTime() + 1.5
+            needsEntryGlide = true
+            entryGlide = nil
+            followDistance = map?.camera.centerCoordinateDistance ?? followDistance
         }
 
         // MARK: Content
@@ -413,16 +566,10 @@ private struct FlightMapCanvas: UIViewRepresentable {
         }
 
         private func movePlane(to coordinate: CLLocationCoordinate2D, course: Double, on map: MKMapView) {
+            // Set, not animated: the display link is the animation, and an
+            // animation of its own would trail the camera.
             if !coordinatesNearlyEqual(plane.coordinate, coordinate) {
-                if CLLocationCoordinate2DIsValid(plane.coordinate), plane.hasPosition {
-                    UIView.animate(withDuration: 0.55, delay: 0,
-                                   options: [.curveLinear, .allowUserInteraction]) {
-                        self.plane.coordinate = coordinate
-                    }
-                } else {
-                    plane.coordinate = coordinate
-                    plane.hasPosition = true
-                }
+                plane.coordinate = coordinate
             }
             if plane.course != course {
                 plane.course = course
@@ -449,6 +596,105 @@ private struct FlightMapCanvas: UIViewRepresentable {
                                           bottom: pad + max(0, bottomInset), right: pad),
                 animated: animated
             )
+        }
+
+        /// The visible screenful in metres per metre of camera distance, read
+        /// off the live map once per view size (the replay's measurement,
+        /// `ReplayMapCanvas.screenful(on:)`).
+        private func screenful(on map: MKMapView) -> Double {
+            if map.bounds.size != measuredSize {
+                measuredSize = map.bounds.size
+                screenfulPerDistance = nil
+            }
+            if let measured = screenfulPerDistance { return measured }
+            let rect = map.visibleMapRect
+            let distance = map.camera.centerCoordinateDistance
+            let latitude = map.camera.centerCoordinate.latitude
+            guard distance > 0, rect.size.width > 0, map.camera.pitch < 1 else { return 1 }
+            let metres = max(rect.size.width, rect.size.height) * MKMetersPerMapPointAtLatitude(latitude)
+            let value = metres / distance
+            guard value.isFinite, value > 0.2, value < 5 else { return 1 }
+            screenfulPerDistance = value
+            return value
+        }
+
+        /// One frame of Follow: the aircraft held in the middle of the map
+        /// above the controls, the distance eased toward the altitude target,
+        /// and the camera set directly. Turning Follow on (or letting go of
+        /// the map) glides there first.
+        private func driveFollow(_ coordinate: CLLocationCoordinate2D, altitude: Double,
+                                 at now: CFTimeInterval, on map: MKMapView) {
+            guard map.bounds.width > 0, map.bounds.height > 0 else { return }
+            let k = screenful(on: map)
+            let dt = lastCameraFrame.map { min(0.1, max(0, now - $0)) } ?? 0
+            lastCameraFrame = now
+            let target = FlightFollowCameraPlan.targetDistance(
+                altitudeMeters: altitude, groundSpeed: groundSpeed, screenfulPerDistance: k)
+            let pointsPerScreenful = Double(max(map.bounds.width, map.bounds.height))
+            let offsetPoints = FlightFollowCameraPlan.centreOffsetPoints(
+                topInset: 0, bottomInset: Double(max(0, bottomInset)))
+
+            func centre(for distance: Double) -> MKMapPoint {
+                let plane = MKMapPoint(coordinate)
+                let span = distance * k / MKMetersPerMapPointAtLatitude(coordinate.latitude)
+                return MKMapPoint(x: plane.x, y: plane.y + offsetPoints * span / pointsPerScreenful)
+            }
+
+            if followDistance <= 0 { followDistance = target }
+            if needsEntryGlide {
+                needsEntryGlide = false
+                let rect = map.visibleMapRect
+                let startSpan = max(rect.size.width, rect.size.height)
+                let mpp = MKMetersPerMapPointAtLatitude(coordinate.latitude)
+                let endSpan = target * k / mpp
+                let live = MKMapPoint(map.camera.centerCoordinate)
+                let goal = centre(for: target)
+                let offset = (dx: live.x - goal.x, dy: live.y - goal.y)
+                if UIAccessibility.isReduceMotionEnabled {
+                    followDistance = target
+                } else {
+                    let path = ReplayCameraPlan.Glide(startSpan: startSpan, endSpan: endSpan,
+                                                      distance: hypot(offset.dx, offset.dy))
+                    let range = FlightFollowCameraPlan.entryDurationRange
+                    let natural = path.length / ReplayCameraPlan.glideVelocity
+                    let duration = min(range.upperBound,
+                                       max(range.lowerBound, natural.isFinite ? natural : range.lowerBound))
+                    entryGlide = (path, now, duration, offset)
+                }
+            }
+
+            var distance: Double
+            var center: MKMapPoint
+            if let glide = entryGlide {
+                let sample = glide.path.sample((now - glide.start) / glide.duration)
+                distance = sample.span * MKMetersPerMapPointAtLatitude(coordinate.latitude) / k
+                let goal = centre(for: distance)
+                center = MKMapPoint(x: goal.x + glide.offset.dx * (1 - sample.travelled),
+                                    y: goal.y + glide.offset.dy * (1 - sample.travelled))
+                if now - glide.start >= glide.duration {
+                    entryGlide = nil
+                    followDistance = distance
+                }
+            } else {
+                followDistance = FlightFollowCameraPlan.easedDistance(
+                    from: followDistance, to: target,
+                    sweepFloor: FlightFollowCameraPlan.sweepFloor(groundSpeed: groundSpeed,
+                                                                  screenfulPerDistance: k),
+                    elapsed: dt)
+                distance = followDistance
+                center = centre(for: distance)
+            }
+            map.camera = MKMapCamera(lookingAtCenter: center.coordinate, fromDistance: distance,
+                                     pitch: 0, heading: 0)
+        }
+
+        /// Follow without a display link: one camera per session tick, set
+        /// directly (no per-tick animation to restart).
+        private func followStatic(_ coordinate: CLLocationCoordinate2D, on map: MKMapView, animated: Bool) {
+            guard !coordinatesNearlyEqual(map.camera.centerCoordinate, coordinate) || animated else { return }
+            let distance = followDistance > 0 ? followDistance : FlightFollowCameraPlan.cruiseDistance
+            map.setCamera(MKMapCamera(lookingAtCenter: coordinate, fromDistance: distance,
+                                      pitch: 0, heading: 0), animated: animated)
         }
 
         private func coordinatesNearlyEqual(_ lhs: CLLocationCoordinate2D,
@@ -517,6 +763,47 @@ private struct FlightMapCanvas: UIViewRepresentable {
     }
 }
 
+/// Reports whether any finger is on the map, without taking part in MapKit's
+/// own gestures: it never recognises, never cancels or delays touches, and
+/// runs alongside every other recogniser.
+private final class TouchTracker: UIGestureRecognizer, UIGestureRecognizerDelegate {
+    private let changed: (Bool) -> Void
+    private var active = 0
+
+    init(changed: @escaping (Bool) -> Void) {
+        self.changed = changed
+        super.init(target: nil, action: nil)
+        cancelsTouchesInView = false
+        delaysTouchesBegan = false
+        delaysTouchesEnded = false
+        delegate = self
+    }
+
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent) {
+        if active == 0 { changed(true) }
+        active += touches.count
+    }
+
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent) { lift(touches) }
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent) { lift(touches) }
+
+    private func lift(_ touches: Set<UITouch>) {
+        active = max(0, active - touches.count)
+        if active == 0 {
+            changed(false)
+            state = .failed
+        }
+    }
+
+    override func reset() {
+        super.reset()
+        if active > 0 { active = 0; changed(false) }
+    }
+
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
+                           shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool { true }
+}
+
 /// Reports each layout pass, so the first camera can wait for a real size.
 final class LayoutReportingMapView: MKMapView {
     var didLayout: (() -> Void)?
@@ -541,7 +828,6 @@ final class RouteLine: MKPolyline {
 private final class PlaneAnnotation: NSObject, MKAnnotation {
     @objc dynamic var coordinate = CLLocationCoordinate2D(latitude: 0, longitude: 0)
     var course: Double = 0
-    var hasPosition = false
 }
 
 final class AirportAnnotation: NSObject, MKAnnotation {
