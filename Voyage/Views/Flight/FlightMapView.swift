@@ -332,6 +332,12 @@ private struct FlightMapCanvas: UIViewRepresentable {
         /// The Follow camera's current (eased) distance, in metres; 0 until
         /// Follow first drives the camera.
         private var followDistance: Double = 0
+        /// The chase camera's current (eased) bearing and pitch, degrees.
+        private var followHeading: Double?
+        private var followPitch: Double = 0
+        /// The bearing the frame's look-ahead asked for.
+        private var chaseTarget: Double = 0
+        private var entryStart: (heading: Double, pitch: Double)?
         private var lastCameraFrame: CFTimeInterval?
         /// The glide onto the aircraft when Follow starts or resumes.
         private var entryGlide: (path: ReplayCameraPlan.Glide, start: CFTimeInterval,
@@ -473,7 +479,9 @@ private struct FlightMapCanvas: UIViewRepresentable {
             let state = trajectory.state(at: elapsed, seat: seat)
             let aircraft = state.aircraft
 
-            movePlane(to: aircraft.coordinate, course: aircraft.courseDegrees, on: map)
+            // Last, once this frame's camera heading is set: the marker is
+            // rotated relative to it.
+            defer { movePlane(to: aircraft.coordinate, course: aircraft.courseDegrees, on: map) }
             if let current = routes.first(where: { $0.flownFraction != nil }) {
                 setStrokeEnd(FlightMapRoute.flownFraction(
                     coordinates: current.coordinates,
@@ -491,6 +499,26 @@ private struct FlightMapCanvas: UIViewRepresentable {
             let field = state.routeProgress < 0.5
                 ? trajectory.departureRunway.threshold.altitudeMeters
                 : trajectory.arrivalRunway.threshold.altitudeMeters
+            // The bearing looks a share of the view ahead along the path, not
+            // at this frame's course alone, so per-frame sampling cannot
+            // jitter it and a turn is anticipated (Mapbox's look-ahead to the
+            // maneuver; see `FlightFollowCameraPlan.chaseBearing`).
+            let distance = followDistance > 0 ? followDistance : FlightFollowCameraPlan.groundDistance
+            let ahead = FlightFollowCameraPlan.lookAheadDistance(cameraDistance: distance)
+            // On the runway the course *is* the runway, and a look-ahead
+            // would reach past the rollout to wherever the leg's path ends;
+            // likewise once the look-ahead would run off the end of the leg.
+            let seconds = min(180, max(0.5, ahead / max(groundSpeed, 30)))
+            let airborne = aircraft.altitudeMeters - field > 30
+            var lookAhead: Double?
+            if airborne, elapsed + seconds < trajectory.schedule.legEnd {
+                let next = trajectory.state(at: elapsed + seconds, seat: seat).aircraft.coordinate
+                if MKMapPoint(aircraft.coordinate).distance(to: MKMapPoint(next)) > 50 {
+                    lookAhead = GreatCircle.bearing(from: aircraft.coordinate, to: next)
+                }
+            }
+            chaseTarget = FlightFollowCameraPlan.chaseBearing(course: aircraft.courseDegrees,
+                                                             lookAhead: lookAhead)
             driveFollow(aircraft.coordinate, altitude: aircraft.altitudeMeters - field, at: now, on: map)
         }
 
@@ -571,9 +599,13 @@ private struct FlightMapCanvas: UIViewRepresentable {
             if !coordinatesNearlyEqual(plane.coordinate, coordinate) {
                 plane.coordinate = coordinate
             }
-            if plane.course != course {
-                plane.course = course
-                (map.view(for: plane) as? PlaneMarkerView)?.course = course
+            // The marker is drawn in screen space, so it points along the
+            // course relative to the map's own heading: straight up the
+            // screen in the chase view.
+            let onScreen = FlightFollowCameraPlan.normalized(course - map.camera.heading)
+            if abs(FlightFollowCameraPlan.shortestRotation(from: plane.course, to: onScreen)) > 0.05 {
+                plane.course = onScreen
+                (map.view(for: plane) as? PlaneMarkerView)?.course = onScreen
             }
         }
 
@@ -590,6 +622,25 @@ private struct FlightMapCanvas: UIViewRepresentable {
             let rect = map.overlays.reduce(MKMapRect.null) { $0.union($1.boundingMapRect) }
             guard !rect.isNull else { return }
             let pad: CGFloat = 36
+            followHeading = nil
+            if map.camera.pitch > 0.5 || abs(FlightFollowCameraPlan.shortestRotation(
+                from: map.camera.heading, to: 0)) > 0.5,
+               let screenful = screenfulPerDistance {
+                // Leaving the chase view: setVisibleMapRect would keep its
+                // heading and pitch, so fly to a north-up, flat camera that
+                // frames the same rect.
+                let insetWidth = max(1, Double(map.bounds.width) - 2 * Double(pad))
+                let insetHeight = max(1, Double(map.bounds.height) - 2 * Double(pad) - Double(max(0, bottomInset)))
+                let longer = Double(max(map.bounds.width, map.bounds.height))
+                let span = max(rect.size.width * longer / insetWidth, rect.size.height * longer / insetHeight)
+                let pointsPerPoint = span / longer
+                let mid = MKMapPoint(x: rect.midX,
+                                     y: rect.midY + Double(max(0, bottomInset)) / 2 * pointsPerPoint)
+                let distance = span * MKMetersPerMapPointAtLatitude(mid.coordinate.latitude) / screenful
+                map.setCamera(MKMapCamera(lookingAtCenter: mid.coordinate, fromDistance: distance,
+                                          pitch: 0, heading: 0), animated: animated)
+                return
+            }
             map.setVisibleMapRect(
                 rect,
                 edgePadding: UIEdgeInsets(top: pad, left: pad,
@@ -602,7 +653,9 @@ private struct FlightMapCanvas: UIViewRepresentable {
         /// off the live map once per view size (the replay's measurement,
         /// `ReplayMapCanvas.screenful(on:)`).
         private func screenful(on map: MKMapView) -> Double {
-            if map.bounds.size != measuredSize {
+            // Only a flat camera can be measured; a resize mid-chase keeps
+            // the last reading until the map is flat again.
+            if map.bounds.size != measuredSize, map.camera.pitch < 1 {
                 measuredSize = map.bounds.size
                 screenfulPerDistance = nil
             }
@@ -618,26 +671,39 @@ private struct FlightMapCanvas: UIViewRepresentable {
             return value
         }
 
-        /// One frame of Follow: the aircraft held in the middle of the map
-        /// above the controls, the distance eased toward the altitude target,
-        /// and the camera set directly. Turning Follow on (or letting go of
-        /// the map) glides there first.
+        /// One frame of Follow, as a chase view: heading-up along the eased
+        /// look-ahead bearing, pitched, the aircraft in the lower third of
+        /// the map above the controls, the distance eased toward the altitude
+        /// target, and the camera set directly. Turning Follow on (or
+        /// letting go of the map) flies there first.
         private func driveFollow(_ coordinate: CLLocationCoordinate2D, altitude: Double,
                                  at now: CFTimeInterval, on map: MKMapView) {
             guard map.bounds.width > 0, map.bounds.height > 0 else { return }
+            let plan = FlightFollowCameraPlan.self
             let k = screenful(on: map)
             let dt = lastCameraFrame.map { min(0.1, max(0, now - $0)) } ?? 0
             lastCameraFrame = now
-            let target = FlightFollowCameraPlan.targetDistance(
+            let target = plan.targetDistance(
                 altitudeMeters: altitude, groundSpeed: groundSpeed, screenfulPerDistance: k)
-            let pointsPerScreenful = Double(max(map.bounds.width, map.bounds.height))
-            let offsetPoints = FlightFollowCameraPlan.centreOffsetPoints(
-                topInset: 0, bottomInset: Double(max(0, bottomInset)))
+            let targetPitch = plan.pitch(altitudeMeters: altitude,
+                                         distance: max(target, followDistance))
+            let height = Double(map.bounds.height)
+            let longer = Double(max(map.bounds.width, map.bounds.height))
+            // `k` is measured along the longer side; the field of view that
+            // matters here is the vertical one.
+            let halfFieldTangent = k / 2 * height / longer
+            let fraction = plan.anchorScreenFraction(viewHeight: height,
+                                                    bottomInset: Double(max(0, bottomInset)))
+            let mpp = MKMetersPerMapPointAtLatitude(coordinate.latitude)
 
-            func centre(for distance: Double) -> MKMapPoint {
+            func centre(distance: Double, pitch: Double, heading: Double) -> MKMapPoint {
+                let ahead = plan.groundAhead(distance: distance, pitchDegrees: pitch,
+                                             screenFraction: fraction,
+                                             halfFieldTangent: halfFieldTangent) / mpp
                 let plane = MKMapPoint(coordinate)
-                let span = distance * k / MKMetersPerMapPointAtLatitude(coordinate.latitude)
-                return MKMapPoint(x: plane.x, y: plane.y + offsetPoints * span / pointsPerScreenful)
+                let radians = heading * .pi / 180
+                // Map points grow east (x) and south (y).
+                return MKMapPoint(x: plane.x + sin(radians) * ahead, y: plane.y - cos(radians) * ahead)
             }
 
             if followDistance <= 0 { followDistance = target }
@@ -645,47 +711,74 @@ private struct FlightMapCanvas: UIViewRepresentable {
                 needsEntryGlide = false
                 let rect = map.visibleMapRect
                 let startSpan = max(rect.size.width, rect.size.height)
-                let mpp = MKMetersPerMapPointAtLatitude(coordinate.latitude)
                 let endSpan = target * k / mpp
                 let live = MKMapPoint(map.camera.centerCoordinate)
-                let goal = centre(for: target)
+                let goal = centre(distance: target, pitch: targetPitch, heading: chaseTarget)
                 let offset = (dx: live.x - goal.x, dy: live.y - goal.y)
+                followHeading = map.camera.heading
+                followPitch = map.camera.pitch
                 if UIAccessibility.isReduceMotionEnabled {
                     followDistance = target
+                    followHeading = chaseTarget
+                    followPitch = targetPitch
                 } else {
                     let path = ReplayCameraPlan.Glide(startSpan: startSpan, endSpan: endSpan,
                                                       distance: hypot(offset.dx, offset.dy))
-                    let range = FlightFollowCameraPlan.entryDurationRange
+                    let range = plan.entryDurationRange
                     let natural = path.length / ReplayCameraPlan.glideVelocity
                     let duration = min(range.upperBound,
                                        max(range.lowerBound, natural.isFinite ? natural : range.lowerBound))
                     entryGlide = (path, now, duration, offset)
+                    entryStart = (followHeading ?? 0, followPitch)
                 }
             }
 
             var distance: Double
             var center: MKMapPoint
+            var heading = followHeading ?? chaseTarget
+            var pitch = followPitch
             if let glide = entryGlide {
-                let sample = glide.path.sample((now - glide.start) / glide.duration)
-                distance = sample.span * MKMetersPerMapPointAtLatitude(coordinate.latitude) / k
-                let goal = centre(for: distance)
+                let t = min(1, max(0, (now - glide.start) / glide.duration))
+                let sample = glide.path.sample(t)
+                distance = sample.span * mpp / k
+                // Turn and tilt over the same glide, eased in and out, so
+                // the view swings round behind the aircraft as it arrives.
+                let ease = t * t * (3 - 2 * t)
+                let start = entryStart ?? (heading, pitch)
+                heading = plan.normalized(start.heading
+                    + plan.shortestRotation(from: start.heading, to: chaseTarget) * ease)
+                pitch = start.pitch + (targetPitch - start.pitch) * ease
+                let goal = centre(distance: distance, pitch: pitch, heading: heading)
                 center = MKMapPoint(x: goal.x + glide.offset.dx * (1 - sample.travelled),
                                     y: goal.y + glide.offset.dy * (1 - sample.travelled))
-                if now - glide.start >= glide.duration {
+                if t >= 1 {
                     entryGlide = nil
                     followDistance = distance
                 }
             } else {
-                followDistance = FlightFollowCameraPlan.easedDistance(
+                followDistance = plan.easedDistance(
                     from: followDistance, to: target,
-                    sweepFloor: FlightFollowCameraPlan.sweepFloor(groundSpeed: groundSpeed,
-                                                                  screenfulPerDistance: k),
+                    sweepFloor: plan.sweepFloor(groundSpeed: groundSpeed, screenfulPerDistance: k),
                     elapsed: dt)
                 distance = followDistance
-                center = centre(for: distance)
+                heading = plan.easedBearing(from: heading, to: chaseTarget, elapsed: dt)
+                pitch = plan.easedPitch(from: pitch, to: targetPitch, elapsed: dt)
+                center = centre(distance: distance, pitch: pitch, heading: heading)
             }
+            followHeading = heading
+            followPitch = pitch
             map.camera = MKMapCamera(lookingAtCenter: center.coordinate, fromDistance: distance,
-                                     pitch: 0, heading: 0)
+                                     pitch: pitch, heading: heading)
+            // MapKit caps the pitch. Measured on the iOS 26.5 simulator in this
+            // card: 45 to 47° asked, 34° drawn at every distance from 31 to
+            // 425 km. Where it used less than asked, place the aircraft for
+            // the pitch it actually drew, so it still sits in the lower third.
+            let drawn = Double(map.camera.pitch)
+            if drawn < pitch - 0.5 {
+                let corrected = centre(distance: distance, pitch: drawn, heading: heading)
+                map.camera = MKMapCamera(lookingAtCenter: corrected.coordinate, fromDistance: distance,
+                                         pitch: drawn, heading: heading)
+            }
         }
 
         /// Follow without a display link: one camera per session tick, set
@@ -694,7 +787,7 @@ private struct FlightMapCanvas: UIViewRepresentable {
             guard !coordinatesNearlyEqual(map.camera.centerCoordinate, coordinate) || animated else { return }
             let distance = followDistance > 0 ? followDistance : FlightFollowCameraPlan.cruiseDistance
             map.setCamera(MKMapCamera(lookingAtCenter: coordinate, fromDistance: distance,
-                                      pitch: 0, heading: 0), animated: animated)
+                                      pitch: followPitch, heading: followHeading ?? 0), animated: animated)
         }
 
         private func coordinatesNearlyEqual(_ lhs: CLLocationCoordinate2D,

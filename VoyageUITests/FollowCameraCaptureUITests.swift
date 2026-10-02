@@ -41,6 +41,7 @@ final class FollowCameraCaptureUITests: XCTestCase {
         let lax = app.buttons["destination-LAX"]
         XCTAssertTrue(lax.waitForExistence(timeout: 25))
         lax.tap()
+        dismissSystemPrompt()
         let depart = app.buttons["depart-now"]
         XCTAssertTrue(depart.waitForExistence(timeout: 8))
         depart.tap()
