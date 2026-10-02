@@ -475,9 +475,13 @@ struct OpenSkiesFlight {
 
     private func speed(after sample: SteeredPath.Sample, at time: TimeInterval) -> Double {
         if let landing, time > schedule.landingStart {
-            // Rollout: from the speed over the threshold to a stop at 25:00.
+            // Rollout: from touchdown speed to a stop at 25:00, the same
+            // rollout `nominalSpeed` flies. Starting from the approach's own
+            // ground speed instead carried a fast approach (over 200 m/s)
+            // more than 3 km down the runway.
+            let touchdown = min(landing.approach.speed, rotationSpeed * 0.92)
             let p = (time - schedule.landingStart) / max(0.001, schedule.landingDuration)
-            return landing.approach.speed * max(0, 1 - p)
+            return touchdown * max(0, 1 - p)
         }
         return Self.nominalSpeed(at: time, schedule: schedule,
                                  rotationSpeed: rotationSpeed, cruiseSpeed: cruiseSpeed)
