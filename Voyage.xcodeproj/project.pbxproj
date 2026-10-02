@@ -39,7 +39,6 @@
 		14E2EB10A7D12FD253D22AFF /* FlightBriefingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07B9219A17E68AA26ABAFA5D /* FlightBriefingTests.swift */; };
 		15BEF97DF9B4093ED9142A65 /* DemoTourUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E1A44A112EA4A374D264C3A /* DemoTourUITests.swift */; };
 		161265440A6378F89192956D /* Airport.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAE328D769F7CC7D57744FF9 /* Airport.swift */; };
-		161D2FEA864B1A064F658F5F /* AirplaneModeProbeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E146782DFB627758BFDAA100 /* AirplaneModeProbeUITests.swift */; };
 		163645544B9920A76314370A /* WidgetTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 529C195BACC5C3467B381EB9 /* WidgetTheme.swift */; };
 		16469714CF5F53F6AD511521 /* captain_layover_miami.m4a in Resources */ = {isa = PBXBuildFile; fileRef = D325C03C36BD41E5DC144B5B /* captain_layover_miami.m4a */; };
 		16A32CB1EEA04037E9A2FC41 /* LogbookStorageWarning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55AC9A9549FAC8C00EAA0616 /* LogbookStorageWarning.swift */; };
@@ -696,7 +695,6 @@
 		DEBA9179EA13C95676AD72F6 /* FoundationModelsCustomsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoundationModelsCustomsService.swift; sourceTree = "<group>"; };
 		DF7C67C71E57809196E243DF /* HomeGreeting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeGreeting.swift; sourceTree = "<group>"; };
 		DF9D0F0A8DEEE9D163BE0277 /* OnboardingUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingUITests.swift; sourceTree = "<group>"; };
-		E146782DFB627758BFDAA100 /* AirplaneModeProbeUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirplaneModeProbeUITests.swift; sourceTree = "<group>"; };
 		E1C29AE0581B3A1D05AE669B /* FlightNotifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightNotifications.swift; sourceTree = "<group>"; };
 		E29771D86F89BBD9C6ADB9A2 /* VoyageClock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoyageClock.swift; sourceTree = "<group>"; };
 		E4639BD8F909C425C8B7EC5D /* WindowSceneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowSceneView.swift; sourceTree = "<group>"; };
@@ -767,7 +765,6 @@
 		12FB964947FA47E42D74D117 /* VoyageUITests */ = {
 			isa = PBXGroup;
 			children = (
-				E146782DFB627758BFDAA100 /* AirplaneModeProbeUITests.swift */,
 				DB9F85A17C4B592455396FAC /* BagTagScreenshotUITests.swift */,
 				88391717EBB94CEEF92B5FA0 /* BriefingCaptureUITests.swift */,
 				C0DF64BC2DDB95354853CC4F /* CabinServiceScreenshotUITests.swift */,
@@ -1761,7 +1758,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				161D2FEA864B1A064F658F5F /* AirplaneModeProbeUITests.swift in Sources */,
 				76B28306E8EBE62563B9EABC /* BagTagScreenshotUITests.swift in Sources */,
 				CA9F1ABD4E097DCEBB020175 /* BriefingCaptureUITests.swift in Sources */,
 				5668B0676A438B2A860ADD43 /* CabinServiceScreenshotUITests.swift in Sources */,
