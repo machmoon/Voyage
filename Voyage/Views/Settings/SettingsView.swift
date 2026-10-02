@@ -142,6 +142,17 @@ struct SettingsView: View {
                 }
 
                 Section {
+                    Toggle(isOn: $settings.customsEnabled) {
+                        Label("Customs", systemImage: "person.text.rectangle")
+                    }
+                    .accessibilityIdentifier("settings-customs")
+                } header: {
+                    Text("After landing")
+                } footer: {
+                    Text("Three questions out loud from your bags and calendar. Runs on this iPhone.")
+                }
+
+                Section {
                     Picker(selection: Binding(
                         get: { settings.originOverrideCode ?? "auto" },
                         set: { settings.originOverrideCode = $0 == "auto" ? nil : $0 }

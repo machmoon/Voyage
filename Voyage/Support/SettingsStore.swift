@@ -106,6 +106,19 @@ final class SettingsStore {
         didSet { defaults.set(onDeviceIntelligenceEnabled, forKey: "onDeviceIntelligenceEnabled") }
     }
 
+    /// Customs after landing: three recall questions, asked out loud from the
+    /// flight's bags and the calendar around it. On unless the traveler turns
+    /// it off; off, the arrival goes straight from the welcome to the stamp.
+    var customsEnabled: Bool {
+        didSet { defaults.set(customsEnabled, forKey: "customsEnabled") }
+    }
+
+    /// Whether customs has explained voice answers once. Set by either
+    /// answer, so the explanation is never shown twice.
+    var customsVoiceIntroSeen: Bool {
+        didSet { defaults.set(customsVoiceIntroSeen, forKey: "customsVoiceIntroSeen") }
+    }
+
     /// The in-cruise beverage cart (hydration reminders).
     var cabinServiceEnabled: Bool {
         didSet { defaults.set(cabinServiceEnabled, forKey: "cabinServiceEnabled") }
@@ -207,6 +220,8 @@ final class SettingsStore {
         defaults.set(originWasSensed, forKey: "hasResolvedOriginFromLocation")
         flightFocusRemindersEnabled = defaults.object(forKey: "flightFocusRemindersEnabled") as? Bool ?? true
         cabinServiceEnabled = defaults.object(forKey: "cabinServiceEnabled") as? Bool ?? true
+        customsEnabled = defaults.object(forKey: "customsEnabled") as? Bool ?? true
+        customsVoiceIntroSeen = defaults.bool(forKey: "customsVoiceIntroSeen")
         onDeviceIntelligenceEnabled = defaults.object(forKey: "onDeviceIntelligenceEnabled") as? Bool ?? true
         hasCompletedOnboarding = defaults.bool(forKey: "hasCompletedOnboarding")
         lastSeat = defaults.string(forKey: "lastSeat")

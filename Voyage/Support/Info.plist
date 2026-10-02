@@ -39,6 +39,12 @@
 	<string>Voyage uses your location once to set your home airport to the one nearest you.</string>
 	<key>NSFocusStatusUsageDescription</key>
 	<string>Voyage checks whether a Focus mode is active at depart so it can remind you to silence distractions before your flight.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>At customs after landing, Voyage listens to your spoken answers. Speech is turned into text on this iPhone and never leaves it.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>At customs after landing, Voyage turns your spoken answers into text on this iPhone. Nothing is sent to Apple or anyone else.</string>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>At customs after landing, Voyage reads the titles and notes of events around your flight to ask about what you studied. It never changes your calendar, and nothing leaves this iPhone.</string>
 	<key>NSUserNotificationsUsageDescription</key>
 	<string>Voyage sends boarding calls for scheduled flights, focus reminders at depart, and a landing notification when your focus flight completes.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>

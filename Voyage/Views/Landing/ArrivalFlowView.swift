@@ -12,8 +12,13 @@ struct ArrivalFlowView: View {
     @Bindable var session: FlightSession
     let onDone: () -> Void
 
-    private enum Step {
+    enum Step {
         case welcome, declaration, stamp
+
+        /// Customs is opt-out (Settings): off, the welcome goes straight to the stamp.
+        static func afterWelcome(customsEnabled: Bool) -> Step {
+            customsEnabled ? .declaration : .stamp
+        }
     }
 
     @State private var step: Step = {
@@ -31,7 +36,7 @@ struct ArrivalFlowView: View {
             switch step {
             case .welcome:
                 WelcomeView(session: session) {
-                    advance(.declaration)
+                    advance(.afterWelcome(customsEnabled: SettingsStore.shared.customsEnabled))
                 }
                 .transition(.opacity)
             case .declaration:
@@ -326,13 +331,15 @@ private struct CustomsDeclarationView: View {
     @Bindable var session: FlightSession
     let onContinue: () -> Void
 
-    static let prompts = [
-        "One idea you can now explain without your notes",
-        "An example or detail that goes with it",
-        "One question you'd test yourself on next time",
-    ]
+    /// Writes the questions and runs the voice interview (CustomsInterview.swift).
+    @State private var interview: CustomsInterview
 
-    @State private var answers = ["", "", ""]
+    init(session: FlightSession, onContinue: @escaping () -> Void) {
+        _session = Bindable(session)
+        self.onContinue = onContinue
+        _interview = State(initialValue: CustomsInterview.live(for: session))
+    }
+
     @State private var stamped = false
     @State private var appeared = false
     @FocusState private var focused: Int?
@@ -344,7 +351,7 @@ private struct CustomsDeclarationView: View {
     private static let redChannel = Color(hex: "C4232B")
 
     private var filled: [String] {
-        answers.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+        interview.answers.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
     }
 
     private var itinerary: Itinerary { session.itinerary }
@@ -379,11 +386,20 @@ private struct CustomsDeclarationView: View {
                 .padding(.bottom, 12)
             }
             .scrollDismissesKeyboard(.interactively)
-            .safeAreaInset(edge: .bottom) { channels }
+            .safeAreaInset(edge: .bottom) {
+                VStack(spacing: 0) {
+                    CustomsVoicePanel(interview: interview)
+                        .background(Theme.ink.opacity(0.92))
+                    channels
+                }
+            }
         }
         .onAppear {
             withAnimation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.15)) { appeared = true }
         }
+        .task { await interview.prepare() }
+        .onDisappear { interview.stop() }
+        .onChange(of: interview.focusRequest) { _, request in focused = request?.index }
     }
 
     // MARK: Hall
@@ -422,7 +438,7 @@ private struct CustomsDeclarationView: View {
                 Text("Each arriving traveler declares, from memory, what they are bringing back from this flight.")
                     .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(Self.paperInk.opacity(0.7))
-                ForEach(Self.prompts.indices, id: \.self) { index in
+                ForEach(interview.questions.indices, id: \.self) { index in
                     item(index)
                 }
                 signatureLine
@@ -509,19 +525,19 @@ private struct CustomsDeclarationView: View {
     /// One numbered item: the number in its box, the question in small caps,
     /// a handwritten answer, and a tick box that fills when it is answered.
     private func item(_ index: Int) -> some View {
-        let answered = !answers[index].trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let answered = !interview.answers[index].trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         return HStack(alignment: .top, spacing: 10) {
             Text("\(index + 1)")
                 .font(.system(size: 12, weight: .heavy, design: .monospaced))
                 .frame(width: 22, height: 22)
                 .overlay(Rectangle().strokeBorder(Self.paperInk.opacity(0.6), lineWidth: 1))
             VStack(alignment: .leading, spacing: 4) {
-                Text(Self.prompts[index].uppercased())
+                Text(interview.questions[index].uppercased())
                     .font(.system(size: 9, weight: .bold))
                     .kerning(0.4)
                     .opacity(0.7)
                     .fixedSize(horizontal: false, vertical: true)
-                TextField("", text: $answers[index], axis: .vertical)
+                TextField("", text: $interview.answers[index], axis: .vertical)
                     .font(.custom("Noteworthy-Bold", size: 17, relativeTo: .body))
                     .foregroundStyle(Theme.passportInk)
                     .tint(Theme.passportInk)
@@ -529,7 +545,8 @@ private struct CustomsDeclarationView: View {
                     .focused($focused, equals: index)
                     .submitLabel(index < 2 ? .next : .done)
                     .onSubmit { focused = index < 2 ? index + 1 : nil }
-                    .accessibilityLabel(Self.prompts[index])
+                    .accessibilityLabel(interview.questions[index])
+                    .accessibilityIdentifier("customs-answer-\(index)")
                 Rectangle().fill(Self.paperInk.opacity(answered ? 0.5 : 0.22)).frame(height: 1)
             }
             Image(systemName: answered ? "checkmark.square.fill" : "square")
@@ -539,6 +556,7 @@ private struct CustomsDeclarationView: View {
                 .accessibilityHidden(true)
         }
         .foregroundStyle(Self.paperInk)
+        .customsActiveItem(interview.activeIndex == index)
     }
 
     private var signatureLine: some View {
@@ -636,6 +654,7 @@ private struct CustomsDeclarationView: View {
 
     private func skip() {
         focused = nil
+        interview.stop()
         Haptics.tap()
         session.logEntry?.declarations = []
         onContinue()
@@ -643,6 +662,7 @@ private struct CustomsDeclarationView: View {
 
     private func declare() {
         focused = nil
+        interview.stop()
         let answers = filled
         session.logEntry?.declarations = answers
         guard !answers.isEmpty else { onContinue(); return }
