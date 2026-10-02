@@ -98,11 +98,12 @@ final class AirplaneModeCaptureUITests: XCTestCase {
         for source in [springboard, app] {
             let field = source.secureTextFields.firstMatch
             if field.exists {
-                field.typeText("1234")
+                field.typeText("1234\n") // Return submits the passcode
                 break
             }
             if source.keys["1"].exists {
                 for k in ["1", "2", "3", "4"] { source.keys[k].tap() }
+                source.buttons["Done"].tap()
                 break
             }
         }
