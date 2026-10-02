@@ -85,6 +85,11 @@ final class LogbookEntry {
     /// default keeps SwiftData's lightweight migration working.
     var tagCodes: [String] = []
 
+    /// Flown from the Open skies card: no destination booked, and
+    /// `destinationCode` is wherever it was cleared to land. Defaulted for
+    /// lightweight migration, like the fields above.
+    var isOpenSkies: Bool = false
+
     /// The rating this landing completed, if any.
     var endorsement: PilotRating? {
         get { endorsementRaw.flatMap(PilotRating.init(rawValue:)) }

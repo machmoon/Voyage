@@ -32,7 +32,12 @@ struct Airport: Identifiable, Hashable, Codable {
         case "YYZ": identifier = "America/Toronto"
         case "YVR": identifier = "America/Vancouver"
         case "YQR": identifier = "America/Regina"
-        default: identifier = TimeZone.current.identifier
+        default:
+            // An Open skies field keeps the clock of the bookable airport it
+            // sits beside: every one is within 125 miles of one of the ten.
+            let home = Airport.nearest(to: location)
+            if home.code != code { return home.timeZone }
+            identifier = TimeZone.current.identifier
         }
         return TimeZone(identifier: identifier) ?? .current
     }
@@ -83,8 +88,10 @@ extension Airport {
         Airport(code: "YQR", city: "Regina", name: "Regina International", latitude: 50.4319, longitude: -104.6658, accentHex: "E8B23A"),
     ]
 
+    /// Open skies fields resolve too, so a logbook row that landed at one
+    /// reads back as that field rather than as the first catalog airport.
     static func byCode(_ code: String) -> Airport {
-        all.first { $0.code == code } ?? all[0]
+        find(code) ?? all[0]
     }
 
     static func nearest(to location: CLLocation) -> Airport {

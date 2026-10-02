@@ -391,7 +391,8 @@ struct LogbookView: View {
                 HStack(spacing: 5) {
                     // Airbnb's card title: 15px / 500 / #222222 (live
                     // computed style of a search result card).
-                    Text("\(entry.originCode) → \(entry.destinationCode)")
+                    Text("\(entry.originCode) → \(entry.destinationCode)"
+                         + (entry.isOpenSkies ? " · Open skies" : ""))
                         .voyageFont(Ramp.TypeScale.bodyM, weight: .medium)
                         .foregroundStyle(Ramp.ink)
                     if let via = entry.connectionCode {

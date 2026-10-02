@@ -78,6 +78,12 @@ final class Announcer: NSObject, AVSpeechSynthesizerDelegate {
         case layover(city: String)
         case finalBoardingCall(city: String)
         case beverageService
+        /// Open skies: the traveller took the controls, handed them back, and
+        /// the flight was cleared to land. No studio clips exist for these,
+        /// so they fall through to on-device speech.
+        case youHaveControl
+        case autopilotEngaged
+        case clearedToLand(city: String)
 
         /// Spoken wording carries no numbers. Durations and countdowns are
         /// already on screen and in the Live Activity, and leaving them out is
@@ -98,6 +104,12 @@ final class Announcer: NSObject, AVSpeechSynthesizerDelegate {
                 return "Final boarding call for your connecting flight to \(city)."
             case .beverageService:
                 return "The beverage cart is coming through. Take a moment for some water."
+            case .youHaveControl:
+                return "You have control."
+            case .autopilotEngaged:
+                return "Autopilot engaged."
+            case let .clearedToLand(city):
+                return "Air traffic control has cleared us to land at \(city). Time to wrap up."
             }
         }
 
@@ -146,6 +158,15 @@ final class Announcer: NSObject, AVSpeechSynthesizerDelegate {
                 The beverage cart is coming through. <break time="450ms"/> \
                 Take a moment for some water.
                 """
+            case .youHaveControl:
+                body = "You have control."
+            case .autopilotEngaged:
+                body = "Autopilot engaged."
+            case let .clearedToLand(city):
+                body = """
+                Air traffic control has cleared us to land at \(esc(city)). \
+                <break time="450ms"/> <emphasis level="moderate">Time to wrap up.</emphasis>
+                """
             }
             return "<speak>\(body)</speak>"
         }
@@ -160,6 +181,9 @@ final class Announcer: NSObject, AVSpeechSynthesizerDelegate {
             case let .landed(city): return "landed_\(Announcer.slug(city))"
             case let .layover(city): return "layover_\(Announcer.slug(city))"
             case let .finalBoardingCall(city): return "finalcall_\(Announcer.slug(city))"
+            case .youHaveControl: return "you_have_control"
+            case .autopilotEngaged: return "autopilot_engaged"
+            case let .clearedToLand(city): return "cleared_to_land_\(Announcer.slug(city))"
             }
         }
     }

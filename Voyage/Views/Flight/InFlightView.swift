@@ -116,6 +116,9 @@ struct InFlightView: View {
 
                 countdown
 
+                OpenSkiesStatusLine(session: session)
+                    .opacity(pureMode ? 0 : 1)
+
                 if session.beverageCartUntil != nil && session.serviceCue == nil {
                     beverageCartCard
                         .padding(.top, 16)
@@ -184,6 +187,8 @@ struct InFlightView: View {
                     .padding(.top, 6)
                     .opacity(pureMode ? 0 : 1)
                     .allowsHitTesting(!pureMode)
+                OpenSkiesNoticeView(session: session)
+                    .padding(.top, 10)
                 Spacer(minLength: 0)
             }
             .zIndex(2)
@@ -600,7 +605,7 @@ struct InFlightView: View {
                 // swap on a fixed-width face is clean at any capture instant.
                 .animation(nil, value: session.legRemaining.focusCountdownText)
 
-            Text("to \(session.currentLeg.destination.city)")
+            Text(session.countdownDestinationLine)
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(.white.opacity(0.6))
 
@@ -630,7 +635,7 @@ struct InFlightView: View {
             withAnimation(.snappy) { showInfoPill.toggle() }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(session.legRemaining.focusCountdownText) remaining to \(session.currentLeg.destination.city)")
+        .accessibilityLabel("\(session.legRemaining.focusCountdownText) remaining, \(session.countdownDestinationLine)")
         .accessibilityHint(showInfoPill ? "Hide flight details" : "Show flight details")
         .accessibilityAddTraits(.isButton)
     }

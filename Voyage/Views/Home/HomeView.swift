@@ -553,6 +553,7 @@ struct HomeView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
+                    OpenSkiesCard(action: departOpenSkies)
                     ForEach(destinations) { airport in
                         destinationCard(airport)
                     }
@@ -793,6 +794,32 @@ struct HomeView: View {
                                   headingDegrees: origin.runway?.heading ?? 0)
         }
 
+        Haptics.success()
+        onDepart(session)
+    }
+}
+
+extension HomeView {
+    /// Open skies: nothing to pick, so a tap goes straight to the departure
+    /// curtain. The seat is assigned, the bags and the pass are skipped, and
+    /// it is never locked: it is the flight for "just start".
+    private func departOpenSkies() {
+        selectedDestination = nil
+        let session = FlightSession.openSkies(
+            from: origin,
+            visitedCodes: Set(entries.filter(\.completed).map(\.destinationCode)),
+            modelContext: modelContext,
+            tier: LogbookStats.tier(entries)
+        )
+        session.landedFlights = standing.landedFlights
+        session.firstClass = FirstClassReward(standing: standing)
+        session.autoAssignSeat(isFirstMember: Membership.shared.isFirstClass)
+        session.prepareRealWorldTwin()
+        DepartureReadiness.shared.resetForNewBooking()
+        if settings.streamsRealWorldScenery {
+            MapWarmer.shared.warm(around: origin.coordinate,
+                                  headingDegrees: origin.runway?.heading ?? 0)
+        }
         Haptics.success()
         onDepart(session)
     }

@@ -36,6 +36,8 @@ struct FlightMapView: View {
 
     @State private var cameraMode: CameraMode = .route
     @State private var style: Style = .satellite
+    /// Bumped once to pulse the aircraft for the Open skies hint.
+    @State private var planePulse = 0
     @State private var tiles: WorldSceneryLoadState = .loading
     @State private var coverCeilingPassed = false
     @State private var controlsHeight: CGFloat = 0
@@ -50,6 +52,13 @@ struct FlightMapView: View {
     }
 
     private var canLoad: Bool { availability.isOnline && tiles != .failed }
+
+    init(session: FlightSession, showsControls: Bool = true) {
+        self.session = session
+        self.showsControls = showsControls
+        // Open skies has no route to fit yet: it opens on the aircraft.
+        _cameraMode = State(initialValue: session.isOpenSkies ? .follow : .route)
+    }
 
     var body: some View {
         FlightMapCanvas(
@@ -68,8 +77,23 @@ struct FlightMapView: View {
             cameraMode: cameraMode,
             style: style,
             bottomInset: showsControls ? controlsHeight : 0,
-            tilesChanged: { tiles = $0 }
+            tilesChanged: { tiles = $0 },
+            onPlaneTap: session.isOpenSkies && showsControls
+                ? { session.toggleOpenSkiesControl() } : nil,
+            planePulse: planePulse
         )
+        .overlay {
+            if session.isOpenSkies && showsControls {
+                OpenSkiesMapOverlay(session: session, bottomInset: controlsHeight,
+                                    planePulse: $planePulse)
+            }
+        }
+        // Flying by hand wants the aircraft in the middle of the map.
+        .onChange(of: session.openSkies?.control) { _, control in
+            if control == .pilot, cameraMode != .follow {
+                withAnimation(.snappy(duration: 0.2)) { cameraMode = .follow }
+            }
+        }
         .overlay {
             if showsCover { cover.transition(.opacity) }
         }
@@ -119,7 +143,8 @@ struct FlightMapView: View {
             return FlightMapRoute(
                 id: leg.id,
                 origin: leg.origin,
-                destination: leg.destination,
+                // Open skies has no destination dot until it is cleared to land.
+                destination: leg.destination.isOpenSkiesPlaceholder ? leg.origin : leg.destination,
                 coordinates: coordinates,
                 progress: sampleProgress(index: index, count: coordinates.count),
                 isFlown: index < session.legIndex,
@@ -273,6 +298,10 @@ private struct FlightMapCanvas: UIViewRepresentable {
     let style: FlightMapView.Style
     let bottomInset: CGFloat
     let tilesChanged: @MainActor (WorldSceneryLoadState) -> Void
+    /// Open skies only: a tap on the aircraft takes or returns the controls.
+    var onPlaneTap: (() -> Void)?
+    /// Each change pulses the aircraft once.
+    var planePulse = 0
 
     func makeUIView(context: Context) -> LayoutReportingMapView {
         let map = LayoutReportingMapView(frame: .zero)
@@ -318,6 +347,8 @@ private struct FlightMapCanvas: UIViewRepresentable {
         private var needsRouteFit = true
 
         private let plane = PlaneAnnotation()
+        private var onPlaneTap: (() -> Void)?
+        private var planePulse = 0
         private var flownLine: RouteLine?
         private weak var flownRenderer: MKPolylineRenderer?
 
@@ -395,6 +426,14 @@ private struct FlightMapCanvas: UIViewRepresentable {
                 needsRouteFit = needsRouteFit || cameraMode != .follow
             }
             routes = view.routes
+
+            onPlaneTap = view.onPlaneTap
+            let planeView = map.view(for: plane) as? PlaneMarkerView
+            planeView?.onTap = view.onPlaneTap
+            if view.planePulse != planePulse {
+                planePulse = view.planePulse
+                planeView?.pulse()
+            }
 
             trajectory = view.trajectory
             seat = view.seat
@@ -725,6 +764,7 @@ private struct FlightMapCanvas: UIViewRepresentable {
                 let view = mapView.dequeueReusableAnnotationView(
                     withIdentifier: PlaneMarkerView.reuseID, for: plane) as? PlaneMarkerView
                 view?.course = plane.course
+                view?.onTap = onPlaneTap
                 return view
             case let airport as AirportAnnotation:
                 let view = mapView.dequeueReusableAnnotationView(
@@ -842,10 +882,19 @@ final class AirportAnnotation: NSObject, MKAnnotation {
 }
 
 /// White aircraft over a soft shadow, pointing along the course.
+///
+/// On an Open skies flight it is also the control: one tap takes the airplane,
+/// another gives it back. The view is 44 pt square for the hit target (Apple's
+/// minimum) while the drawing stays its 34 pt size, and the tap is the view's
+/// own recogniser, so the map's pan, pinch and double-tap are untouched.
 private final class PlaneMarkerView: MKAnnotationView {
     static let reuseID = "plane"
+    private static let hitSize: CGFloat = 44
+    private static let drawnSize: CGFloat = 34
     private let shadow = CAGradientLayer()
     private let icon = UIImageView()
+    /// Holds the drawing, so a pulse can scale it while `course` rotates the icon.
+    private let glyph = UIView()
 
     var course: Double = 0 {
         didSet {
@@ -854,18 +903,31 @@ private final class PlaneMarkerView: MKAnnotationView {
         }
     }
 
+    /// Set only when the aircraft can be flown.
+    var onTap: (() -> Void)? {
+        didSet {
+            accessibilityTraits = onTap == nil ? .none : .button
+            accessibilityHint = onTap == nil ? nil : "Takes or hands back the controls"
+        }
+    }
+
     override init(annotation: MKAnnotation?, reuseIdentifier: String?) {
         super.init(annotation: annotation, reuseIdentifier: reuseIdentifier)
-        frame = CGRect(x: 0, y: 0, width: 34, height: 34)
+        frame = CGRect(x: 0, y: 0, width: Self.hitSize, height: Self.hitSize)
         zPriority = .max
         collisionMode = .circle
 
+        let inset = (Self.hitSize - Self.drawnSize) / 2
+        glyph.frame = bounds.insetBy(dx: inset, dy: inset)
+        glyph.isUserInteractionEnabled = false
+        addSubview(glyph)
+        let drawn = glyph.bounds
         shadow.type = .radial
         shadow.colors = [UIColor.black.withAlphaComponent(0.35).cgColor, UIColor.clear.cgColor]
         shadow.startPoint = CGPoint(x: 0.5, y: 0.5)
         shadow.endPoint = CGPoint(x: 1, y: 1)
-        shadow.frame = bounds
-        layer.addSublayer(shadow)
+        shadow.frame = drawn
+        glyph.layer.addSublayer(shadow)
 
         // Deliberately not scaled with Dynamic Type: a map annotation is drawn
         // in map space, and a larger aircraft covers the route it is flying.
@@ -873,14 +935,36 @@ private final class PlaneMarkerView: MKAnnotationView {
                              withConfiguration: UIImage.SymbolConfiguration(pointSize: 20, weight: .bold))
         icon.tintColor = .white
         icon.contentMode = .center
-        icon.frame = bounds
-        addSubview(icon)
+        icon.frame = drawn
+        glyph.addSubview(icon)
+
+        addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(tapped)))
 
         isAccessibilityElement = true
         accessibilityLabel = "Your aircraft"
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
+
+    @objc private func tapped() { onTap?() }
+
+    override func accessibilityActivate() -> Bool {
+        guard let onTap else { return false }
+        onTap()
+        return true
+    }
+
+    /// One gentle swell and back: "this can be touched".
+    func pulse() {
+        guard !UIAccessibility.isReduceMotionEnabled else { return }
+        UIView.animate(withDuration: 0.35, delay: 0, options: [.curveEaseOut, .allowUserInteraction]) {
+            self.glyph.transform = CGAffineTransform(scaleX: 1.35, y: 1.35)
+        } completion: { _ in
+            UIView.animate(withDuration: 0.45, delay: 0, options: [.curveEaseInOut, .allowUserInteraction]) {
+                self.glyph.transform = .identity
+            }
+        }
+    }
 }
 
 /// Airport dot with its code underneath.
