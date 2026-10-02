@@ -171,12 +171,27 @@ struct DemoCustomsCoach: CustomsCoachService {
 
     func questions(for context: StudyContext) async throws -> [String] {
         try await Task.sleep(for: .milliseconds(500))
-        return context.snippets.prefix(3).map { "What is the main idea behind \($0.title.lowercased())?" }
+        return context.snippets.prefix(3).map {
+            "Explain the key idea from \(Self.topic(of: $0.title)) in your own words."
+        }
     }
 
     func feedback(question: String, answer: String, context: StudyContext) async throws -> String {
         try await Task.sleep(for: .milliseconds(400))
-        return "Nice, that's the core of it. You could also connect it to \(context.snippets.last?.title ?? "your notes")."
+        let last = context.snippets.last.map { Self.topic(of: $0.title) } ?? "your notes"
+        return "Nice, that's the core of it. You could also connect it to \(last)."
+    }
+
+    /// A bag title as a topic: "Finish problem set 4" becomes "problem set 4".
+    /// Drops one leading task verb and lowercases the first letter only, so
+    /// "Read chapter 9" reads "chapter 9" and a proper noun later on survives.
+    static func topic(of title: String) -> String {
+        let verbs: Set<String> = ["finish", "read", "review", "study", "do", "write", "practice"]
+        var words = title.split(separator: " ", omittingEmptySubsequences: true).map(String.init)
+        if words.count > 1, verbs.contains(words[0].lowercased()) { words.removeFirst() }
+        guard let first = words.first else { return title }
+        words[0] = first.prefix(1).lowercased() + first.dropFirst()
+        return words.joined(separator: " ")
     }
 }
 #endif

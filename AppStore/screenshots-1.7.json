@@ -1,5 +1,5 @@
 {
-  "_comment": "Eleven-slot set for the 1.7 page: the eight live 1.2 slots plus Airplane Mode, Open skies and Customs. Same schema and the same `default` block as screenshots-1.2.json (fastlane frameit's Framefile.json shape), so the captions match the live set exactly. Slots built from the eight 1.2 sources are copied byte for byte from AppStore/screenshots-1.2/ (the QA/ captures behind them have since been retaken), so only slots 2, 7 and 8 are rendered: python3 scripts/make_app_store_screenshots.py --config AppStore/screenshots-1.7.json --out AppStore/screenshots-1.7 --slots 2,7,8. Sources for those three: mk-17 from VoyageUITests/AirplaneModeCaptureUITests.swift, mk-18 from OpenSkiesCaptureUITests (02-inflight-nearest-field), mk-19 from CustomsCaptureUITests (customs-1-asking), all on an iPhone 17 Pro Max simulator. App Store Connect accepts at most ten screenshots per display size, so one slot has to go before upload.",
+  "_comment": "Ten-slot set for the 1.7 page: seven of the eight live 1.2 slots plus Airplane Mode, Open skies and Customs. The 1.2 seat-map slot is dropped: its capture shows the old floating seat card, which was rejected. Same schema and the same `default` block as screenshots-1.2.json (fastlane frameit's Framefile.json shape), so the captions match the live set exactly. Slots built from the seven 1.2 sources are copied byte for byte from AppStore/screenshots-1.2/ (the QA/ captures behind them have since been retaken), so only slots 2, 6 and 7 are rendered: python3 scripts/make_app_store_screenshots.py --config AppStore/screenshots-1.7.json --out AppStore/screenshots-1.7 --slots 2,6,7. Sources for those three: mk-17 from VoyageUITests/AirplaneModeCaptureUITests.swift, mk-18 from OpenSkiesCaptureUITests (02-inflight-nearest-field), mk-19 from CustomsCaptureUITests (testCaptureAskingForStore, customs-store-0), all on an iPhone 17 Pro Max simulator. Ten is App Store Connect's maximum per display size.",
   "output_size": [
     1320,
     2868
@@ -59,16 +59,6 @@
     },
     {
       "slot": 4,
-      "filter": "mk-04-seat-map",
-      "title": {
-        "text": "Choose your seat."
-      },
-      "subtitle": {
-        "text": "Window seats watch the wing."
-      }
-    },
-    {
-      "slot": 5,
       "filter": "mk-06-boarding-pass",
       "title": {
         "text": "Pack what you will finish.\nThen tear."
@@ -78,7 +68,7 @@
       }
     },
     {
-      "slot": 6,
+      "slot": 5,
       "filter": "mk-11-map-follow",
       "title": {
         "text": "See where you are\nin the session."
@@ -88,7 +78,7 @@
       }
     },
     {
-      "slot": 7,
+      "slot": 6,
       "filter": "mk-18-open-skies",
       "title": {
         "text": "No destination?\nJust take off."
@@ -98,7 +88,7 @@
       }
     },
     {
-      "slot": 8,
+      "slot": 7,
       "filter": "mk-19-customs",
       "title": {
         "text": "Recall what you studied,\nout loud."
@@ -108,7 +98,7 @@
       }
     },
     {
-      "slot": 9,
+      "slot": 8,
       "filter": "mk-13-recorder",
       "title": {
         "text": "Insights from\nyour own flights."
@@ -118,7 +108,7 @@
       }
     },
     {
-      "slot": 10,
+      "slot": 9,
       "filter": "mk-12-logbook",
       "title": {
         "text": "Study hours count\ntoward a rating."
@@ -128,7 +118,7 @@
       }
     },
     {
-      "slot": 11,
+      "slot": 10,
       "filter": "qa-31-passport-spread",
       "title": {
         "text": "Land. Get stamped."

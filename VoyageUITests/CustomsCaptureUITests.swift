@@ -47,6 +47,24 @@ final class CustomsCaptureUITests: XCTestCase {
         capture("customs-1-asking")
     }
 
+    /// The asking state for the App Store, with the form nudged up in a few
+    /// steps so one frame has the citation line clear of the officer panel.
+    /// Each step is a slow hold-and-drag, so there is no fling.
+    @MainActor
+    func testCaptureAskingForStore() {
+        let app = launch("asking")
+        XCTAssertTrue(app.staticTexts["QUESTION 1 OF 3"].waitForExistence(timeout: 10))
+        sleep(1)
+        capture("customs-store-0")
+        for step in 1...4 {
+            let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.45))
+            let end = start.withOffset(CGVector(dx: 0, dy: -30))
+            start.press(forDuration: 0.2, thenDragTo: end, withVelocity: 40, thenHoldForDuration: 0.5)
+            sleep(1)
+            capture("customs-store-\(step)")
+        }
+    }
+
     @MainActor
     func testCaptureListening() {
         let app = launch("listening")
