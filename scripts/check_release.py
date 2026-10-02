@@ -202,6 +202,24 @@ def check_source():
     except (OSError, subprocess.CalledProcessError):
         warn("could not read the iOS SDK version (is Xcode selected?)")
 
+    # -- Screen Time (Airplane Mode) ----------------------------------------
+    # Family Controls in a distribution build needs Apple's approval for every
+    # bundle id that carries it. Until then Release must sign as before: the
+    # switch stays NO and the Release entitlements file stays without it.
+    release_screen_time = re.search(
+        r"Release:\s*\n\s*VOYAGE_SCREEN_TIME:\s*\"?(\w+)\"?", yml)
+    release_on = bool(release_screen_time) and release_screen_time.group(1) == "YES"
+    print("  Release VOYAGE_SCREEN_TIME=%s" % ("YES" if release_on else "NO"))
+    release_entitlements = open(rel("Voyage/Support/Voyage.entitlements")).read()
+    if "family-controls" in release_entitlements:
+        blocker("Voyage/Support/Voyage.entitlements carries Family Controls. It is the Release "
+                "file; the entitlement belongs in Voyage.ScreenTime.entitlements, picked by "
+                "VOYAGE_SCREEN_TIME (project.yml).")
+    if release_on:
+        warn("Release builds with Screen Time. Apple must have approved Family Controls "
+             "distribution for com.patrickliu.voyage, .deviceactivity and .shieldconfig, and "
+             "the three App Store profiles must include it, or the archive fails to sign.")
+
     check_icon(rel(ICON), "source")
 
 
