@@ -2,9 +2,10 @@
 import Foundation
 import FoundationModels
 
-// The only file in the app that imports FoundationModels. Everything here is
-// iOS 26 only; the deployment target stays iOS 17, and `BriefingServiceFactory`
-// is the single door in.
+// One of the two files that import FoundationModels (the other is
+// FoundationModelsCustomsService.swift). Everything here is iOS 26 only; the
+// deployment target stays iOS 17, and `BriefingServiceFactory` is the single
+// door in.
 //
 // Shapes follow Apple's "Adding intelligent app features with generative
 // models" sample (FoundationModelsTripPlanner):

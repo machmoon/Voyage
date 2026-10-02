@@ -15,6 +15,14 @@ it does not retain a location history and never sends your position anywhere.
 Local notifications and Focus status are used only for the flight reminders you
 enable in Settings.
 
+Customs, after landing, can ask its questions out loud. With your permission,
+Voyage uses the microphone and Apple's on-device speech recognition to turn
+your answers into text, and reads the titles and notes of calendar events near
+your flight to write the questions with Apple Intelligence on this iPhone.
+Recognition is required to run on device, audio is never recorded or stored,
+and none of your speech, answers or calendar leaves the device. Voyage never
+changes your calendar. You can turn Customs off in Settings.
+
 When streamed scenery is enabled, the airplane window and the flight map draw
 satellite and terrain imagery from Apple Maps through MapKit. Apple receives the
 technical information needed to serve map content, such as requested

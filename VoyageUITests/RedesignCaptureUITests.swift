@@ -77,7 +77,8 @@ final class RedesignCaptureUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Anything to declare?"].waitForExistence(timeout: 8))
         pause(1.5)
         save("redesign-07-customs-empty")
-        let prompt = "One idea you can now explain without your notes"
+        // The questions are written per flight; the field keeps a fixed id.
+        let prompt = "customs-answer-0"
         let field = app.textViews[prompt].exists ? app.textViews[prompt] : app.textFields[prompt]
         field.tap()
         field.typeText("Spacing beats cramming: review on day 1, 3 and 7")

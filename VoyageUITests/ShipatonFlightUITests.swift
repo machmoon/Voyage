@@ -127,7 +127,8 @@ final class ShipatonFlightUITests: XCTestCase {
         // Customs: three quick recalls.
         if app.staticTexts["Anything to declare?"].waitForExistence(timeout: 8) {
             pause(1.5)
-            let prompt = "One idea you can now explain without your notes"
+            // The questions are written per flight; the field keeps a fixed id.
+            let prompt = "customs-answer-0"
             let field = app.textViews[prompt].exists ? app.textViews[prompt] : app.textFields[prompt]
             if field.waitForExistence(timeout: 3) {
                 field.tap()

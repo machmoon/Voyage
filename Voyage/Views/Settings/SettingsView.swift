@@ -113,6 +113,10 @@ struct SettingsView: View {
             Toggle(isOn: $settings.cabinServiceEnabled) {
                 SettingsLabel("Cabin service", systemImage: "figure.stand", tint: .teal)
             }
+            Toggle(isOn: $settings.customsEnabled) {
+                SettingsLabel("Customs", systemImage: "person.text.rectangle", tint: .indigo)
+            }
+            .accessibilityIdentifier("settings-customs")
             LabeledContent {
                 Text("30 seconds")
             } label: {
@@ -126,7 +130,7 @@ struct SettingsView: View {
         } header: {
             Text("Flight")
         } footer: {
-            Text("Cabin service brings short cards at cruise. Completed legs still earn miles if you leave early.")
+            Text("Cabin service brings short cards at cruise. Customs asks three questions out loud after landing, on this iPhone. Completed legs still earn miles if you leave early.")
         }
     }
 
