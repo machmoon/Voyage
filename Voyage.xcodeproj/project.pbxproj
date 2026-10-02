@@ -236,6 +236,7 @@
 		A039217A0F00ECD48B3C0C94 /* FlightSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CB0E8E2B49F73535A03C4E3 /* FlightSession.swift */; };
 		A03AA27D1B75301C85F549E3 /* AirplaneModePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C78E2A26ED89ED21B5C323C /* AirplaneModePicker.swift */; };
 		A26CB588FE2264FA9E5B3EA8 /* BagTagView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62627218B7DFDACAA05958B7 /* BagTagView.swift */; };
+		A2B1D9759B8B9B8AE2028DAB /* AirplaneModeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD5111A5A4A59E6B1787D9B4 /* AirplaneModeTests.swift */; };
 		A2E672A233A29FED8DC34823 /* crew_descent_raleigh-durham.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 9C3EAAF566544849E00467C4 /* crew_descent_raleigh-durham.m4a */; };
 		A3D13F483A33A7FE09A7C825 /* ReplayMapCanvas.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1BD19521A4B076597E008BF /* ReplayMapCanvas.swift */; };
 		A635E1C06C1D7F25293B5DA9 /* FlightScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66C90DE9B3A81CF67A2ED3A5 /* FlightScheduler.swift */; };
@@ -647,6 +648,7 @@
 		BBF5EEF22F534CB2D783D7DE /* crew_landed_toronto.m4a */ = {isa = PBXFileReference; path = crew_landed_toronto.m4a; sourceTree = "<group>"; };
 		BC2722D2607D1446EB0D8DD9 /* BoardingFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardingFlowView.swift; sourceTree = "<group>"; };
 		BD46A76F6878B9E0B74707A6 /* captain_landed_miami.m4a */ = {isa = PBXFileReference; path = captain_landed_miami.m4a; sourceTree = "<group>"; };
+		BD5111A5A4A59E6B1787D9B4 /* AirplaneModeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirplaneModeTests.swift; sourceTree = "<group>"; };
 		BE74ECDDE02CC4592D5DE0E3 /* FlightLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightLiveActivity.swift; sourceTree = "<group>"; };
 		BE9FFE4BF34EA1D67401CA88 /* FlightDataAPICacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightDataAPICacheTests.swift; sourceTree = "<group>"; };
 		BEC500658B9DA3DE55C14A9F /* crew_layover_raleigh-durham.m4a */ = {isa = PBXFileReference; path = "crew_layover_raleigh-durham.m4a"; sourceTree = "<group>"; };
@@ -821,6 +823,7 @@
 			children = (
 				B95FC7EE99A7EB1A1CB608F3 /* ActivityStaleDateTests.swift */,
 				9977BAFAC3A281EC2716084E /* AirframePlanformTests.swift */,
+				BD5111A5A4A59E6B1787D9B4 /* AirplaneModeTests.swift */,
 				134BB3C9048429012FAC668C /* AppFeedbackTests.swift */,
 				F0E4D10CC44F29ABEA1477CB /* BagTagTests.swift */,
 				F37A505088E516C1A54894CB /* CabinServiceTests.swift */,
@@ -1718,6 +1721,7 @@
 			files = (
 				81C5D1238C2C9F4684C5BD34 /* ActivityStaleDateTests.swift in Sources */,
 				014CF177E3C33A45ADC19DC1 /* AirframePlanformTests.swift in Sources */,
+				A2B1D9759B8B9B8AE2028DAB /* AirplaneModeTests.swift in Sources */,
 				4F56F7320D0D62850DBE977B /* AppFeedbackTests.swift in Sources */,
 				8979126F9596B8FFBF9A3DEF /* BagTagTests.swift in Sources */,
 				3DF6CE077C067D93E8038D94 /* CabinServiceTests.swift in Sources */,

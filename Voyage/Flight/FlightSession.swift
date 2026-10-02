@@ -1062,14 +1062,16 @@ final class FlightSession {
                           visitedCodes: Set<String>,
                           modelContext: ModelContext,
                           tier: FlyerTier,
-                          clock: any VoyageClock = SystemClock()) -> FlightSession {
+                          clock: any VoyageClock = SystemClock(),
+                          airplaneMode: AirplaneMode = .shared) -> FlightSession {
         let placeholder = Airport.openSkiesPlaceholder(near: origin)
         let leg = FlightLeg(origin: origin,
                             destination: placeholder,
                             duration: OpenSkiesFlight.duration,
                             flightNumber: RoutePlanner.fallbackFlightNumber(from: origin, to: placeholder))
         let session = FlightSession(itinerary: Itinerary(legs: [leg], layoverDuration: 0),
-                                    modelContext: modelContext, tier: tier, clock: clock)
+                                    modelContext: modelContext, tier: tier, clock: clock,
+                                    airplaneMode: airplaneMode)
         session.isOpenSkies = true
         session.openSkiesVisitedCodes = visitedCodes
         return session

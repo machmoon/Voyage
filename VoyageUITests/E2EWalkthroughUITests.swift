@@ -75,10 +75,10 @@ final class E2EWalkthroughUITests: XCTestCase {
         denyAllSystemAlerts(for: 3)
         capture(app, "e2e-02-onboarding-page2")
 
-        // Four pages; Continue until the last page's Start flying appears.
+        // Four pages, five with Airplane Mode; Continue until Start flying.
         let start = app.buttons["Start flying"]
         var continues = 0
-        while !start.waitForExistence(timeout: 2), continues < 4 {
+        while !start.waitForExistence(timeout: 2), continues < 5 {
             let cont = app.buttons["Continue"]
             require(cont, "Continue or Start flying on onboarding", timeout: 5)
             cont.tap()

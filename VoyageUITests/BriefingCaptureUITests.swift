@@ -50,6 +50,13 @@ final class BriefingCaptureUITests: XCTestCase {
         capture("onboarding-3-in-flight")
         app.buttons["Continue"].tap()
 
+        // Airplane Mode (Screen Time) appears only in builds that carry it.
+        if app.staticTexts["Go dark at takeoff."].waitForExistence(timeout: 3) {
+            sleep(1)
+            capture("onboarding-4-airplane-mode")
+            app.buttons["Continue"].tap()
+        }
+
         XCTAssertTrue(app.staticTexts["Your flights stay on your phone."].waitForExistence(timeout: 5))
         sleep(1)
         capture("onboarding-4-privacy")

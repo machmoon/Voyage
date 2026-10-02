@@ -15,6 +15,17 @@ it does not retain a location history and never sends your position anywhere.
 Local notifications and Focus status are used only for the flight reminders you
 enable in Settings.
 
+Airplane Mode, if you set it up, uses Apple's Screen Time (the Family
+Controls and Managed Settings frameworks) to block the apps, categories and
+websites you choose while a flight is in progress. It is not the system's
+airplane mode: Wi-Fi and cellular stay on. Screen Time hands Voyage only opaque
+tokens for what you chose, not app names or browsing history, and Voyage keeps
+those tokens and the current flight's destination and landing time in an App
+Group container on your device so its Screen Time extensions can lift the block
+and draw the blocked-app screen. None of it leaves the device. You can change
+or turn off Airplane Mode in Settings, or revoke Screen Time access in iOS
+Settings.
+
 Customs, after landing, can ask its questions out loud. With your permission,
 Voyage uses the microphone and Apple's on-device speech recognition to turn
 your answers into text, and reads the titles and notes of calendar events near
@@ -49,8 +60,8 @@ sessions. RevenueCat describes its practices in the
 [RevenueCat Privacy Policy](https://www.revenuecat.com/privacy/). Voyage
 contains no advertising, no analytics, and no other third-party SDKs.
 
-You control streamed scenery, notifications, Focus reminders, and airport
-selection in Settings. You can delete Voyage's stored data with Clear Logbook in
+You control streamed scenery, notifications, Focus reminders, Airplane Mode,
+and airport selection in Settings. You can delete Voyage's stored data with Clear Logbook in
 Settings, or by uninstalling the app.
 
 Questions can be opened in the
