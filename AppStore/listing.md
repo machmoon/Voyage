@@ -8,7 +8,7 @@ Status: 1.5 (build 12) submitted September 27, 2026, waiting for review. It repl
 
 Voyage turns study time into a flight. The audience is students who want a more inviting way to begin and stay with a study session. The destination, boarding ritual, window, and arrival make an abstract countdown feel like a journey with an end.
 
-Lead with what the app does, demonstrate how it works, then tell Patrick's story. Open source is a reason to trust and participate in the project; it should support the main promise. Use warm, specific language. Avoid productivity guilt, unsupported learning claims, and promises to block other apps.
+Lead with what the app does, demonstrate how it works, then tell Patrick's story. Open source is a reason to trust and participate in the project; it should support the main promise. Use warm, specific language. Avoid productivity guilt and unsupported learning claims. Since 1.7, Airplane Mode blocks the apps the user picks through Screen Time; describe it as exactly that, never as real airplane mode.
 
 ## Audit of the current page
 
@@ -41,7 +41,7 @@ I'm Patrick, a student who flies often and loves it. I built Voyage because I wa
 
 To start a session, choose a route on the globe and check its flight time. That becomes the length of your study session. You can add up to three things you want to work on, then tear your boarding pass to begin. When you finish a flight, you collect a passport stamp and save the trip in your logbook, where you can look back at the routes you've completed and replay your journeys.
 
-For longer sessions, connecting flights include a layover between legs. You can also turn on reminders to drink water, rest your eyes, and stretch. During a flight, leaving Voyage for more than 30 seconds causes a diversion, so keep it open while you study. The app does not block other apps or turn on airplane mode.
+For longer sessions, connecting flights include a layover between legs. You can also turn on reminders to drink water, rest your eyes, and stretch. During a flight, leaving Voyage for more than 30 seconds causes a diversion, so keep it open while you study. With Airplane Mode on, the apps you pick are blocked through Screen Time from takeoff until you land.
 
 Everything in Voyage is free. There are no subscriptions, in-app purchases, or ads, and you don't need an account. Your study history stays on your device.
 
