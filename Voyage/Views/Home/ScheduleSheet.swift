@@ -38,21 +38,20 @@ struct ScheduleSheet: View {
                         .font(.caption.weight(.bold))
                         .foregroundStyle(Theme.accent)
                     Text(destination.code)
-                    Text("·")
-                        .foregroundStyle(.tertiary)
-                    Text("\(origin.city) to \(destination.city)")
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
+                    // Block time and routing are the same for every departure
+                    // of a pair, so they are said once here, on the route
+                    // line, not on every row. The codes stand for the cities;
+                    // the destination card the sheet came from named them.
+                    if let first = options.first {
+                        Text("·")
+                            .foregroundStyle(.tertiary)
+                        Text("\(first.itinerary.totalFocusDuration.shortDurationText) · \(first.itinerary.connection.map { "1 stop · \($0.code)" } ?? "Nonstop")")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
                 }
                 .font(.subheadline.weight(.semibold))
-
-                // Block time and routing are the same for every departure of
-                // a pair, so they are said once here, not on every row.
-                if let first = options.first {
-                    Text("\(first.itinerary.totalFocusDuration.shortDurationText) · \(first.itinerary.connection.map { "1 stop · \($0.code)" } ?? "Nonstop")")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 20)
@@ -130,9 +129,6 @@ struct ScheduleSheet: View {
                     }
                 }
                 .accessibilityIdentifier("schedule-if-then-plan")
-            Text("Your if-then plan. The boarding call and your pass read it back.")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 12)

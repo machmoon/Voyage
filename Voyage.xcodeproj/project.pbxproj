@@ -189,6 +189,7 @@
 		87603F97599BDD9EBA2488DE /* RouteCatalogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF3BFC67E078E4199B9419D6 /* RouteCatalogTests.swift */; };
 		87A716322814118D376BCEE9 /* FlightDataAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79B06B72463FCBCED2A1ED5E /* FlightDataAPI.swift */; };
 		88775E04460985677E4885B1 /* crew_finalcall_toronto.m4a in Resources */ = {isa = PBXBuildFile; fileRef = F63ACC806147F201E9C8F8EA /* crew_finalcall_toronto.m4a */; };
+		89099D6B59911A0EBA7FAA65 /* DeclutterCaptureUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ABD20076772B74D34D2E103 /* DeclutterCaptureUITests.swift */; };
 		8979126F9596B8FFBF9A3DEF /* BagTagTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0E4D10CC44F29ABEA1477CB /* BagTagTests.swift */; };
 		8A93E939B7FDA504CDF82AA7 /* HomeGreetingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0CD3D362194A3F9FC0D0FEF /* HomeGreetingTests.swift */; };
 		8C55AD7E60D86ACD7971214D /* captain_beverage.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 46BF71E2A2D3C5D11FEDC7A4 /* captain_beverage.m4a */; };
@@ -441,6 +442,7 @@
 		4756106FE6875CA442DB7660 /* crew_landed_vancouver.m4a */ = {isa = PBXFileReference; path = crew_landed_vancouver.m4a; sourceTree = "<group>"; };
 		48FB43F251445FBC7E06E159 /* DepartureReadiness.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepartureReadiness.swift; sourceTree = "<group>"; };
 		4991DB68FA2832AD60ECA965 /* crew_finalcall_regina.m4a */ = {isa = PBXFileReference; path = crew_finalcall_regina.m4a; sourceTree = "<group>"; };
+		4ABD20076772B74D34D2E103 /* DeclutterCaptureUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeclutterCaptureUITests.swift; sourceTree = "<group>"; };
 		4B612B9729FFE3B0D7FAD5EE /* captain_layover_vancouver.m4a */ = {isa = PBXFileReference; path = captain_layover_vancouver.m4a; sourceTree = "<group>"; };
 		4CF9A3E41E2483EE5D95F966 /* LayoverLoungeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoverLoungeView.swift; sourceTree = "<group>"; };
 		4F98FC08D65248552ABD63AE /* crew_descent_boston.m4a */ = {isa = PBXFileReference; path = crew_descent_boston.m4a; sourceTree = "<group>"; };
@@ -686,6 +688,7 @@
 				DB9F85A17C4B592455396FAC /* BagTagScreenshotUITests.swift */,
 				88391717EBB94CEEF92B5FA0 /* BriefingCaptureUITests.swift */,
 				C0DF64BC2DDB95354853CC4F /* CabinServiceScreenshotUITests.swift */,
+				4ABD20076772B74D34D2E103 /* DeclutterCaptureUITests.swift */,
 				99CA0EDD0DD64CFDE04B6781 /* DemoReelUITests.swift */,
 				0E1A44A112EA4A374D264C3A /* DemoTourUITests.swift */,
 				40E479A32A9C1A390407B447 /* E2EWalkthroughUITests.swift */,
@@ -1566,6 +1569,7 @@
 				76B28306E8EBE62563B9EABC /* BagTagScreenshotUITests.swift in Sources */,
 				CA9F1ABD4E097DCEBB020175 /* BriefingCaptureUITests.swift in Sources */,
 				5668B0676A438B2A860ADD43 /* CabinServiceScreenshotUITests.swift in Sources */,
+				89099D6B59911A0EBA7FAA65 /* DeclutterCaptureUITests.swift in Sources */,
 				0C60227684184A3C82478EB5 /* DemoReelUITests.swift in Sources */,
 				15BEF97DF9B4093ED9142A65 /* DemoTourUITests.swift in Sources */,
 				DE89D9530FEA6A54A0BCC59B /* E2EWalkthroughUITests.swift in Sources */,

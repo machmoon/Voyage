@@ -15,7 +15,7 @@ import SwiftUI
 /// than drawn as filled boxes, each cabin is closed off by a bulkhead, the row
 /// number sits in the aisle, exit doors are marked at the fuselage wall, and
 /// the galley and lavatories sit where they actually are. Picking a seat
-/// raises the detail callout a booking flow would.
+/// shows its details in the bottom sheet, above the button that takes it.
 struct SeatSelectionView: View {
     @Bindable var session: FlightSession
     let onContinue: () -> Void
@@ -102,16 +102,9 @@ struct SeatSelectionView: View {
                     .onPreferenceChange(ExitRowCentersKey.self) { exitRowCenters = $0 }
             }
 
-            VStack(spacing: 0) {
-                if let selected {
-                    seatCallout(for: selected)
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 10)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
-                selectionCard
-            }
-            .animation(.snappy(duration: 0.28), value: selected)
+            // The cabin scrolls above the sheet, never under it, so the
+            // selected seat's details cannot cover a row of seats.
+            selectionSheet
         }
         .background(Theme.seatMapBackground.ignoresSafeArea())
         .onAppear { preselectRememberedSeat() }
@@ -260,7 +253,8 @@ struct SeatSelectionView: View {
                     Text(note)
                         .font(.caption2.weight(.medium))
                         .foregroundStyle(Theme.seatMapInk.opacity(0.55))
-                        .multilineTextAlignment(.center)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
                         .frame(width: fuselageWidth - edgeInset * 2)
                         .padding(.bottom, 2)
                 }
@@ -275,21 +269,21 @@ struct SeatSelectionView: View {
         }
     }
 
-    /// The line under a premium cabin that is not fully open: how close the
-    /// First class reward is ("First class unlocks after 8 focus hours ·
-    /// 6h 35m to go"), and which row is already open early.
+    /// One short line under a premium cabin that is not fully open: a row
+    /// already open early ("Row 1 open early"), else what opens the locked
+    /// seats ("Opens after 8 focus hours"). No progress countdown here (Pat,
+    /// 2026-10-01: "no need to say first class soon"); the upgrade offer a
+    /// locked seat raises carries the progress for a traveler who asks.
     private func premiumCabinNote(_ cabin: CabinPlan.Cabin) -> String? {
-        guard !session.isPremiumCabin else { return nil }
-        if membership.isFirstClass { return "Voyage First: every seat up front is yours" }
-        let progress = session.firstClass.progressLine
+        guard !session.isPremiumCabin, !membership.isFirstClass else { return nil }
         let early = LoyaltyProgram.earlyUpgradeRows(in: plan).sorted()
-        guard let first = early.first else { return progress }
-        let rowText = early.count == 1 ? "Row \(first)" : "Rows \(first)–\(early.last ?? first)"
-        let earlyText = session.premiumSeatAccess(row: first) == .earlyUpgrade
-            ? "\(rowText) open early for you"
-            : "\(rowText) opens after your first landing"
-        guard let progress, cabin.rows.count > early.count else { return earlyText }
-        return "\(progress)\n\(earlyText)"
+        if let first = early.first, session.premiumSeatAccess(row: first) == .earlyUpgrade {
+            return early.count == 1
+                ? "Row \(first) open early"
+                : "Rows \(first)–\(early.last ?? first) open early"
+        }
+        guard session.firstClass.progressLine != nil else { return nil }
+        return "Opens after \(Int(FirstClassReward.requiredFocusSeconds / 3_600)) focus hours"
     }
 
     /// The nose is empty cabin-side. The flight deck is drawn with the nose
@@ -568,42 +562,43 @@ struct SeatSelectionView: View {
         return plan.cabin(forRow: row)?.name ?? "—"
     }
 
-    // MARK: Selection callout
+    // MARK: Selected seat
 
-    /// The detail card a seat map raises when you pick a seat: which seat,
-    /// which cabin, which flight, and what the seat actually buys you.
-    private func seatCallout(for id: String) -> some View {
-        HStack(alignment: .top, spacing: 12) {
+    /// The selected seat, as the first row of the bottom sheet: seat code in
+    /// a small badge, cabin name, and what the seat buys you. Part of the
+    /// sheet rather than a card floating over the aircraft (Pat, 2026-10-01:
+    /// "that tab needs better UI"), the way airline apps put the seat
+    /// details in the same tray as the button that takes the seat.
+    private func selectedSeatRow(for id: String) -> some View {
+        HStack(alignment: .center, spacing: 12) {
             Text(id)
-                .font(.system(size: 15, weight: .heavy, design: .monospaced))
+                .font(.system(.subheadline, design: .monospaced, weight: .heavy))
                 .foregroundStyle(.white)
-                .padding(.horizontal, 9)
-                .padding(.vertical, 6)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 7)
                 .background(Theme.seatChosen,
-                            in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                            in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .contentTransition(.numericText())
 
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(cabinClass)
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.subheadline.weight(.bold))
                     .foregroundStyle(Theme.seatMapInk)
-                // The aircraft is named in the header and the flight on the
-                // pass. The perk line is dropped when it only repeats the
-                // cabin name.
+                // The perk line is dropped when it only repeats the cabin.
                 let perk = seatPerk(for: id)
                 if perk.lowercased() != cabinClass.lowercased() {
                     Text(perk)
-                        .font(.system(size: 12))
+                        .font(.caption)
                         .foregroundStyle(Theme.seatMapInk.opacity(0.6))
                 }
             }
+            // Wraps at large Dynamic Type instead of truncating.
+            .fixedSize(horizontal: false, vertical: true)
+
             Spacer(minLength: 0)
         }
-        .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Theme.seatMapFuselage)
-                .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
-        )
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("selected-seat")
     }
 
     /// What the seat buys you, read off the cabin plan rather than hardcoded
@@ -626,36 +621,23 @@ struct SeatSelectionView: View {
         return "Standard seat"
     }
 
-    // MARK: Selection summary
+    // MARK: Bottom sheet
 
-    /// One control. The floating callout above already names the seat, the
-    /// cabin and the flight, so nothing is repeated here.
-    private var selectionCard: some View {
-        VStack(spacing: 14) {
-            HStack {
-                Button {
-                    // Skip assigns the first open seat; otherwise take the
-                    // chosen one. Either way, always advances.
-                    guard let seat = selected ?? defaultSeat else { return }
-                    session.seat = seat
-                    Haptics.success()
-                    onContinue()
-                } label: {
-                    HStack(spacing: 8) {
-                        Text(selected == nil ? "Skip" : "Continue")
-                            .lineLimit(1)
-                        Image(systemName: "arrow.right")
-                    }
-                        .font(.subheadline.bold())
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 52)
-                        .background(Theme.accent, in: Capsule())
-                }
-                .accessibilityLabel(selected.map { "Take seat \($0)" } ?? "Skip seat selection")
+    /// The bottom sheet: the selected seat on top, then the one button.
+    /// With nothing selected it is just the button ("Skip").
+    private var selectionSheet: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            if let selected {
+                selectedSeatRow(for: selected)
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                Divider()
+                    .overlay(Theme.seatMapInk.opacity(0.08))
             }
+            continueButton
         }
-        .padding(20)
+        .padding(.horizontal, 20)
+        .padding(.top, 20)
+        .padding(.bottom, 12)
         .background(
             UnevenRoundedRectangle(topLeadingRadius: 28, bottomLeadingRadius: 0,
                                    bottomTrailingRadius: 0, topTrailingRadius: 28,
@@ -664,7 +646,31 @@ struct SeatSelectionView: View {
                 .shadow(color: .black.opacity(0.10), radius: 16, y: -4)
                 .ignoresSafeArea(edges: .bottom)
         )
-        .animation(.snappy(duration: 0.25), value: selected)
+        .animation(.snappy(duration: 0.28), value: selected)
+    }
+
+    private var continueButton: some View {
+        Button {
+            // Skip assigns the first open seat; otherwise take the chosen
+            // one. Either way, always advances.
+            guard let seat = selected ?? defaultSeat else { return }
+            session.seat = seat
+            Haptics.success()
+            onContinue()
+        } label: {
+            HStack(spacing: 8) {
+                Text(selected == nil ? "Skip" : "Continue")
+                    .lineLimit(1)
+                Image(systemName: "arrow.right")
+            }
+            .font(.subheadline.bold())
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .frame(minHeight: 52)
+            .background(Theme.accent, in: Capsule())
+        }
+        // "Take seat …" is load-bearing: the UI tests tap it by label.
+        .accessibilityLabel(selected.map { "Take seat \($0)" } ?? "Skip seat selection")
     }
 }
 

@@ -180,18 +180,8 @@ private struct WelcomeView: View {
                     .opacity(revealed ? 1 : 0)
                     .offset(y: rise(30))
 
-                if session.watersTaken > 0 {
-                    Label(
-                        session.watersTaken == 1
-                            ? "1 water en route"
-                            : "\(session.watersTaken) waters en route",
-                        systemImage: "cup.and.saucer.fill"
-                    )
-                    .font(.footnote.weight(.medium))
-                    .foregroundStyle(.white.opacity(0.7))
-                    .padding(.top, 14)
-                    .opacity(revealed ? 1 : 0)
-                }
+                // No "2 waters en route" line: a secondary stat. The welcome
+                // keeps to the three numbers above (de-clutter, 2026-10-01).
 
                 Spacer()
 
@@ -276,11 +266,11 @@ private struct WelcomeView: View {
                 .accessibilityValue(done ? "Finished" : "Not finished")
                 .accessibilityHint("Double tap to mark it \(done ? "not finished" : "finished")")
             }
-            Text(finished.count == session.intentions.count
-                 ? "Nice. Every bag made it."
-                 : "Anything unfinished rides your next flight.")
-                .font(.caption2)
-                .foregroundStyle(.white.opacity(0.5))
+            if finished.count == session.intentions.count {
+                Text("Nice. Every bag made it.")
+                    .font(.caption2)
+                    .foregroundStyle(.white.opacity(0.5))
+            }
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)

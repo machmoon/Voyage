@@ -48,6 +48,12 @@ struct SettingsView: View {
         return parts.joined(separator: " · ")
     }
 
+    // Grouped the way iOS Settings and IceCubesApp group theirs: the body
+    // is a short list of named sections, most-used first, About and data
+    // last (IceCubesApp, IceCubesApp/App/Tabs/Settings/SettingsTab.swift at
+    // b2db303: appSection, accountsSection, generalSection, ..., cacheSection;
+    // AGPL, read for structure only, no code taken). Each row carries an SF
+    // Symbol in a tinted square, as iOS Settings draws them (`SettingsLabel`).
     var body: some View {
         NavigationStack {
             Form {
@@ -57,253 +63,22 @@ struct SettingsView: View {
                     }
                 }
 
-                Section {
-                    Toggle(isOn: Binding(
-                        get: { settings.soundEffectsEnabled },
-                        set: { settings.soundEffectsEnabled = $0 }
-                    )) {
-                        Label("Sound cues", systemImage: "bell.and.waves.left.and.right.fill")
-                    }
-                    Toggle(isOn: Binding(
-                        get: { settings.ambienceEnabled },
-                        set: {
-                            settings.ambienceEnabled = $0
-                            if !$0 { CabinAudioEngine.shared.stopAmbience() }
-                        }
-                    )) {
-                        Label("Cabin ambience", systemImage: "speaker.wave.2.fill")
-                    }
-                    Toggle(isOn: Binding(
-                        get: { settings.announcementsEnabled },
-                        set: { settings.announcementsEnabled = $0; if !$0 { Announcer.shared.stop() } }
-                    )) {
-                        Label("Spoken check-ins", systemImage: "waveform")
-                    }
-
-                    if settings.announcementsEnabled {
-                        Picker(selection: Binding(
-                            get: { settings.paVoiceIdentifier ?? PAVoice.default.rawValue },
-                            set: { settings.paVoiceIdentifier = $0 }
-                        )) {
-                            Section("Voyage Air") {
-                                ForEach(PAVoice.allCases) { voice in
-                                    Text("\(voice.displayName) · \(voice.subtitle)")
-                                        .tag(voice.rawValue)
-                                }
-                            }
-                            Section("This device") {
-                                ForEach(paVoices, id: \.identifier) { voice in
-                                    Text(voiceLabel(voice)).tag(voice.identifier)
-                                }
-                            }
-                        } label: {
-                            Label("Voice", systemImage: "person.wave.2.fill")
-                        }
-
-                        Button {
-                            Announcer.shared.previewSelectedVoice()
-                        } label: {
-                            Label("Preview voice", systemImage: "play.circle.fill")
-                        }
-
-                        if isUsingDeviceVoice && !hasDownloadedVoice {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Label("Only the compact voice is installed",
-                                      systemImage: "exclamationmark.triangle.fill")
-                                    .font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(.orange)
-                                Text("This device only has the synthesized voices iOS ships with, which sound robotic over the cabin PA. Download a better one in Settings, Accessibility, Spoken Content, Voices, English. Samantha (Enhanced) reads well as cabin crew. A Voyage Air voice above is recorded into the app and needs no download.")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                Button("Open iOS Settings") {
-                                    if let url = URL(string: UIApplication.openSettingsURLString) {
-                                        UIApplication.shared.open(url)
-                                    }
-                                }
-                                .font(.caption.weight(.semibold))
-                            }
-                            .padding(.vertical, 2)
-                        }
-                    }
-                } header: {
-                    Text("Sound")
-                } footer: {
-                    Text("Sound cues confirm meaningful moments without demanding attention. Ambience is generated privately on device and mixes with your music. The Voyage Air voices are recorded into the app, so announcements play in airplane mode and no audio leaves your device.")
-                }
-
-                Section {
-                    Toggle(isOn: $settings.cabinServiceEnabled) {
-                        Label("Cabin service", systemImage: "figure.stand")
-                    }
-                } header: {
-                    Text("In flight")
-                } footer: {
-                    Text("During cruise, optional cards suggest resting your eyes, stretching, or taking water. They disappear on their own, stop before descent, and never affect your flight or logbook.")
-                }
-
-                Section {
-                    Picker(selection: Binding(
-                        get: { settings.originOverrideCode ?? "auto" },
-                        set: { settings.originOverrideCode = $0 == "auto" ? nil : $0 }
-                    )) {
-                        Text("Nearest airport (\(Airport.byCode(settings.resolvedOriginCode).code))")
-                            .tag("auto")
-                        ForEach(Airport.all) { airport in
-                            Text("\(airport.code) · \(airport.city)").tag(airport.code)
-                        }
-                    } label: {
-                        Label("Departure airport", systemImage: "airplane.departure")
-                    }
-                } header: {
-                    Text("Origin")
-                } footer: {
-                    Text("You always take off from the airport nearest you. It sets the routes and focus durations on the globe. Override it here if you would rather fly from somewhere else.")
-                }
-
-
-                Section {
-                    Picker(selection: Binding(
-                        get: { settings.windowWorldMode },
-                        set: { settings.windowWorldMode = $0 }
-                    )) {
-                        ForEach(WindowWorldMode.allCases) { mode in
-                            Text(mode.title).tag(mode)
-                        }
-                    } label: {
-                        Label("Window view", systemImage: "airplane.departure")
-                    }
-                    .pickerStyle(.inline)
-                    .onChange(of: settings.windowWorldMode) { _, mode in
-                        settings.realWorldTwinEnabled = mode == .real
-                    }
-                } header: {
-                    Text("Window")
-                } footer: {
-                    Text(settings.windowWorldMode.caption + " Illustrated window views work offline. If you choose Real world, map provider attribution appears in the airplane window.")
-                }
-
-                Section {
-                    LabeledContent("Grace period", value: "30 seconds")
-                    LabeledContent("Penalty", value: "Stopped early")
-                } header: {
-                    Text("Strict mode")
-                } footer: {
-                    Text("Leaving Voyage for more than 30 seconds ends the session. Completed legs still earn partial miles.")
-                }
-
-                Section {
-                    Toggle(isOn: Binding(
-                        get: { settings.flightFocusRemindersEnabled },
-                        set: { settings.flightFocusRemindersEnabled = $0 }
-                    )) {
-                        Label("Depart focus reminders", systemImage: "moon.fill")
-                    }
-                } header: {
-                    Text("Flight Focus")
-                } footer: {
-                    Text("Add Voyage to an iOS Focus Filter, then enable that Focus before boarding. Voyage only asks for Focus access after you configure this integration.")
-                }
-
+                flightSection
+                windowSection
+                soundSection
+                focusSection
                 if intelligence.offersSetting {
-                    Section {
-                        Toggle(isOn: Binding(
-                            get: { settings.onDeviceIntelligenceEnabled },
-                            set: { settings.onDeviceIntelligenceEnabled = $0 }
-                        )) {
-                            Label("Flight plan and captain's note", systemImage: "sparkles")
-                        }
-                        .disabled(intelligence != .available)
-                        .accessibilityIdentifier("settings-apple-intelligence")
-                    } header: {
-                        Text("Apple Intelligence")
-                    } footer: {
-                        Text(intelligence.settingsFootnote)
-                    }
+                    intelligenceSection
                 }
-
                 FirstClassSettingsSection()
-
-                Section {
-                    Button {
-                        showingFlightManual = true
-                    } label: {
-                        Label("The Flight Manual", systemImage: "book.pages")
-                    }
-                    .accessibilityIdentifier("settings-flight-manual")
-                } footer: {
-                    Text("Why Voyage works like an airline: the studies behind the boarding pass, bag tags, miles and streaks.")
-                }
-
-                Section {
-                    Button {
-                        settings.hasCompletedOnboarding = false
-                        dismiss()
-                    } label: {
-                        Label("Replay onboarding", systemImage: "arrow.counterclockwise")
-                    }
-                    Button {
-                        isWritingFeedback = true
-                    } label: {
-                        Label("Send a note to the flight deck", systemImage: "paperplane.fill")
-                    }
-                } header: {
-                    Text("Help")
-                } footer: {
-                    Text("The briefing walks through how a Voyage flight works, the same way it did on first launch. A note opens GitHub in your browser so you can post it publicly under your own account.")
-                }
-
-                Section {
-                    LogbookExportButtons(entries: entries)
-                } header: {
-                    Text("Logbook")
-                } footer: {
-                    Text("One Markdown file: a debrief prompt, a 90-day summary, the recorder's findings, and the last 20 flights. Read it before you paste it anywhere.")
-                }
-
-                // Seeded demo history is a development affordance, not a
-                // shipping feature — it would wipe a real traveler's logbook.
+                    .labelStyle(SettingsIconLabelStyle(tint: Theme.seatFirstGold))
+                logbookSection
                 #if DEBUG
-                Section {
-                    Button {
-                        TestModeSeeder.seed(into: modelContext)
-                        hasSeededData = true
-                    } label: {
-                        Label("Load demo history", systemImage: "wand.and.stars")
-                    }
-                    if hasSeededData {
-                        Button(role: .destructive) {
-                            TestModeSeeder.clear(from: modelContext)
-                            hasSeededData = false
-                        } label: {
-                            Label("Clear logbook", systemImage: "trash")
-                        }
-                    }
-                } header: {
-                    Text("Test mode")
-                } footer: {
-                    Text("Fills the logbook with a few weeks of focus flights: an active streak, Gold status, and a well-stamped passport, so you can see the app as a returning traveler would. Replaces any existing history.")
-                }
+                testModeSection
                 #endif
-
-                Section {
-                    Link("Open-Meteo", destination: URL(string: "https://open-meteo.com")!)
-                    Link("CC BY 4.0 license", destination: URL(string: "https://creativecommons.org/licenses/by/4.0/")!)
-                } header: {
-                    Text("Weather data")
-                } footer: {
-                    Text("Conditions in the window scene and the arrival announcement come from Open-Meteo, licensed under CC BY 4.0. When no reading is available Voyage falls back to clear skies computed on device.")
-                }
-
-                Section {
-                    LabeledContent("Version", value: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—")
-                    LabeledContent("Airline", value: "Voyage Air")
-                    LabeledContent("Cabin voice", value: "AI voice by ElevenLabs")
-                    Link("Voyage Terms of Use", destination: URL(string: "https://github.com/machmoon/Voyage/blob/main/TERMS.md")!)
-                    Link("Voyage Privacy Notice", destination: URL(string: "https://github.com/machmoon/Voyage/blob/main/PRIVACY.md")!)
-                    Link("Source code on GitHub", destination: URL(string: "https://github.com/machmoon/Voyage")!)
-                } footer: {
-                    Text("For students, by students. Voyage is free and open source.")
-                }
+                helpSection
+                aboutSection
+                weatherSection
             }
             .tint(Theme.accent)
             .navigationTitle("Settings")
@@ -317,5 +92,338 @@ struct SettingsView: View {
                 }
             }
         }
+    }
+
+    // MARK: Flight
+
+    private var flightSection: some View {
+        Section {
+            Picker(selection: Binding(
+                get: { settings.originOverrideCode ?? "auto" },
+                set: { settings.originOverrideCode = $0 == "auto" ? nil : $0 }
+            )) {
+                Text("Nearest airport (\(Airport.byCode(settings.resolvedOriginCode).code))")
+                    .tag("auto")
+                ForEach(Airport.all) { airport in
+                    Text("\(airport.code) · \(airport.city)").tag(airport.code)
+                }
+            } label: {
+                SettingsLabel("Departure airport", systemImage: "airplane.departure", tint: .blue)
+            }
+            Toggle(isOn: $settings.cabinServiceEnabled) {
+                SettingsLabel("Cabin service", systemImage: "figure.stand", tint: .teal)
+            }
+            LabeledContent {
+                Text("30 seconds")
+            } label: {
+                SettingsLabel("Grace period", systemImage: "timer", tint: .orange)
+            }
+            LabeledContent {
+                Text("Stopped early")
+            } label: {
+                SettingsLabel("Penalty", systemImage: "exclamationmark.octagon.fill", tint: .red)
+            }
+        } header: {
+            Text("Flight")
+        } footer: {
+            Text("Cabin service brings short cards at cruise. Completed legs still earn miles if you leave early.")
+        }
+    }
+
+    private var windowSection: some View {
+        Section {
+            Picker(selection: Binding(
+                get: { settings.windowWorldMode },
+                set: { settings.windowWorldMode = $0 }
+            )) {
+                ForEach(WindowWorldMode.allCases) { mode in
+                    Text(mode.title).tag(mode)
+                }
+            } label: {
+                SettingsLabel("Window view", systemImage: "cloud.sun.fill", tint: .cyan)
+            }
+            .pickerStyle(.inline)
+            .onChange(of: settings.windowWorldMode) { _, mode in
+                settings.realWorldTwinEnabled = mode == .real
+            }
+        } header: {
+            Text("Window")
+        } footer: {
+            Text(settings.windowWorldMode.caption)
+        }
+    }
+
+    // MARK: Sound & voice
+
+    private var soundSection: some View {
+        Section {
+            Toggle(isOn: Binding(
+                get: { settings.soundEffectsEnabled },
+                set: { settings.soundEffectsEnabled = $0 }
+            )) {
+                SettingsLabel("Sound cues", systemImage: "bell.fill", tint: .red)
+            }
+            Toggle(isOn: Binding(
+                get: { settings.ambienceEnabled },
+                set: {
+                    settings.ambienceEnabled = $0
+                    if !$0 { CabinAudioEngine.shared.stopAmbience() }
+                }
+            )) {
+                SettingsLabel("Cabin ambience", systemImage: "speaker.wave.2.fill", tint: .pink)
+            }
+            Toggle(isOn: Binding(
+                get: { settings.announcementsEnabled },
+                set: { settings.announcementsEnabled = $0; if !$0 { Announcer.shared.stop() } }
+            )) {
+                SettingsLabel("Spoken check-ins", systemImage: "waveform", tint: .purple)
+            }
+
+            if settings.announcementsEnabled {
+                voicePicker
+
+                Button {
+                    Announcer.shared.previewSelectedVoice()
+                } label: {
+                    SettingsLabel("Preview voice", systemImage: "play.fill", tint: .gray)
+                }
+
+                if isUsingDeviceVoice && !hasDownloadedVoice {
+                    compactVoiceWarning
+                }
+            }
+        } header: {
+            Text("Sound & Voice")
+        } footer: {
+            Text("Everything plays on device and works in airplane mode.")
+        }
+    }
+
+    private var voicePicker: some View {
+        Picker(selection: Binding(
+            get: { settings.paVoiceIdentifier ?? PAVoice.default.rawValue },
+            set: { settings.paVoiceIdentifier = $0 }
+        )) {
+            Section("Voyage Air") {
+                ForEach(PAVoice.allCases) { voice in
+                    Text("\(voice.displayName) · \(voice.subtitle)")
+                        .tag(voice.rawValue)
+                }
+            }
+            Section("This device") {
+                ForEach(paVoices, id: \.identifier) { voice in
+                    Text(voiceLabel(voice)).tag(voice.identifier)
+                }
+            }
+        } label: {
+            SettingsLabel("Voice", systemImage: "person.wave.2.fill", tint: .purple)
+        }
+    }
+
+    /// Only when a device voice is picked and just the compact one is
+    /// installed. Not a row label, so it keeps its own warning glyph.
+    private var compactVoiceWarning: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Only the compact voice is installed")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.orange)
+            Text("Download a better one in Settings, Accessibility, Spoken Content, Voices. Voyage Air voices need no download.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Button("Open iOS Settings") {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            }
+            .font(.caption.weight(.semibold))
+        }
+        .padding(.vertical, 2)
+    }
+
+    // MARK: Focus and Apple Intelligence
+
+    private var focusSection: some View {
+        Section {
+            Toggle(isOn: Binding(
+                get: { settings.flightFocusRemindersEnabled },
+                set: { settings.flightFocusRemindersEnabled = $0 }
+            )) {
+                SettingsLabel("Depart focus reminders", systemImage: "moon.fill", tint: .indigo)
+            }
+        } header: {
+            Text("Focus")
+        } footer: {
+            Text("Add Voyage to an iOS Focus Filter, then turn that Focus on before boarding.")
+        }
+    }
+
+    private var intelligenceSection: some View {
+        Section {
+            Toggle(isOn: Binding(
+                get: { settings.onDeviceIntelligenceEnabled },
+                set: { settings.onDeviceIntelligenceEnabled = $0 }
+            )) {
+                SettingsLabel("Flight plan and captain's note", systemImage: "sparkles", tint: .purple)
+            }
+            .disabled(intelligence != .available)
+            .accessibilityIdentifier("settings-apple-intelligence")
+        } header: {
+            Text("Apple Intelligence")
+        } footer: {
+            Text(intelligence.settingsFootnote)
+        }
+    }
+
+    // MARK: Logbook data
+
+    private var logbookSection: some View {
+        Section {
+            LogbookExportButtons(entries: entries)
+                .labelStyle(SettingsIconLabelStyle(tint: .green))
+        } header: {
+            Text("Logbook")
+        } footer: {
+            Text("One Markdown file of your recent flights.")
+        }
+    }
+
+    #if DEBUG
+    /// Seeded demo history is a development affordance, not a shipping
+    /// feature: it would wipe a real traveler's logbook.
+    private var testModeSection: some View {
+        Section {
+            Button {
+                TestModeSeeder.seed(into: modelContext)
+                hasSeededData = true
+            } label: {
+                SettingsLabel("Load demo history", systemImage: "wand.and.stars", tint: .gray)
+            }
+            if hasSeededData {
+                Button(role: .destructive) {
+                    TestModeSeeder.clear(from: modelContext)
+                    hasSeededData = false
+                } label: {
+                    SettingsLabel("Clear logbook", systemImage: "trash", tint: .red)
+                }
+            }
+        } header: {
+            Text("Test mode")
+        } footer: {
+            Text("A few weeks of sample flights. Replaces any existing history.")
+        }
+    }
+    #endif
+
+    // MARK: Help and About
+
+    private var helpSection: some View {
+        Section {
+            Button {
+                showingFlightManual = true
+            } label: {
+                SettingsLabel("The Flight Manual", systemImage: "book.pages.fill", tint: .brown)
+            }
+            .accessibilityIdentifier("settings-flight-manual")
+            Button {
+                settings.hasCompletedOnboarding = false
+                dismiss()
+            } label: {
+                SettingsLabel("Replay onboarding", systemImage: "arrow.counterclockwise", tint: .gray)
+            }
+            Button {
+                isWritingFeedback = true
+            } label: {
+                SettingsLabel("Send a note to the flight deck", systemImage: "paperplane.fill", tint: .blue)
+            }
+        } header: {
+            Text("Help")
+        } footer: {
+            Text("A note opens GitHub, posted publicly under your account.")
+        }
+    }
+
+    private var aboutSection: some View {
+        Section {
+            LabeledContent("Version", value: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—")
+            LabeledContent("Airline", value: "Voyage Air")
+            LabeledContent("Cabin voice", value: "AI voice by ElevenLabs")
+            Link("Voyage Terms of Use", destination: URL(string: "https://github.com/machmoon/Voyage/blob/main/TERMS.md")!)
+            Link("Voyage Privacy Notice", destination: URL(string: "https://github.com/machmoon/Voyage/blob/main/PRIVACY.md")!)
+            Link("Source code on GitHub", destination: URL(string: "https://github.com/machmoon/Voyage")!)
+        } header: {
+            Text("About")
+        } footer: {
+            Text("For students, by students. Voyage is free and open source.")
+        }
+    }
+
+    /// Open-Meteo's CC BY 4.0 credit. Its own section by design (CLAUDE.md:
+    /// the credit lives in Settings "Weather data", off the flight screen).
+    private var weatherSection: some View {
+        Section {
+            Link("Open-Meteo", destination: URL(string: "https://open-meteo.com")!)
+            Link("CC BY 4.0 license", destination: URL(string: "https://creativecommons.org/licenses/by/4.0/")!)
+        } header: {
+            Text("Weather data")
+        } footer: {
+            Text("Weather from Open-Meteo, licensed under CC BY 4.0.")
+        }
+    }
+}
+
+// MARK: - Row icon
+
+/// A Settings row title with its SF Symbol in a tinted rounded square, the
+/// icon iOS Settings gives each row. Built explicitly rather than through
+/// `.labelStyle` on a section: a Form's Toggle and LabeledContent rows do not
+/// pass a section's label style down to their labels (measured on iOS 26.5).
+struct SettingsLabel: View {
+    let title: String
+    let systemImage: String
+    let tint: Color
+
+    init(_ title: String, systemImage: String, tint: Color) {
+        self.title = title
+        self.systemImage = systemImage
+        self.tint = tint
+    }
+
+    var body: some View {
+        Label {
+            Text(title)
+        } icon: {
+            SettingsIcon(tint: tint) { Image(systemName: systemImage) }
+        }
+    }
+}
+
+/// The same tinted square for rows built in other files (Voyage First,
+/// logbook export), whose Buttons do take a label style from outside.
+struct SettingsIconLabelStyle: LabelStyle {
+    let tint: Color
+
+    func makeBody(configuration: Configuration) -> some View {
+        Label {
+            configuration.title
+        } icon: {
+            SettingsIcon(tint: tint) { configuration.icon }
+        }
+    }
+}
+
+private struct SettingsIcon<Icon: View>: View {
+    let tint: Color
+    @ViewBuilder let icon: Icon
+
+    /// 29pt at the default size, as iOS Settings draws it, and it grows with
+    /// Dynamic Type alongside the row title.
+    @ScaledMetric(relativeTo: .body) private var side: CGFloat = 29
+
+    var body: some View {
+        icon
+            .font(.system(size: side * 0.55, weight: .semibold))
+            .foregroundStyle(.white)
+            .frame(width: side, height: side)
+            .background(tint, in: RoundedRectangle(cornerRadius: side * 0.24, style: .continuous))
     }
 }
