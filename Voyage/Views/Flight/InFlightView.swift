@@ -24,6 +24,8 @@ struct InFlightView: View {
     /// `setControlsHidden`): the chrome fades to zero opacity rather than
     /// leaving the hierarchy, and it never hides while VoiceOver is running.
     @State private var pureMode = false
+    /// The rotating caption on the way down; nil above the descent.
+    @State private var approachCaption: String?
     @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
     @State private var showExitConfirm = false
     @State private var settings = SettingsStore.shared
@@ -608,6 +610,10 @@ struct InFlightView: View {
                 .font(.caption)
                 .foregroundStyle(.white.opacity(0.4))
                 .opacity(pureMode ? 0 : 1)
+                // One line at a time, cross-faded, like a CLI's spinner verbs.
+                .contentTransition(.opacity)
+                .animation(.easeInOut(duration: 0.6), value: phaseCaption)
+                .task(id: session.phase) { await rotateApproachCaption() }
 
             // The countdown is tappable — say so.
             Image(systemName: showInfoPill ? "chevron.compact.up" : "chevron.compact.down")
@@ -640,8 +646,30 @@ struct InFlightView: View {
         case .takeoffRoll: return "Cleared for takeoff"
         case .climb: return "Climbing through the cloud deck"
         case .cruise: return "Cruising · seatbelt sign off"
-        case .descent: return "Descending · start wrapping up"
-        case .landing: return "Landing"
+        case .descent: return approachCaption ?? LandingPhrases.descent[0]
+        case .landing: return approachCaption ?? LandingPhrases.landing[0]
+        }
+    }
+
+    /// Descent and landing open on their fixed caption, then swap in another
+    /// line from `LandingPhrases` every `captionInterval` seconds, never one
+    /// of the last few. Restarts on each phase change (`.task(id:)`).
+    private func rotateApproachCaption() async {
+        let pool: [String]
+        switch session.phase {
+        case .descent: pool = LandingPhrases.descent
+        case .landing: pool = LandingPhrases.landing
+        default:
+            approachCaption = nil
+            return
+        }
+        var rotation = PhraseRotation(pool: pool)
+        rotation.remember(pool[0])
+        approachCaption = pool[0]
+        while !Task.isCancelled {
+            try? await Task.sleep(for: .seconds(LandingPhrases.captionInterval))
+            guard !Task.isCancelled else { return }
+            approachCaption = rotation.next()
         }
     }
 

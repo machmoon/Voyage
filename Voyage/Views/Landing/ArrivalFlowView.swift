@@ -24,13 +24,35 @@ struct ArrivalFlowView: View {
         return .welcome
     }()
 
+    /// The "Landed" curtain over the welcome screen at touchdown. QA launches
+    /// that open on a later step skip it.
+    @State private var showingLanded: Bool = {
+        #if DEBUG
+        let args = ProcessInfo.processInfo.arguments
+        if args.contains("-VoyageDebugStamp") || args.contains("-VoyageDebugCustoms") { return false }
+        #endif
+        return true
+    }()
+    /// Drawn once, when the curtain appears, so redraws do not re-roll it.
+    @State private var landedPhrase: String?
+
     private var city: Airport { session.itinerary.destination }
+
+    private static var holdsLandedCurtain: Bool {
+        #if DEBUG
+        ProcessInfo.processInfo.arguments.contains("-VoyageHoldLanded")
+        #else
+        false
+        #endif
+    }
 
     var body: some View {
         ZStack {
             switch step {
             case .welcome:
-                WelcomeView(session: session) {
+                // Mounted under the curtain so the destination imagery loads
+                // while it is up; the reveal waits for the curtain to lift.
+                WelcomeView(session: session, curtainUp: showingLanded) {
                     advance(.declaration)
                 }
                 .transition(.opacity)
@@ -45,6 +67,22 @@ struct ArrivalFlowView: View {
                     .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity),
                                             removal: .opacity))
             }
+
+            if showingLanded {
+                LandedCurtainOverlay(
+                    destinationCode: city.code,
+                    durationText: session.itinerary.totalFocusDuration.shortDurationText,
+                    phrase: landedPhrase ?? LandingPhrases.landed[0],
+                    holds: Self.holdsLandedCurtain
+                ) {
+                    withAnimation(.smooth(duration: 0.55)) { showingLanded = false }
+                }
+                .transition(.opacity)
+                .zIndex(1)
+            }
+        }
+        .onAppear {
+            if landedPhrase == nil { landedPhrase = LandingPhrases.nextLanded() }
         }
     }
 
@@ -58,6 +96,9 @@ struct ArrivalFlowView: View {
 /// Full-screen typographic arrival moment in the restrained Voyage palette.
 private struct WelcomeView: View {
     @Bindable var session: FlightSession
+    /// True while the "Landed" curtain covers this screen: the reveal and its
+    /// haptic wait for it (the curtain plays its own success haptic).
+    var curtainUp: Bool = false
     let onContinue: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -179,11 +220,16 @@ private struct WelcomeView: View {
             }
         }
         .onAppear {
+            guard !curtainUp else { return }
             withAnimation(.smooth(duration: 1.0).delay(0.25)) { revealed = true }
             Task { @MainActor in
                 try? await Task.sleep(for: .milliseconds(400))
                 Haptics.success()
             }
+        }
+        .onChange(of: curtainUp) { _, up in
+            guard !up, !revealed else { return }
+            withAnimation(.smooth(duration: 1.0).delay(0.1)) { revealed = true }
         }
     }
 
