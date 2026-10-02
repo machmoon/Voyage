@@ -50,11 +50,9 @@ final class DeclutterCaptureUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Choose your seat"].waitForExistence(timeout: 15))
         pause(1.5)
         save("declutter-seat")
-        let seat = app.buttons
-            .matching(NSPredicate(format: "label MATCHES %@", #"Seat [A-F][0-9]+"#))
-            .firstMatch
-        if seat.waitForExistence(timeout: 5) { seat.tap() }
-        pause(1)
+        let seat = app.buttons["Seat D8"]
+        if seat.waitForExistence(timeout: 5), (seat.value as? String) != "Selected" { seat.tap() }
+        pause(1.5)
         save("declutter-seat-selected")
         let take = app.buttons
             .matching(NSPredicate(format: "label BEGINSWITH %@", "Take seat")).firstMatch
@@ -103,6 +101,31 @@ final class DeclutterCaptureUITests: XCTestCase {
             pause(2)
             save("declutter-customs")
         }
+    }
+
+    /// The seat sheet at accessibility text size: the selected-seat row
+    /// must wrap, not clip, and never cover the cabin.
+    @MainActor
+    func testSeatAtLargeText() throws {
+        let app = XCUIApplication()
+        app.launchArguments += baseArguments + [
+            "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"]
+        app.launch()
+        dismissSystemPrompt()
+        let lax = app.buttons["destination-LAX"]
+        XCTAssertTrue(lax.waitForExistence(timeout: 25))
+        dismissSystemPrompt()
+        lax.tap()
+        let depart = app.buttons["depart-now"]
+        XCTAssertTrue(depart.waitForExistence(timeout: 8))
+        depart.tap()
+        let seat = app.buttons
+            .matching(NSPredicate(format: "label MATCHES %@", #"Seat [A-F][0-9]+"#))
+            .firstMatch
+        XCTAssertTrue(seat.waitForExistence(timeout: 15))
+        seat.tap()
+        pause(1.5)
+        save("declutter-seat-large-text")
     }
 
     @MainActor

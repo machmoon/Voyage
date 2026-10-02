@@ -184,6 +184,11 @@ struct LogbookView: View {
     /// single filled call to action, in the app accent (rounded-md).
     private var statusCard: some View {
         VStack(alignment: .leading, spacing: 24) {
+            // The rating card. One rating at a time, one row per requirement,
+            // the way MyFlightbook lays out a rating
+            // (MyFlightbook.Web/Areas/mvc/Views/Training/_ratingsProgressList.cshtml):
+            // a check for AchieveOnce items, a progress bar with the
+            // ProgressDisplay text for Count and Time items.
             // One number, one line under it. Hours is the number a student
             // pilot watches; the rating, landings and airports are its caption.
             VStack(alignment: .leading, spacing: 8) {
@@ -210,9 +215,24 @@ struct LogbookView: View {
 
             milesRow
 
-            // No "Toward Private pilot" checklist here: the big number is
-            // already the total time, and the Passport tab carries the bar
-            // to the next rating (`PassportView.progressLine`).
+            // Only what is still open. A met requirement is already
+            // implied by the rating name, and a list of checks is clutter.
+            let openRequirements = rating.nextRequirements.filter { !$0.isSatisfied }
+            if !openRequirements.isEmpty, let next = rating.next {
+                VStack(spacing: 12) {
+                    Text("Toward \(next.title)")
+                        .voyageFont(Ramp.TypeScale.bodyXS)
+                        .foregroundStyle(Ramp.hushed)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    ForEach(openRequirements) { requirement in
+                        requirementRow(requirement)
+                    }
+                }
+                .padding(.top, 16)
+                .overlay(alignment: .top) {
+                    Rectangle().fill(Ramp.rule).frame(height: 1)
+                }
+            }
 
             if !weekEntries.isEmpty {
             Button {
@@ -306,6 +326,51 @@ struct LogbookView: View {
         .accessibilityLabel("Voyage Miles, \(progress.tier.rawValue), \(MilesFormat.miles(progress.statusMiles)). \(progress.headline)")
         .accessibilityHint("Opens your membership card")
         .accessibilityIdentifier("voyage-miles-card")
+    }
+
+    /// One checklist line: title and progress text over a bar while a
+    /// requirement is open, and a check once it is met. A met count row
+    /// collapses to the check too, so "44 of 10 landings" never shows, the
+    /// way MyFlightbook's ratings progress list marks completed items.
+    private func requirementRow(_ requirement: RatingRequirement) -> some View {
+        let showsCheck = requirement.kind == .achieveOnce || requirement.isSatisfied
+        return VStack(spacing: 6) {
+            HStack(spacing: 8) {
+                if showsCheck {
+                    // ramp.com/pricing marks an included feature with a filled
+                    // check_circle in #5AB570.
+                    Image(systemName: requirement.isSatisfied ? "checkmark.circle.fill" : "circle")
+                        .voyageFont(14)
+                        .foregroundStyle(requirement.isSatisfied ? Ramp.positive : Ramp.hushed)
+                }
+                Text(requirement.title)
+                    .voyageFont(Ramp.TypeScale.bodyS)
+                    .foregroundStyle(requirement.isSatisfied ? Ramp.hushed : Ramp.ink)
+                Spacer(minLength: 8)
+                if !showsCheck {
+                    Text(requirement.progressText)
+                        .voyageFont(Ramp.TypeScale.bodyXS, design: .monospaced)
+                        .foregroundStyle(Ramp.hushed)
+                }
+            }
+            if !showsCheck {
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Ramp.track)
+                        Capsule()
+                            .fill(Ramp.mark)
+                            .frame(width: geo.size.width * requirement.fraction)
+                    }
+                }
+                .frame(height: 4)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+            showsCheck
+                ? "\(requirement.title), \(requirement.isSatisfied ? "done" : "not yet")"
+                : "\(requirement.title), \(requirement.progressText)"
+        )
     }
 
     // MARK: Entry row

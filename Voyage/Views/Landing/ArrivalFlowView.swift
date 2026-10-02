@@ -352,7 +352,7 @@ private struct CustomsDeclarationView: View {
                         Text("Anything to declare?")
                             .font(.system(size: 30, weight: .bold))
                             .foregroundStyle(.white)
-                        Text("Three quick recalls, no notes.")
+                        Text("Three quick recalls, no notes. Writing it down beats rereading it a week later.")
                             .font(.subheadline)
                             .foregroundStyle(.white.opacity(0.6))
                     }
@@ -361,8 +361,9 @@ private struct CustomsDeclarationView: View {
                         .offset(y: appeared ? 0 : 40)
                         .opacity(appeared ? 1 : 0)
                         .scaleEffect(stamped && !reduceMotion ? 0.985 : 1)
-                    // The citation lives in the Flight Manual (Settings),
-                    // not under the card.
+                    Text("Roediger & Karpicke, 2006. Recall with no feedback beat restudying at two days and a week.")
+                        .font(.caption2)
+                        .foregroundStyle(.white.opacity(0.4))
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 12)
@@ -408,6 +409,9 @@ private struct CustomsDeclarationView: View {
             cardHeader
             VStack(alignment: .leading, spacing: 14) {
                 flightFields
+                Text("Each arriving traveler declares, from memory, what they are bringing back from this flight.")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(Self.paperInk.opacity(0.7))
                 ForEach(Self.prompts.indices, id: \.self) { index in
                     item(index)
                 }
