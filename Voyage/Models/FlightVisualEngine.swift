@@ -451,10 +451,34 @@ struct FlightTrajectory {
     let departureCorridor: AirportCorridor
     let arrivalCorridor: AirportCorridor
 
-    private let path: FlightSplinePath
-    private let distanceTiming: FlightDistanceTiming
-    private let pathBoundaryDistances: [Double]
-    private let horizontalBoundaryDistances: [Double]?
+    private let geometry: Geometry
+
+    /// Where the aircraft's position comes from: a runway-to-runway spline
+    /// authored before departure, or, for Open skies, a path steered from a
+    /// heading as the flight goes (`OpenSkiesFlight`). Altitude, attitude and
+    /// the passenger camera are shared, so the window, the map and replay draw
+    /// either one the same way.
+    private enum Geometry {
+        case authored(AuthoredPath)
+        case steered(OpenSkiesFlight)
+    }
+
+    private struct AuthoredPath {
+        let path: FlightSplinePath
+        let distanceTiming: FlightDistanceTiming
+        let pathBoundaryDistances: [Double]
+        let horizontalBoundaryDistances: [Double]?
+    }
+
+    /// One instant of horizontal motion, before attitude and camera.
+    private struct Motion {
+        let point: FlightGeodeticPoint
+        let courseDegrees: Double
+        let flightPathPitch: Double
+        let bankDegrees: Double
+        let groundSpeed: Double
+        let routeProgress: Double
+    }
 
     init(leg: FlightLeg,
          aircraft: AircraftProfile,
@@ -624,22 +648,101 @@ struct FlightTrajectory {
         self.arrivalRunway = arrivalRunway
         self.departureCorridor = departureCorridor
         self.arrivalCorridor = arrivalCorridor
-        self.path = path
-        self.pathBoundaryDistances = expandedPathBoundaries
-        self.horizontalBoundaryDistances = expandedHorizontal
-        self.distanceTiming = FlightDistanceTiming(
-            times: boundaryTimes,
-            distances: expandedTimingDistances,
-            desiredSpeeds: desiredSpeeds
+        self.geometry = .authored(AuthoredPath(
+            path: path,
+            distanceTiming: FlightDistanceTiming(
+                times: boundaryTimes,
+                distances: expandedTimingDistances,
+                desiredSpeeds: desiredSpeeds
+            ),
+            pathBoundaryDistances: expandedPathBoundaries,
+            horizontalBoundaryDistances: expandedHorizontal
+        ))
+    }
+
+    /// An Open skies leg: the steered path so far, on Open skies' own phase
+    /// timeline. Rebuilt by the session each tick as the path grows, which is
+    /// cheap: nothing here is precomputed.
+    init(openSkies flight: OpenSkiesFlight,
+         leg: FlightLeg,
+         aircraft: AircraftProfile,
+         environment: FlightEnvironmentSnapshot) {
+        let schedule = FlightPhaseSchedule.openSkies(
+            aircraft: aircraft,
+            legDuration: OpenSkiesFlight.duration / flight.timeScale
         )
+        let arrivalRunway = flight.landing?.runway ?? flight.departureRunway
+        self.leg = leg
+        self.aircraft = aircraft
+        self.environment = environment
+        self.schedule = schedule
+        self.departureRunway = flight.departureRunway
+        self.arrivalRunway = arrivalRunway
+        self.departureCorridor = Self.makeDepartureCorridor(
+            runway: flight.departureRunway,
+            routeCourse: flight.departureRunway.trueHeadingDegrees,
+            shortFlights: false
+        )
+        self.arrivalCorridor = Self.makeArrivalCorridor(runway: arrivalRunway, shortFlights: false)
+        self.geometry = .steered(flight)
     }
 
     func state(at rawElapsed: TimeInterval,
                seat: String,
                reduceMotion: Bool = false) -> FlightVisualState {
         let elapsed = min(schedule.legEnd, max(0, rawElapsed))
-        let distanceSample = distanceTiming.sample(at: elapsed)
+        let phase = schedule.phase(at: elapsed)
+        let phaseProgress = schedule.progress(at: elapsed)
+        let motion: Motion
+        switch geometry {
+        case .authored(let authored):
+            motion = authoredMotion(authored, elapsed: elapsed, phase: phase,
+                                    phaseProgress: phaseProgress, reduceMotion: reduceMotion)
+        case .steered(let flight):
+            motion = steeredMotion(flight, elapsed: elapsed, reduceMotion: reduceMotion)
+        }
+        let pitch = aircraftPitch(
+            flightPathPitch: motion.flightPathPitch,
+            phase: phase,
+            phaseProgress: phaseProgress,
+            elapsed: elapsed
+        )
+        let aircraftPose = AircraftPose(
+            coordinate: motion.point.coordinate,
+            altitudeMeters: motion.point.altitudeMeters,
+            courseDegrees: motion.courseDegrees,
+            pitchDegrees: reduceMotion ? min(8, max(-5, pitch)) : min(12, max(-8, pitch)),
+            bankDegrees: motion.bankDegrees,
+            groundSpeedMetersPerSecond: motion.groundSpeed
+        )
+        let camera = passengerCamera(
+            aircraftPose: aircraftPose,
+            seat: seat,
+            routeProgress: motion.routeProgress,
+            reduceMotion: reduceMotion
+        )
+        return FlightVisualState(
+            elapsed: elapsed,
+            phase: phase,
+            phaseProgress: phaseProgress,
+            routeProgress: motion.routeProgress,
+            aircraft: aircraftPose,
+            camera: camera,
+            departureRunwayID: departureRunway.id,
+            arrivalRunwayID: arrivalRunway.id,
+            environment: environment
+        )
+    }
+
+    private func authoredMotion(_ authored: AuthoredPath,
+                                elapsed: TimeInterval,
+                                phase: LegPhase,
+                                phaseProgress: Double,
+                                reduceMotion: Bool) -> Motion {
+        let path = authored.path
+        let distanceSample = authored.distanceTiming.sample(at: elapsed)
         let pathDistance = pathDistanceMeters(
+            authored,
             at: elapsed,
             timingDistance: distanceSample.distanceMeters
         )
@@ -648,8 +751,6 @@ struct FlightTrajectory {
             max(0, pathDistance / max(1, path.totalDistanceMeters))
         )
         let pathSample = path.sample(at: pathDistance)
-        let phase = schedule.phase(at: elapsed)
-        let phaseProgress = schedule.progress(at: elapsed)
         let point = resolveDepartureAltitude(
             raw: FlightGeodesy.geodetic(fromECEF: pathSample.ecef),
             phase: phase,
@@ -665,13 +766,8 @@ struct FlightTrajectory {
             atan2(localTangent.x, localTangent.y).degrees
         )
         let flightPathPitch = atan2(localTangent.z, max(0.000_001, horizontal)).degrees
-        let pitch = aircraftPitch(
-            flightPathPitch: flightPathPitch,
-            phase: phase,
-            phaseProgress: phaseProgress,
-            elapsed: elapsed
-        )
         let bank = bankDegrees(
+            path,
             atDistance: pathDistance,
             speed: distanceSample.speedMetersPerSecond,
             reduceMotion: reduceMotion
@@ -680,30 +776,30 @@ struct FlightTrajectory {
             raw: distanceSample.speedMetersPerSecond,
             phase: phase
         )
-        let aircraftPose = AircraftPose(
-            coordinate: point.coordinate,
-            altitudeMeters: point.altitudeMeters,
-            courseDegrees: course,
-            pitchDegrees: reduceMotion ? min(8, max(-5, pitch)) : min(12, max(-8, pitch)),
-            bankDegrees: bank,
-            groundSpeedMetersPerSecond: groundSpeed
-        )
-        let camera = passengerCamera(
-            aircraftPose: aircraftPose,
-            seat: seat,
-            routeProgress: routeProgress,
-            reduceMotion: reduceMotion
-        )
-        return FlightVisualState(
-            elapsed: elapsed,
-            phase: phase,
-            phaseProgress: phaseProgress,
-            routeProgress: routeProgress,
-            aircraft: aircraftPose,
-            camera: camera,
-            departureRunwayID: departureRunway.id,
-            arrivalRunwayID: arrivalRunway.id,
-            environment: environment
+        return Motion(point: point, courseDegrees: course, flightPathPitch: flightPathPitch,
+                      bankDegrees: bank, groundSpeed: groundSpeed, routeProgress: routeProgress)
+    }
+
+    /// The steered path's position, course and bank at this instant, with
+    /// the flight's own altitude profile. Progress is time-based: there is no
+    /// planned route length to measure it against.
+    private func steeredMotion(_ flight: OpenSkiesFlight,
+                               elapsed: TimeInterval,
+                               reduceMotion: Bool) -> Motion {
+        let time = elapsed * flight.timeScale
+        let sample = flight.path.sample(at: time)
+        let altitude = flight.altitudeMeters(at: time)
+        let speed = sample.speedMetersPerSecond
+        let climbRate = flight.altitudeMeters(at: time + 0.5) - flight.altitudeMeters(at: time - 0.5)
+        let flightPathPitch = speed > 1 ? atan2(climbRate, speed).degrees : 0
+        let limit = reduceMotion ? 5.0 : 22.0
+        return Motion(
+            point: FlightGeodeticPoint(coordinate: sample.coordinate, altitudeMeters: altitude),
+            courseDegrees: sample.courseDegrees,
+            flightPathPitch: flightPathPitch,
+            bankDegrees: min(limit, max(-limit, sample.bankDegrees)),
+            groundSpeed: speed,
+            routeProgress: min(1, max(0, elapsed / max(0.001, schedule.legEnd)))
         )
     }
 
@@ -789,7 +885,8 @@ struct FlightTrajectory {
         }
     }
 
-    private func bankDegrees(atDistance distance: Double,
+    private func bankDegrees(_ path: FlightSplinePath,
+                             atDistance distance: Double,
                              speed: Double,
                              reduceMotion: Bool) -> Double {
         guard speed > 35 else { return 0 }
@@ -849,8 +946,11 @@ struct FlightTrajectory {
         }
     }
 
-    private func pathDistanceMeters(at elapsed: TimeInterval, timingDistance: Double) -> Double {
-        guard let horizontal = horizontalBoundaryDistances else {
+    private func pathDistanceMeters(_ authored: AuthoredPath,
+                                    at elapsed: TimeInterval,
+                                    timingDistance: Double) -> Double {
+        let pathBoundaryDistances = authored.pathBoundaryDistances
+        guard let horizontal = authored.horizontalBoundaryDistances else {
             return timingDistance
         }
         let times = [
@@ -872,7 +972,7 @@ struct FlightTrajectory {
             let progress = min(1, max(0, (timingDistance - horizontal[index]) / horizontalSpan))
             return pathBoundaryDistances[index] + pathSpan * progress
         }
-        return path.totalDistanceMeters
+        return authored.path.totalDistanceMeters
     }
 
     private static func horizontalDistance(points: [FlightGeodeticPoint], to index: Int) -> Double {

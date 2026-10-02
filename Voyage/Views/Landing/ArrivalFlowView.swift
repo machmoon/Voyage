@@ -157,13 +157,14 @@ private struct WelcomeView: View {
             VStack(spacing: 0) {
                 Spacer()
 
-                Text("Welcome to")
+                // Open skies had no destination until it came down here.
+                Text(session.isOpenSkies ? "You made it to" : "Welcome to")
                     .font(.title3.weight(.medium))
                     .foregroundStyle(.white.opacity(0.8))
                     .opacity(revealed ? 1 : 0)
                     .offset(y: rise(16))
 
-                Text(city.city)
+                Text(session.isOpenSkies ? "\(city.city)." : city.city)
                     .font(.system(size: 58, weight: .black))
                     .minimumScaleFactor(0.6)
                     .lineLimit(1)

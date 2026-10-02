@@ -25,7 +25,15 @@ struct FlightDataAPI: FlightDataProviding {
     private let archives = ReplayArchiveCache()
 
     func itinerary(for entry: LogbookEntry) -> Itinerary {
-        RoutePlanner.itinerary(
+        // No catalog route exists for Open skies; it flew its own 25 minutes.
+        if entry.isOpenSkies {
+            let leg = FlightLeg(origin: entry.origin, destination: entry.destination,
+                                duration: entry.scheduledSeconds > 0
+                                    ? entry.scheduledSeconds : OpenSkiesFlight.duration,
+                                flightNumber: entry.flightNumber)
+            return Itinerary(legs: [leg], layoverDuration: 0)
+        }
+        return RoutePlanner.itinerary(
             from: entry.origin,
             to: entry.destination,
             flightNumberOverride: entry.flightNumber
@@ -228,8 +236,8 @@ struct FlightDataAPI: FlightDataProviding {
     private func expectedArchivedLegEndpoints(
         for entry: LogbookEntry
     ) -> [(origin: Airport, destination: Airport)]? {
-        guard let origin = Airport.all.first(where: { $0.code == entry.originCode }),
-              let destination = Airport.all.first(where: { $0.code == entry.destinationCode }),
+        guard let origin = Airport.find(entry.originCode),
+              let destination = Airport.find(entry.destinationCode),
               origin != destination else {
             return nil
         }

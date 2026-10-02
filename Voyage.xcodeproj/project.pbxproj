@@ -21,6 +21,7 @@
 		07342AC9822B7C289DF846C1 /* LoyaltyCaptureUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A919135A73C063F6C1B3CE94 /* LoyaltyCaptureUITests.swift */; };
 		08B6075264A59077B458F1F3 /* crew_descent_new-york.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 8EA806FC94716821E564176F /* crew_descent_new-york.m4a */; };
 		08C42F383C3B226EF4DB34D2 /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CA0B662898583A4CD81E164 /* WidgetSnapshot.swift */; };
+		0A7FECC7AB9341759077B6BD /* OpenSkiesCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA1801763C368256138C9088 /* OpenSkiesCard.swift */; };
 		0ADB70ECA9F1CD23A9FF1A62 /* crew_midpoint_regina.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 8BC502018702C4D4B4D54602 /* crew_midpoint_regina.m4a */; };
 		0BB91FFE101D02A87500F870 /* captain_landed_new-york.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 2E2B670CB2D758196437D340 /* captain_landed_new-york.m4a */; };
 		0C60227684184A3C82478EB5 /* DemoReelUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99CA0EDD0DD64CFDE04B6781 /* DemoReelUITests.swift */; };
@@ -28,6 +29,7 @@
 		0F6429CCC37C8498075BB67F /* GlobeRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C6F2BFB9AB249CFA3D2EB4F /* GlobeRoute.swift */; };
 		104DB4C7D5470C3499B3A9F3 /* ReplayCameraPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D29534C6DDDDDE775788062 /* ReplayCameraPlan.swift */; };
 		10CCE5803285E4F323FBAD28 /* crew_layover_raleigh-durham.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BEC500658B9DA3DE55C14A9F /* crew_layover_raleigh-durham.m4a */; };
+		12A549F1CE573B62CD2E1FC0 /* OpenSkiesCaptureUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 117884DEFBE52B693F08A70B /* OpenSkiesCaptureUITests.swift */; };
 		12DE826B625CFA71117D580E /* crew_landed_boston.m4a in Resources */ = {isa = PBXBuildFile; fileRef = D1AFBDA99205E9FDC605866E /* crew_landed_boston.m4a */; };
 		12E4E89E31607A9C0A4359E1 /* GreatCircleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44B8A2CEA1D7B030571DC244 /* GreatCircleTests.swift */; };
 		14A77AD17F00E599B042BE8C /* WindowWorldRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73F481425EBD0819BD715AC8 /* WindowWorldRenderer.swift */; };
@@ -175,7 +177,9 @@
 		7AF0FA9262B36723F580EA94 /* crew_landed_vancouver.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 4756106FE6875CA442DB7660 /* crew_landed_vancouver.m4a */; };
 		7B61387E1708735E0B46EB5B /* captain_descent_toronto.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 692D9A90EA26F6C0206B3FE7 /* captain_descent_toronto.m4a */; };
 		7C9E2463626AE9E88A259B33 /* MembershipTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3783C99C7CB2EF0AB22EC48F /* MembershipTests.swift */; };
+		7D51B3BEE86A04CFEEB4EE7D /* OpenSkiesFlight.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED4D4C37B1D28FB9BA817E76 /* OpenSkiesFlight.swift */; };
 		7D8B650B074938BCCF34B385 /* LogbookExport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E022A608CB304EC16BA6E04 /* LogbookExport.swift */; };
+		7DB27458032C55D2F718431D /* OpenSkiesViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5DC4F995589F1389622B55C /* OpenSkiesViews.swift */; };
 		7DC88D53AAECBCA14AD9484E /* SoundEffects.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68DD5201FC873FE71421AE60 /* SoundEffects.swift */; };
 		7E503D355C8A497302803727 /* crew_midpoint_miami.m4a in Resources */ = {isa = PBXBuildFile; fileRef = DBA92310A18B8E07AC544F07 /* crew_midpoint_miami.m4a */; };
 		7FEEF506932F90C3D03EE36C /* captain_descent_vancouver.m4a in Resources */ = {isa = PBXBuildFile; fileRef = B15439F09F917E56AAC4D0C2 /* captain_descent_vancouver.m4a */; };
@@ -204,6 +208,7 @@
 		8F3E92CC9FB45784EFCBF85D /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0FF1BED67E63D4365884E3C /* HomeView.swift */; };
 		8F801ADDFF480B8A0CDCE918 /* Membership.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9673E64355BF2C19CC13775 /* Membership.swift */; };
 		92D25EB1B324113E7900DE7C /* ShipatonFlightUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0BDD8B1F6977D5ABD45957 /* ShipatonFlightUITests.swift */; };
+		936FD90F62DAABEA8B19A4F0 /* OpenSkiesField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FF7B24F1FD5CBF7EA6BE0B5 /* OpenSkiesField.swift */; };
 		958655BEA69867587AC74A4A /* FlightManualView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAFFCBE6A86B914CA6768F9 /* FlightManualView.swift */; };
 		96AC30BF0A697D72EE75C2CE /* UpgradeOfferSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCE9238C19A5B1E78A5DEE0B /* UpgradeOfferSheet.swift */; };
 		98273EE2ED4F02F6F3EA706D /* captain_layover_regina.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 0F8AFBE9EFBCB5E93699E0D5 /* captain_layover_regina.m4a */; };
@@ -274,6 +279,7 @@
 		D15FC24E0321D3C05B3DBADB /* crew_finalcall_seattle.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 26AF6F7E1BAF7A8CC783E21C /* crew_finalcall_seattle.m4a */; };
 		D33746C075E327A66A01BC35 /* captain_landed_seattle.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 3D082301D455543C4F246FCE /* captain_landed_seattle.m4a */; };
 		D3C399EF9629AC863D188B77 /* crew_midpoint_toronto.m4a in Resources */ = {isa = PBXBuildFile; fileRef = D1C922232FA4D9216FFE5E8B /* crew_midpoint_toronto.m4a */; };
+		D3ECC86F270B4432B6ABD1C6 /* OpenSkiesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE1E88339C926AC95DD5585B /* OpenSkiesTests.swift */; };
 		D400BF0F98A84ED60FDBC952 /* LandedCurtainOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2116BBACB81EA76671765BF /* LandedCurtainOverlay.swift */; };
 		D59281AE250FEE4F8D4E047A /* VoyageApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08A62644CD80D9C5F040E411 /* VoyageApp.swift */; };
 		D684AF7F3C52364AD1779CD3 /* captain_landed_boston.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 8341D6251BBA33681C30F9E9 /* captain_landed_boston.m4a */; };
@@ -387,6 +393,7 @@
 		0F8AFBE9EFBCB5E93699E0D5 /* captain_layover_regina.m4a */ = {isa = PBXFileReference; path = captain_layover_regina.m4a; sourceTree = "<group>"; };
 		10566A414E4D9EAE24BC0E96 /* MapWarmer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapWarmer.swift; sourceTree = "<group>"; };
 		11487234A9EE6620ACB08159 /* captain_landed_raleigh-durham.m4a */ = {isa = PBXFileReference; path = "captain_landed_raleigh-durham.m4a"; sourceTree = "<group>"; };
+		117884DEFBE52B693F08A70B /* OpenSkiesCaptureUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenSkiesCaptureUITests.swift; sourceTree = "<group>"; };
 		12E458668041C9519447B5BB /* crew_landed_los-angeles.m4a */ = {isa = PBXFileReference; path = "crew_landed_los-angeles.m4a"; sourceTree = "<group>"; };
 		134BB3C9048429012FAC668C /* AppFeedbackTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppFeedbackTests.swift; sourceTree = "<group>"; };
 		1545C3C05BB4E989996E11EC /* LocationManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationManagerTests.swift; sourceTree = "<group>"; };
@@ -499,6 +506,7 @@
 		6CB0E8E2B49F73535A03C4E3 /* FlightSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightSession.swift; sourceTree = "<group>"; };
 		6DE2DCE88158D88ECE067EBA /* Voyage.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Voyage.entitlements; sourceTree = "<group>"; };
 		6FD32186AF1A70DAF0ABAA98 /* StudyCoachSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyCoachSection.swift; sourceTree = "<group>"; };
+		6FF7B24F1FD5CBF7EA6BE0B5 /* OpenSkiesField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenSkiesField.swift; sourceTree = "<group>"; };
 		70B261169A7B09AB85EFC180 /* FlightDataRecorderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightDataRecorderView.swift; sourceTree = "<group>"; };
 		70EE26938771E82CCE4CF44F /* FlightActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightActivity.swift; sourceTree = "<group>"; };
 		73F481425EBD0819BD715AC8 /* WindowWorldRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowWorldRenderer.swift; sourceTree = "<group>"; };
@@ -602,6 +610,7 @@
 		C27E2A5E4DBC77E8C75FC1AF /* PilotRatingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PilotRatingsTests.swift; sourceTree = "<group>"; };
 		C2A8F01DA97D301AB3FDFBFD /* PilotRatings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PilotRatings.swift; sourceTree = "<group>"; };
 		C3FDADA12F8C38769AAC13FF /* StudyCoachTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyCoachTests.swift; sourceTree = "<group>"; };
+		C5DC4F995589F1389622B55C /* OpenSkiesViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenSkiesViews.swift; sourceTree = "<group>"; };
 		C6CB91E0EA01BD53011DE71A /* AirframePlanform.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirframePlanform.swift; sourceTree = "<group>"; };
 		C6EA3177491BACB00D2315D7 /* RealWorldWindowSceneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealWorldWindowSceneView.swift; sourceTree = "<group>"; };
 		C9673E64355BF2C19CC13775 /* Membership.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Membership.swift; sourceTree = "<group>"; };
@@ -614,6 +623,7 @@
 		CC2D70F215661D57F2673B60 /* crew_finalcall_san-francisco.m4a */ = {isa = PBXFileReference; path = "crew_finalcall_san-francisco.m4a"; sourceTree = "<group>"; };
 		CDE51E8DD9A8AE7392F748BB /* crew_welcome.m4a */ = {isa = PBXFileReference; path = crew_welcome.m4a; sourceTree = "<group>"; };
 		CE009BF8082E53373B1C2DE9 /* RealWorldTwinView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealWorldTwinView.swift; sourceTree = "<group>"; };
+		CE1E88339C926AC95DD5585B /* OpenSkiesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenSkiesTests.swift; sourceTree = "<group>"; };
 		CE7C38C4A1700E1751034581 /* RoutePlannerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutePlannerTests.swift; sourceTree = "<group>"; };
 		CEAB439A61F321209907F358 /* DigitalTwinTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DigitalTwinTests.swift; sourceTree = "<group>"; };
 		CF3E2B746AD0E50EC8782F60 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -646,8 +656,10 @@
 		E8AEF7ADAB79AC0DE1DDDDED /* captain_preview.m4a */ = {isa = PBXFileReference; path = captain_preview.m4a; sourceTree = "<group>"; };
 		E90C1A3DFBF3DAA7D4ABB231 /* CheckBagView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckBagView.swift; sourceTree = "<group>"; };
 		E9C6A8900000325A9B0AEC28 /* WeatherMappingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherMappingTests.swift; sourceTree = "<group>"; };
+		EA1801763C368256138C9088 /* OpenSkiesCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenSkiesCard.swift; sourceTree = "<group>"; };
 		EA9AAD4889275D62E36335E0 /* crew_descent_miami.m4a */ = {isa = PBXFileReference; path = crew_descent_miami.m4a; sourceTree = "<group>"; };
 		EBAA978DBBDFD3DA387ADE27 /* FlapboardWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlapboardWidget.swift; sourceTree = "<group>"; };
+		ED4D4C37B1D28FB9BA817E76 /* OpenSkiesFlight.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenSkiesFlight.swift; sourceTree = "<group>"; };
 		EDC3A5BA4D41E5179301A3C2 /* LogbookExportButtons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogbookExportButtons.swift; sourceTree = "<group>"; };
 		EEADBF54A9BE3BC765AB6B39 /* DivertedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DivertedView.swift; sourceTree = "<group>"; };
 		F0C5C9C32760DDC7FD61A5E7 /* CabinAudioEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CabinAudioEngine.swift; sourceTree = "<group>"; };
@@ -714,6 +726,7 @@
 				FFFA55727F79CA0DBA4AE691 /* MarketingCaptureUITests.swift */,
 				80DF8DC44A094F25C9BF7BDB /* NinetySecondTourUITests.swift */,
 				DF9D0F0A8DEEE9D163BE0277 /* OnboardingUITests.swift */,
+				117884DEFBE52B693F08A70B /* OpenSkiesCaptureUITests.swift */,
 				B36A674EB82F814C49CC6650 /* RecorderScreenshotUITests.swift */,
 				6614C142F7A822926BE8BECD /* RedesignCaptureUITests.swift */,
 				9C6FBB0F4116077FBF34D6A5 /* ScreenshotTourUITests.swift */,
@@ -787,6 +800,7 @@
 				6772A9E155A264D847919184 /* LogbookPostTests.swift */,
 				896418F2BD5C90838D03F3DB /* LoyaltyProgramTests.swift */,
 				3783C99C7CB2EF0AB22EC48F /* MembershipTests.swift */,
+				CE1E88339C926AC95DD5585B /* OpenSkiesTests.swift */,
 				C27E2A5E4DBC77E8C75FC1AF /* PilotRatingsTests.swift */,
 				7CD17548DAFEE7A39239C324 /* ReplayCameraPlanTests.swift */,
 				FF3BFC67E078E4199B9419D6 /* RouteCatalogTests.swift */,
@@ -881,6 +895,7 @@
 				56D4D40BAD9F85F05F7C581A /* FlightMapView.swift */,
 				DD7705DAB62E1CCFB2ED9BFE /* InFlightView.swift */,
 				4CF9A3E41E2483EE5D95F966 /* LayoverLoungeView.swift */,
+				C5DC4F995589F1389622B55C /* OpenSkiesViews.swift */,
 				415C36476BB7DDE42806FBA6 /* RealWorldSceneView.swift */,
 				CE009BF8082E53373B1C2DE9 /* RealWorldTwinView.swift */,
 				C6EA3177491BACB00D2315D7 /* RealWorldWindowSceneView.swift */,
@@ -1107,6 +1122,7 @@
 				5B3E3EA3614B21EB239A8785 /* CabinServicePlanner.swift */,
 				6CB0E8E2B49F73535A03C4E3 /* FlightSession.swift */,
 				D850AA9B1E8C527067E51362 /* InterruptedFlightRecovery.swift */,
+				ED4D4C37B1D28FB9BA817E76 /* OpenSkiesFlight.swift */,
 			);
 			path = Flight;
 			sourceTree = "<group>";
@@ -1126,6 +1142,7 @@
 				3C6F2BFB9AB249CFA3D2EB4F /* GlobeRoute.swift */,
 				DF7C67C71E57809196E243DF /* HomeGreeting.swift */,
 				A0FF1BED67E63D4365884E3C /* HomeView.swift */,
+				EA1801763C368256138C9088 /* OpenSkiesCard.swift */,
 				3AAB53D2E07097E1378EDA77 /* ScheduleSheet.swift */,
 				1E3D55D19B23027BB0992231 /* StartupGlobeCover.swift */,
 				FDCB3B0F92A8BC6C07F7E907 /* VoyageMilesCard.swift */,
@@ -1165,6 +1182,7 @@
 				A6D839091C0E94900792F598 /* LogbookEntry.swift */,
 				7E022A608CB304EC16BA6E04 /* LogbookExport.swift */,
 				249CC56FE35BB1FBA3B5CC85 /* LoyaltyProgram.swift */,
+				6FF7B24F1FD5CBF7EA6BE0B5 /* OpenSkiesField.swift */,
 				C2A8F01DA97D301AB3FDFBFD /* PilotRatings.swift */,
 				84CD44E3543F506A3749B2CE /* RouteCatalog.swift */,
 				B677A2CF7162DBB0F3C7D092 /* RoutePlanner.swift */,
@@ -1574,6 +1592,7 @@
 				9D717AE98ED5B8BAB8267A46 /* LogbookPostTests.swift in Sources */,
 				47864DFD7E0F46C7660116B5 /* LoyaltyProgramTests.swift in Sources */,
 				7C9E2463626AE9E88A259B33 /* MembershipTests.swift in Sources */,
+				D3ECC86F270B4432B6ABD1C6 /* OpenSkiesTests.swift in Sources */,
 				B7664D42A73AF6A21FAACC4B /* PilotRatingsTests.swift in Sources */,
 				55153B902A4694833BE33E8F /* ReplayCameraPlanTests.swift in Sources */,
 				87603F97599BDD9EBA2488DE /* RouteCatalogTests.swift in Sources */,
@@ -1604,6 +1623,7 @@
 				76C5046599AEEAAA41A6E102 /* MarketingCaptureUITests.swift in Sources */,
 				DB6E0FBC7A8C23F896FCA196 /* NinetySecondTourUITests.swift in Sources */,
 				C6A224EEDC8399DCCF214A22 /* OnboardingUITests.swift in Sources */,
+				12A549F1CE573B62CD2E1FC0 /* OpenSkiesCaptureUITests.swift in Sources */,
 				55F23693CF9EF21785BD3E99 /* RecorderScreenshotUITests.swift in Sources */,
 				C2BB1ADF4A8EEAAFBB80E6D0 /* RedesignCaptureUITests.swift in Sources */,
 				A9129418EED5173845FA52B8 /* SFOWindowWorldUITests.swift in Sources */,
@@ -1691,6 +1711,10 @@
 				B3BCE7161D853F887FC55F03 /* MembershipCardView.swift in Sources */,
 				8451688444A87EFF98AB7E42 /* MetaStyle.swift in Sources */,
 				9CA8B5599618A7590FA87C45 /* OnboardingView.swift in Sources */,
+				0A7FECC7AB9341759077B6BD /* OpenSkiesCard.swift in Sources */,
+				936FD90F62DAABEA8B19A4F0 /* OpenSkiesField.swift in Sources */,
+				7D51B3BEE86A04CFEEB4EE7D /* OpenSkiesFlight.swift in Sources */,
+				7DB27458032C55D2F718431D /* OpenSkiesViews.swift in Sources */,
 				AB3DD460AA7855763742CBBB /* PassportPhotoStore.swift in Sources */,
 				75851D7A4CD16A7979B8C57B /* PassportStamp.swift in Sources */,
 				3573E8F27242AF37FB6A92BF /* PassportView.swift in Sources */,

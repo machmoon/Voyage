@@ -40,7 +40,10 @@ final class FlightSession {
 
     // MARK: Configuration
 
-    let itinerary: Itinerary
+    /// The booked route. Fixed for a booked flight; an Open skies flight
+    /// carries a placeholder destination until it is cleared to land, then
+    /// this becomes the route it actually flew.
+    private(set) var itinerary: Itinerary
     var seat: String = "—"
     var aircraft: AircraftProfile = .boeing737800
     var intentions: [String] = []
@@ -578,7 +581,9 @@ final class FlightSession {
         guard let departedAt, let legStartDate else { return }
         InterruptedFlightRecovery.save(InFlightRecord(
             originCode: itinerary.origin.code,
-            destinationCode: itinerary.destination.code,
+            // Open skies has no destination yet; a recovered flight is logged
+            // to the field the autopilot was heading for.
+            destinationCode: openSkies?.target?.code ?? itinerary.destination.code,
             connectionCode: itinerary.connection?.code,
             flightNumber: itinerary.primaryFlightNumber,
             seat: seat,
@@ -641,16 +646,20 @@ final class FlightSession {
         }
         self.prefetchedLegEnvironments = nil
         self.frozenLegEnvironments = environments
-        self.legTrajectories = zip(itinerary.legs, environments).map { leg, environment in
-            FlightVisualEngine.trajectory(
-                for: flownLeg(leg),
-                aircraft: aircraft,
-                environment: environment,
-                shortFlights: Self.shortFlightsEnabled
-            )
-        }
-        self.legMapSamples = legTrajectories.map {
-            $0.replaySamples(count: 192, seat: seat)
+        if isOpenSkies {
+            freezeOpenSkies(environment: environments[0])
+        } else {
+            self.legTrajectories = zip(itinerary.legs, environments).map { leg, environment in
+                FlightVisualEngine.trajectory(
+                    for: flownLeg(leg),
+                    aircraft: aircraft,
+                    environment: environment,
+                    shortFlights: Self.shortFlightsEnabled
+                )
+            }
+            self.legMapSamples = legTrajectories.map {
+                $0.replaySamples(count: 192, seat: seat)
+            }
         }
 
         originWeatherSnapshot = environments.first?.departureWeather
@@ -687,6 +696,7 @@ final class FlightSession {
                 divert()
                 return
             }
+            advanceOpenSkies()
             fireDueEvents()
             // The cart moves on if ignored, and never lingers into descent.
             if let until = beverageCartUntil, now >= until || phase >= .descent {
@@ -784,7 +794,9 @@ final class FlightSession {
                 fire(.beverageService(index)) { startBeverageService() }
             }
         }
-        if e >= d / 2 {
+        // Open skies has no destination to be halfway to, and its descent is
+        // announced by the landing clearance instead (`advanceOpenSkies`).
+        if e >= d / 2, !isOpenSkies {
             fire(.midpoint) {
                 Announcer.shared.announce(
                     .midpoint(city: currentLeg.destination.city),
@@ -798,10 +810,12 @@ final class FlightSession {
                 // The seatbelt sign is the cue passengers actually recognize;
                 // it lands before the announcement rather than under it.
                 CabinAudioEngine.shared.playSeatbeltSign()
-                Announcer.shared.announce(
-                    .descent(city: currentLeg.destination.city),
-                    premiumChime: hasPremiumChime
-                )
+                if !isOpenSkies {
+                    Announcer.shared.announce(
+                        .descent(city: currentLeg.destination.city),
+                        premiumChime: hasPremiumChime
+                    )
+                }
             }
         }
         if e >= max(schedule.descentStart, schedule.landingStart - 60) {
@@ -875,7 +889,9 @@ final class FlightSession {
     // MARK: Leg completion
 
     private func completeLeg() {
-        completedMiles += currentLeg.distanceMiles
+        // Open skies credits its minutes at the app's rate, not the straight
+        // line from home to wherever it came down.
+        completedMiles += isOpenSkies ? OpenSkiesFlight.creditedMiles : currentLeg.distanceMiles
         completedFocusSeconds += legDuration
         beverageCartUntil = nil
 
@@ -981,6 +997,204 @@ final class FlightSession {
         graceWorkItem = nil
     }
 
+    // MARK: Open skies
+
+    /// A one-line message the in-flight screen shows for a few seconds:
+    /// "You have control.", "Autopilot engaged.", the landing clearance.
+    struct OpenSkiesNotice: Equatable {
+        let id: Int
+        let text: String
+        let expiresAt: Date
+    }
+
+    /// True for a no-destination flight started from the Open skies card.
+    private(set) var isOpenSkies = false
+    /// The steered flight, from departure on. The source of truth for where an
+    /// Open skies aircraft is; `legTrajectories` is rebuilt from it each tick.
+    private(set) var openSkies: OpenSkiesFlight?
+    private(set) var openSkiesNotice: OpenSkiesNotice?
+    private var openSkiesVisitedCodes: Set<String> = []
+    private static let noticeDuration: TimeInterval = 3.5
+
+    /// A 25-minute flight from `origin` with no destination: the autopilot
+    /// heads for a field not in `visitedCodes`, and wherever it is cleared to
+    /// land at 23:00 becomes the destination.
+    static func openSkies(from origin: Airport,
+                          visitedCodes: Set<String>,
+                          modelContext: ModelContext,
+                          tier: FlyerTier,
+                          clock: any VoyageClock = SystemClock()) -> FlightSession {
+        let placeholder = Airport.openSkiesPlaceholder(near: origin)
+        let leg = FlightLeg(origin: origin,
+                            destination: placeholder,
+                            duration: OpenSkiesFlight.duration,
+                            flightNumber: RoutePlanner.fallbackFlightNumber(from: origin, to: placeholder))
+        let session = FlightSession(itinerary: Itinerary(legs: [leg], layoverDuration: 0),
+                                    modelContext: modelContext, tier: tier, clock: clock)
+        session.isOpenSkies = true
+        session.openSkiesVisitedCodes = visitedCodes
+        return session
+    }
+
+    /// Open skies has nowhere to be, so it skips the seat map: the traveller's
+    /// last seat if it is still theirs to book, otherwise a Main Cabin window.
+    func autoAssignSeat(isFirstMember: Bool = false) {
+        if let last = SettingsStore.shared.lastSeat(on: aircraft),
+           let row = Int(last.filter(\.isNumber)),
+           premiumSeatAccess(row: row, isFirstMember: isFirstMember).isBookable {
+            seat = last
+        } else {
+            seat = "A12"
+        }
+    }
+
+    /// Under the countdown: "to Monterey", or "Open skies" until cleared to land.
+    var countdownDestinationLine: String {
+        isOpenSkies && openSkies?.landing == nil ? "Open skies" : "to \(currentLeg.destination.city)"
+    }
+
+    /// Whether a tap on the aircraft would hand the traveller the controls.
+    var canTakeOpenSkiesControl: Bool {
+        stage == .inFlight && openSkies?.canTakeControl(at: liveFlightTime) == true
+    }
+
+    /// The aircraft was tapped: take the controls, or give them back.
+    func toggleOpenSkiesControl() {
+        guard stage == .inFlight, var flight = openSkies else { return }
+        switch flight.control {
+        case .autopilot:
+            guard flight.takeControl(at: liveFlightTime) else { return }
+            openSkies = flight
+            Haptics.success()
+            postOpenSkiesNotice("You have control.")
+            Announcer.shared.announce(.youHaveControl, premiumChime: hasPremiumChime)
+        case .pilot:
+            flight.releaseControl()
+            openSkies = flight
+            handleOpenSkies(.autopilotEngaged)
+        case .approach:
+            break
+        }
+    }
+
+    /// The bank the traveller is asking for (tilt or drag), in degrees.
+    func steerOpenSkies(bankDegrees: Double) {
+        guard var flight = openSkies, flight.control == .pilot,
+              abs(flight.pilotBank - bankDegrees) >= 0.5 else { return }
+        flight.steer(bankDegrees: bankDegrees)
+        openSkies = flight
+    }
+
+    /// Flight seconds now, read from the clock rather than the last tick so a
+    /// tap lands at the moment it happened.
+    private var liveFlightTime: TimeInterval {
+        guard let start = legStartDate else { return 0 }
+        return max(0, clock.now.timeIntervalSince(start)) * (openSkies?.timeScale ?? 1)
+    }
+
+    private func freezeOpenSkies(environment: FlightEnvironmentSnapshot) {
+        let origin = itinerary.origin
+        // There is no route to align with, so the usual runway, turned by the wind.
+        let usual = FlightVisualEngine.runways(for: origin)
+            .max { $0.defaultPriority < $1.defaultPriority }?.trueHeadingDegrees ?? 0
+        let runway = FlightVisualEngine.selectRunway(for: origin,
+                                                     routeCourseDegrees: usual,
+                                                     weather: environment.departureWeather,
+                                                     aircraft: aircraft)
+        let flight = OpenSkiesFlight(origin: origin, departureRunway: runway, aircraft: aircraft,
+                                     visitedCodes: openSkiesVisitedCodes, legDuration: legDuration)
+        openSkies = flight
+        refreshOpenSkiesTrajectory(environment: environment)
+    }
+
+    /// Extends the steered path a second past the clock, so the window and the
+    /// map, which sample it every frame, always read committed path.
+    private func advanceOpenSkies() {
+        guard var flight = openSkies else { return }
+        let events = flight.advance(to: (legElapsed + 1) * flight.timeScale)
+        openSkies = flight
+        events.forEach(handleOpenSkies)
+        if let environment = frozenLegEnvironments.first {
+            refreshOpenSkiesTrajectory(environment: environment)
+        }
+        if let notice = openSkiesNotice, now >= notice.expiresAt {
+            openSkiesNotice = nil
+        }
+    }
+
+    private func handleOpenSkies(_ event: OpenSkiesFlight.Event) {
+        switch event {
+        case .autopilotEngaged:
+            Haptics.softTick()
+            postOpenSkiesNotice("Autopilot engaged.")
+            Announcer.shared.announce(.autopilotEngaged, premiumChime: hasPremiumChime)
+        case .clearedToLand(let field):
+            landOpenSkies(at: field.airport)
+            Haptics.softTick()
+            postOpenSkiesNotice("ATC: cleared to land at \(field.airport.city).")
+            Announcer.shared.announce(.clearedToLand(city: field.airport.city),
+                                      premiumChime: hasPremiumChime)
+            FlightActivityController.shared.update(session: self)
+        }
+    }
+
+    private func postOpenSkiesNotice(_ text: String) {
+        openSkiesNotice = OpenSkiesNotice(id: (openSkiesNotice?.id ?? 0) + 1,
+                                          text: text,
+                                          expiresAt: clock.now.addingTimeInterval(Self.noticeDuration))
+    }
+
+    /// The route becomes the one actually flown: home to `airport`.
+    private func landOpenSkies(at airport: Airport) {
+        let leg = currentLeg
+        itinerary = Itinerary(legs: [FlightLeg(origin: leg.origin, destination: airport,
+                                               duration: leg.duration, flightNumber: leg.flightNumber)],
+                              layoverDuration: 0)
+    }
+
+    /// Ended before landing: logged to the field it was cleared for, or the
+    /// nearest one that is not home.
+    private func settleOpenSkiesDestination() {
+        guard let flight = openSkies,
+              let field = flight.provisionalField(at: legElapsed * flight.timeScale) else { return }
+        landOpenSkies(at: field.airport)
+    }
+
+    private func refreshOpenSkiesTrajectory(environment: FlightEnvironmentSnapshot) {
+        guard let flight = openSkies else { return }
+        legTrajectories = [FlightTrajectory(openSkies: flight, leg: currentLeg,
+                                            aircraft: aircraft, environment: environment)]
+        let flown = openSkiesMapSamples(flight)
+        if legMapSamples.first?.count != flown.count {
+            legMapSamples = [flown]
+        }
+    }
+
+    /// The track flown so far for the map's line: a point every five flight
+    /// seconds, then the aircraft. Only its length changes the map's overlay,
+    /// so the line is redrawn every five seconds, not every tick.
+    private func openSkiesMapSamples(_ flight: OpenSkiesFlight) -> [FlightTrajectorySample] {
+        let flightNow = legElapsed * flight.timeScale
+        let every = Int(5 / SteeredPath.step)
+        let flown = flight.path.samples.enumerated()
+            .filter { $0.offset % every == 0 && $0.element.time <= flightNow }
+            .map(\.element)
+        let points = flown + [flight.path.sample(at: flightNow)]
+        return points.map { sample in
+            let elapsed = sample.time / flight.timeScale
+            return FlightTrajectorySample(
+                elapsed: elapsed,
+                latitude: sample.latitude,
+                longitude: sample.longitude,
+                altitudeMeters: flight.altitudeMeters(at: sample.time),
+                courseDegrees: sample.courseDegrees,
+                pitchDegrees: 0,
+                bankDegrees: sample.bankDegrees,
+                routeProgress: min(1, max(0, elapsed / max(0.001, legDuration)))
+            )
+        }
+    }
+
     // MARK: Logbook
 
     private func finishSession(outcome: FlightOutcome) {
@@ -993,6 +1207,7 @@ final class FlightSession {
         // Diverted mid-leg still credits the partial leg; a missed connection
         // credits exactly the legs that landed (layover time isn't focus).
         let partialLeg = stage == .diverted ? min(legElapsed, legDuration) : 0
+        if isOpenSkies, !completed { settleOpenSkiesDestination() }
         let focusSeconds = completed
             ? itinerary.totalFocusDuration
             : completedFocusSeconds + partialLeg
@@ -1000,7 +1215,10 @@ final class FlightSession {
         // Persist the exact phase-aware samples used by the live map. This
         // preserves dense runway/corridor geometry and exact phase boundaries
         // in replay instead of creating a second, coarser uniform trace.
-        let trajectoryLegSamples = legMapSamples.isEmpty
+        // An Open skies flight that landed keeps its whole steered track, at
+        // the trajectory's phase-aware density; one that ended early keeps
+        // what it flew.
+        let trajectoryLegSamples = legMapSamples.isEmpty || (isOpenSkies && completed)
             ? legTrajectories.map { $0.replaySamples(count: 192, seat: seat) }
             : legMapSamples
         let entry = LogbookEntry(
@@ -1029,6 +1247,7 @@ final class FlightSession {
             outcome: outcome
         )
         entry.tagCodes = TaskCode.codes(for: intentions, existing: tagCodes)
+        entry.isOpenSkies = isOpenSkies
         // A flight that ended within its first minute is a false start, not
         // a trip: the diverted screen still shows it, the logbook does not.
         // Tearing a pass and backing out immediately used to leave rows of

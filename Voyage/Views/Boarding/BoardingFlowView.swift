@@ -18,6 +18,15 @@ struct BoardingFlowView: View {
     @State private var boardingHidden = false
     @State private var settings = SettingsStore.shared
 
+    init(session: FlightSession, onCancel: @escaping () -> Void) {
+        _session = Bindable(session)
+        self.onCancel = onCancel
+        // Open skies has no seat to choose, bag to check or pass to tear: it
+        // opens on the curtain itself.
+        _boardingHidden = State(initialValue: session.isOpenSkies)
+        _isDeparting = State(initialValue: session.isOpenSkies)
+    }
+
     private var isCabinStep: Bool { step == .seat }
 
     private var leg: FlightLeg { session.itinerary.legs[0] }
@@ -79,6 +88,7 @@ struct BoardingFlowView: View {
             // view transition away from any tap or drag, and before the rip
             // starts the flight. See `CabinAudioEngine.prewarm()`.
             CabinAudioEngine.shared.prewarm()
+            if session.isOpenSkies { holdCurtainThenDepart() }
         }
     }
 
@@ -183,7 +193,11 @@ struct BoardingFlowView: View {
         withAnimation(.easeInOut(duration: 0.6).delay(0.3)) {
             isDeparting = true
         }
+        holdCurtainThenDepart()
+    }
 
+    /// Holds the curtain until the window has a frame, then departs.
+    private func holdCurtainThenDepart() {
         let quick = FlightSession.shortFlightsEnabled
         let minimum = DepartureGate.minimumHold(shortFlights: quick)
         let maximum = DepartureGate.maximumHold(shortFlights: quick)

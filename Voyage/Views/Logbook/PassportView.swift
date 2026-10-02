@@ -36,7 +36,9 @@ struct PassportView: View {
             }
         }
 
-        return Airport.all
+        // Open skies fields join the bookable ten once they have been landed at.
+        let fields = OpenSkiesField.regional.map(\.airport).filter { visitsByCode[$0.code] != nil }
+        return (Airport.all + fields)
             .map { airport in
                 let visit = visitsByCode[airport.code]
                 return DestinationRecord(airport: airport, visits: visit?.count ?? 0, lastVisit: visit?.lastVisit)
