@@ -204,6 +204,9 @@ final class FlightSession {
     private var firedEvents: Set<Event> = []
     private let modelContext: ModelContext
     private let clock: any VoyageClock
+    /// Screen Time app blocking. Injected like the clock so tests can watch
+    /// the shields go up and down with a fake (`AirplaneModeTests`).
+    let airplaneMode: AirplaneMode
 
     // MARK: Phase timing constants
 
@@ -258,11 +261,13 @@ final class FlightSession {
     init(itinerary: Itinerary,
          modelContext: ModelContext,
          tier: FlyerTier,
-         clock: any VoyageClock = SystemClock()) {
+         clock: any VoyageClock = SystemClock(),
+         airplaneMode: AirplaneMode = .shared) {
         self.itinerary = itinerary
         self.modelContext = modelContext
         self.tier = tier
         self.clock = clock
+        self.airplaneMode = airplaneMode
         let t = clock.now
         self.bookedAt = t
         self.now = t
@@ -615,6 +620,16 @@ final class FlightSession {
         // cadence starts over rather than carrying a debt across the layover.
         servicePlanner.reset()
         serviceCue = nil
+        // Airplane Mode: shields go up with the first takeoff and stay up
+        // through every layover; a connection only moves the shield's
+        // destination and landing time on. `finishSession` lowers them.
+        if legIndex == 0 {
+            airplaneMode.takeoff(airplaneModeFlight(legStartedAt: t), now: t)
+        } else {
+            airplaneMode.connection(destinationCode: airplaneModeDestination?.code,
+                                    destinationCity: airplaneModeDestination?.city,
+                                    landsAt: t.addingTimeInterval(legDuration))
+        }
         FlightActivityController.shared.start(session: self)
         // The passenger enters the scene already lined up for departure, so
         // the first sound bed is runway acceleration rather than taxiing.
@@ -625,6 +640,30 @@ final class FlightSession {
             guard self.stage == .inFlight else { return }
             Announcer.shared.announce(.welcomeAboard, premiumChime: self.hasPremiumChime)
         }
+    }
+
+    /// Where the shield says the flight is going. An Open skies flight has
+    /// nowhere to be until it is cleared to land, so it says so instead.
+    private var airplaneModeDestination: Airport? {
+        isOpenSkies ? nil : currentLeg.destination
+    }
+
+    /// The App Group record for the extensions, made at the first takeoff.
+    /// The safety net ends at the latest this itinerary can still be in the
+    /// air (every leg as flown, every layover and its final call) plus a margin.
+    private func airplaneModeFlight(legStartedAt start: Date) -> AirplaneModeFlight {
+        AirplaneModeFlight(
+            id: UUID(),
+            destinationCode: airplaneModeDestination?.code,
+            destinationCity: airplaneModeDestination?.city,
+            landsAt: start.addingTimeInterval(legDuration),
+            safetyNetEndsAt: AirplaneModeSchedule.safetyNetEnd(
+                departure: start,
+                legDurations: itinerary.legs.map { flownLeg($0).duration },
+                layover: layoverDuration,
+                finalCallWindow: Self.finalCallWindow
+            )
+        )
     }
 
     /// Select every runway and corridor exactly once before the first roll.
@@ -1199,6 +1238,10 @@ final class FlightSession {
 
     private func finishSession(outcome: FlightOutcome) {
         let completed = outcome.didArrive
+        // Every ending passes through here: arrived (Open skies included),
+        // left early, interrupted, missed connection. First, so nothing
+        // below can leave the phone blocked.
+        airplaneMode.land()
         timer?.invalidate()
         timer = nil
         preflightWeatherTask?.cancel()

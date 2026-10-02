@@ -18,6 +18,9 @@ struct VoyageApp: App {
         // RevenueCat, for the optional First Class membership. A no-op without
         // a key and under XCTest; see `Membership.configure`.
         MainActor.assumeIsolated { Membership.shared.configure() }
+        // Airplane Mode: no flight is in progress in a process that just
+        // started, so any shield still up was left by one that died mid-flight.
+        MainActor.assumeIsolated { AirplaneMode.shared.cleanUpAtLaunch() }
     }
 
     var body: some Scene {

@@ -335,6 +335,20 @@ struct InFlightView: View {
 
     private func topBarContent(iconOnly: Bool) -> some View {
         HStack(spacing: 2) {
+            // Airplane Mode is blocking apps. A status glyph, not a control:
+            // the shields belong to the flight and come down when it ends.
+            // Orange, as iOS draws Airplane Mode in Control Center.
+            if session.airplaneMode.shieldsUp {
+                Image(systemName: "airplane")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(.orange)
+                    .frame(width: 30, height: 36)
+                    .accessibilityLabel("Airplane Mode on. Chosen apps are blocked until you land.")
+                    .accessibilityIdentifier("inflight-airplane-mode")
+
+                toolbarDivider
+            }
+
             if session.itinerary.isConnection {
                 Text("LEG \(session.legIndex + 1)/\(session.itinerary.legs.count)")
                     .font(.system(size: 10, weight: .heavy, design: .rounded))

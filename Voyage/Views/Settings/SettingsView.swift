@@ -14,6 +14,8 @@ struct SettingsView: View {
     /// Read once when Settings opens; Apple Intelligence state changes in the
     /// Settings app, which reopening this screen picks up.
     @State private var intelligence = IntelligenceAvailability.current
+    @State private var airplaneMode = AirplaneMode.shared
+    @State private var choosingApps = false
 
     /// Installed English voices, best first.
     private var paVoices: [AVSpeechSynthesisVoice] {
@@ -86,6 +88,8 @@ struct SettingsView: View {
             .onAppear { hasSeededData = TestModeSeeder.hasSeededData(in: modelContext) }
             .sheet(isPresented: $isWritingFeedback) { FeedbackSheet() }
             .sheet(isPresented: $showingFlightManual) { FlightManualView() }
+            .airplaneModePicker(isPresented: $choosingApps)
+            .onAppear { airplaneMode.refresh() }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
@@ -246,8 +250,30 @@ struct SettingsView: View {
 
     // MARK: Focus and Apple Intelligence
 
+    // Airplane Mode sits here rather than under Flight: like a Focus, it is
+    // about what reaches you while you fly, and the two read as one choice.
     private var focusSection: some View {
         Section {
+            if airplaneMode.isAvailable {
+                Toggle(isOn: $airplaneMode.isEnabled) {
+                    SettingsLabel("Airplane Mode", systemImage: "airplane", tint: .orange)
+                }
+                .disabled(airplaneMode.selectionCount == 0)
+                .accessibilityIdentifier("settings-airplane-mode")
+                Button {
+                    Task {
+                        if await airplaneMode.requestAuthorization() { choosingApps = true }
+                    }
+                } label: {
+                    LabeledContent {
+                        Text(airplaneMode.selectionCount == 0 ? "None" : "\(airplaneMode.selectionCount)")
+                    } label: {
+                        SettingsLabel("Choose apps", systemImage: "square.grid.2x2.fill", tint: .orange)
+                    }
+                }
+                .foregroundStyle(.primary)
+                .accessibilityIdentifier("settings-airplane-mode-apps")
+            }
             Toggle(isOn: Binding(
                 get: { settings.flightFocusRemindersEnabled },
                 set: { settings.flightFocusRemindersEnabled = $0 }
@@ -257,8 +283,17 @@ struct SettingsView: View {
         } header: {
             Text("Focus")
         } footer: {
-            Text("Add Voyage to an iOS Focus Filter, then turn that Focus on before boarding.")
+            Text(focusFootnote)
         }
+    }
+
+    private var focusFootnote: String {
+        let focus = "Add Voyage to an iOS Focus Filter, then turn that Focus on before boarding."
+        guard airplaneMode.isAvailable else { return focus }
+        if airplaneMode.authorization == .denied {
+            return "Screen Time access is off for Voyage. Turn it on in iOS Settings, Screen Time. " + focus
+        }
+        return "Airplane Mode blocks the apps you choose from takeoff until you land, with Screen Time. Wi-Fi stays on. " + focus
     }
 
     private var intelligenceSection: some View {

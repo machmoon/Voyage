@@ -10,7 +10,9 @@ import MapKit
 /// Four pages, each showing one thing that is specific to Voyage rather than
 /// describing it: real block times from the route catalog, a boarding pass you
 /// can tear, the 30-second rule beside the real passport stamp, and what stays
-/// on the phone.
+/// on the phone. A fifth, Airplane Mode (Screen Time app blocking), sits
+/// before privacy in builds that carry Screen Time; it is optional, and
+/// Continue works without touching it.
 ///
 /// Sources for the shape:
 /// - Apple HIG, Onboarding: "fast, fun, and optional", "Teach through
@@ -28,6 +30,12 @@ import MapKit
 ///   (Steps/Permissions/Steps/Location/LocationPermissionView.swift) says what
 ///   the data is for and that it is not sent to third parties, right beside
 ///   the request, which is what the privacy page does here.
+/// - The same rule for Screen Time: the Airplane Mode page says what it does
+///   first, and the system's Screen Time prompt appears only from its own
+///   "Choose apps to block" button, never on page appear. Foqos asks on a
+///   dedicated intro screen too (awaseem/foqos
+///   Foqos/Components/Intro/PermissionsIntroScreen.swift at 4f6864c); here it
+///   is one optional button instead of a wall.
 /// - WhatsNewKit (SvenTiigi/WhatsNewKit, Sources/View/WhatsNewView.swift):
 ///   the Apple welcome-screen row, symbol plus a semibold line plus a
 ///   secondary line, each row combined into one accessibility element.
@@ -42,6 +50,12 @@ struct OnboardingView: View {
     @State private var arcRevealed = false
     @State private var locationManager = LocationManager()
     @State private var passTorn = false
+    @State private var airplaneMode = AirplaneMode.shared
+    @State private var choosingApps = false
+    /// Fixed when onboarding opens, so a page cannot vanish under the
+    /// traveler if Screen Time turns out to be unavailable on this iPhone.
+    @State private var pages: [OnboardingPage] = OnboardingPage.pages(
+        offersAirplaneMode: AirplaneMode.shared.isAvailable)
 
     /// Derived live from settings, never frozen: when location resolves the
     /// nearest airport, the globe, pins, sample arc and camera all follow, so
@@ -64,7 +78,7 @@ struct OnboardingView: View {
         _cameraPosition = State(initialValue: .camera(Self.camera(for: 0, home: home, destination: nil)))
     }
 
-    static let pageCount = OnboardingPage.allCases.count
+    private var pageCount: Int { pages.count }
 
     var body: some View {
         ZStack {
@@ -83,7 +97,7 @@ struct OnboardingView: View {
                 Spacer(minLength: 0)
 
                 TabView(selection: $page) {
-                    ForEach(OnboardingPage.allCases) { item in
+                    ForEach(Array(pages.enumerated()), id: \.element) { index, item in
                         // Scrolls only if the card outgrows the frame (large
                         // Dynamic Type); at normal sizes it sits still, so
                         // there's no vertical rubber-band to glitch while paging.
@@ -92,7 +106,7 @@ struct OnboardingView: View {
                                 .padding(.horizontal, 20)
                         }
                         .scrollBounceBehavior(.basedOnSize)
-                        .tag(item.rawValue)
+                        .tag(index)
                     }
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
@@ -102,6 +116,7 @@ struct OnboardingView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .airplaneModePicker(isPresented: $choosingApps)
         .onChange(of: page) { _, newPage in flyCamera(to: newPage) }
         .onChange(of: settings.resolvedOriginCode) { _, _ in
             // Nearest airport just resolved: re-fly the current framing to it so
@@ -135,8 +150,11 @@ struct OnboardingView: View {
             }
         case .inFlight:
             InFlightRulesPage(home: home)
+        case .airplaneMode:
+            AirplaneModePage(airplaneMode: airplaneMode, choosingApps: $choosingApps)
         case .privacy:
-            PrivacyPage(showsIntelligence: IntelligenceAvailability.current.offersSetting)
+            PrivacyPage(showsIntelligence: IntelligenceAvailability.current.offersSetting,
+                        showsAirplaneMode: pages.contains(.airplaneMode))
         }
     }
 
@@ -189,7 +207,7 @@ struct OnboardingView: View {
 
     // MARK: Header (mirrors HomeView)
 
-    private var isLastPage: Bool { page == Self.pageCount - 1 }
+    private var isLastPage: Bool { page == pageCount - 1 }
 
     private var header: some View {
         HStack(alignment: .center, spacing: 12) {
@@ -225,7 +243,7 @@ struct OnboardingView: View {
     private var footer: some View {
         VStack(spacing: 22) {
             HStack(spacing: 7) {
-                ForEach(0..<Self.pageCount, id: \.self) { index in
+                ForEach(0..<pageCount, id: \.self) { index in
                     Capsule()
                         .fill(index == page ? Theme.accent : .white.opacity(0.3))
                         .frame(width: index == page ? 22 : 7, height: 7)
@@ -233,7 +251,7 @@ struct OnboardingView: View {
                 }
             }
             .accessibilityElement()
-            .accessibilityLabel("Page \(page + 1) of \(Self.pageCount)")
+            .accessibilityLabel("Page \(page + 1) of \(pageCount)")
 
             Button(action: advance) {
                 Text(isLastPage ? "Start flying" : "Continue")
@@ -309,15 +327,22 @@ struct OnboardingView: View {
 // MARK: - Page list
 
 enum OnboardingPage: Int, CaseIterable, Identifiable {
-    case hello, takeoff, inFlight, privacy
+    case hello, takeoff, inFlight, airplaneMode, privacy
 
     var id: Int { rawValue }
+
+    /// The pages shown, in order. Airplane Mode only where Screen Time can
+    /// actually block something (`AirplaneMode.isAvailable`).
+    static func pages(offersAirplaneMode: Bool) -> [OnboardingPage] {
+        allCases.filter { $0 != .airplaneMode || offersAirplaneMode }
+    }
 
     var kicker: String {
         switch self {
         case .hello: return "HELLO"
         case .takeoff: return "TAKEOFF"
         case .inFlight: return "IN FLIGHT"
+        case .airplaneMode: return "AIRPLANE MODE"
         case .privacy: return "PRIVACY"
         }
     }
@@ -327,6 +352,7 @@ enum OnboardingPage: Int, CaseIterable, Identifiable {
         case .hello: return "I made studying feel like a flight."
         case .takeoff: return "Tear your pass to take off."
         case .inFlight: return "Stay with it until you land."
+        case .airplaneMode: return "Go dark at takeoff."
         case .privacy: return "Your flights stay on your phone."
         }
     }
@@ -626,12 +652,67 @@ private struct InFlightRulesPage: View {
     }
 }
 
-// MARK: - Page 4: privacy
+// MARK: - Page 4: Airplane Mode (Screen Time)
+
+/// Optional. The button asks for Screen Time access (the system prompt) and
+/// then opens the app picker; Continue works without either. If Screen Time
+/// cannot be used on this iPhone, the page says so in place of the button.
+private struct AirplaneModePage: View {
+    let airplaneMode: AirplaneMode
+    @Binding var choosingApps: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            CardText("Pick the apps that pull you away. They're blocked from takeoff until you land. Wi-Fi stays on.")
+
+            if airplaneMode.isAvailable {
+                Button {
+                    Haptics.tap()
+                    Task {
+                        if await airplaneMode.requestAuthorization() { choosingApps = true }
+                    }
+                } label: {
+                    Label(airplaneMode.selectionCount > 0 ? "Change apps" : "Choose apps to block",
+                          systemImage: "airplane")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.accent)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .background(Theme.accent.opacity(0.14), in: Capsule())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("onboarding-choose-apps")
+
+                Group {
+                    if airplaneMode.selectionCount > 0 {
+                        Text(AirplaneModeCopy.blockedLine(count: airplaneMode.selectionCount))
+                    } else if airplaneMode.authorization == .denied {
+                        Text("Screen Time access is off. You can turn it on later in Settings.")
+                    } else {
+                        Text("Optional. Uses Apple's Screen Time; your choices stay on this iPhone.")
+                    }
+                }
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.white.opacity(0.6))
+                .fixedSize(horizontal: false, vertical: true)
+            } else {
+                Text("Screen Time isn't available on this iPhone, so this one is skipped.")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.white.opacity(0.6))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .onAppear { airplaneMode.refresh() }
+    }
+}
+
+// MARK: - Page 5: privacy
 
 /// Every row is checked against the code; the report that shipped this page
 /// lists the file behind each one. If a row stops being true, change it.
 private struct PrivacyPage: View {
     let showsIntelligence: Bool
+    let showsAirplaneMode: Bool
 
     private struct Row: Identifiable {
         let symbol: String
@@ -655,6 +736,13 @@ private struct PrivacyPage: View {
                 title: "Maps come from Apple.",
                 detail: "The globe and maps are Apple Maps, so Apple gets those map requests."),
         ]
+        if showsAirplaneMode {
+            // AppBlockerUtil.swift: the selection is Apple's opaque tokens in
+            // the App Group, and nothing in the app sends it anywhere.
+            rows.append(Row(symbol: "airplane",
+                            title: "Airplane Mode uses Screen Time.",
+                            detail: "The apps you pick stay on this iPhone, as tokens only Apple can read."))
+        }
         if showsIntelligence {
             rows.append(Row(symbol: "sparkles",
                             title: "Apple Intelligence runs on this iPhone.",
