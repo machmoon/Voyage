@@ -6,10 +6,9 @@ import os
 /// logic can be tested with a fake and so a build without the Family Controls
 /// entitlement compiles none of it.
 ///
-/// The real implementation, `ScreenTimeAppBlocker`, exists only when
-/// `VOYAGE_SCREEN_TIME_YES` is set (Debug today, see project.yml). Everywhere
-/// else, including the unit-test host, the app gets `UnsupportedAppBlocker`,
-/// and Airplane Mode hides itself.
+/// The app runs on `ScreenTimeAppBlocker`. The unit-test host gets
+/// `UnsupportedAppBlocker`, so no test touches the real Screen Time store,
+/// and Airplane Mode hides itself there.
 @MainActor
 protocol AppBlocking: AnyObject {
     /// The build carries the Screen Time capability at all.
@@ -30,14 +29,14 @@ protocol AppBlocking: AnyObject {
     func stopSafetyNet()
 }
 
-/// What a build without Screen Time gets: nothing is supported, nothing is
-/// ever raised, and every call is a no-op.
+/// What the unit-test host gets: nothing is supported, nothing is ever
+/// raised, and every call is a no-op.
 @MainActor
 final class UnsupportedAppBlocker: AppBlocking {
     var isSupported: Bool { false }
     var authorization: AirplaneMode.Authorization { .notDetermined }
     func requestAuthorization() async throws {
-        throw AirplaneMode.AuthorizationFailure.unavailable("Screen Time is not part of this build.")
+        throw AirplaneMode.AuthorizationFailure.unavailable("Screen Time is not available here.")
     }
     var selectionCount: Int { 0 }
     var restrictionsActive: Bool { false }
@@ -79,8 +78,8 @@ final class AirplaneMode {
     enum AuthorizationFailure: Error, Equatable {
         /// The traveler said no. The feature stays; they can try again.
         case canceled
-        /// Screen Time cannot be used here (no entitlement, restricted
-        /// device, unsupported simulator). The feature hides itself.
+        /// Screen Time cannot be used here (restricted device, a simulator
+        /// with no passcode, a missing entitlement). The feature hides itself.
         case unavailable(String)
     }
 
@@ -114,17 +113,15 @@ final class AirplaneMode {
         shieldsUp = blocker.restrictionsActive
     }
 
-    /// The Screen Time build, outside the unit-test host. Tests construct
+    /// Real Screen Time, outside the unit-test host. Tests construct
     /// their own `AirplaneMode` with a fake, and every existing test keeps
     /// running against the no-op blocker, as `Membership` stays unconfigured
     /// under XCTest.
     private static func makeBlocker() -> any AppBlocking {
-        #if VOYAGE_SCREEN_TIME_YES
-        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil {
-            return ScreenTimeAppBlocker()
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+            return UnsupportedAppBlocker()
         }
-        #endif
-        return UnsupportedAppBlocker()
+        return ScreenTimeAppBlocker()
     }
 
     // MARK: Setup

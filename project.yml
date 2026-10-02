@@ -29,63 +29,30 @@ settings:
     # Increment this shared app/widget build number for each upload.
     CURRENT_PROJECT_VERSION: "16"
     GENERATE_INFOPLIST_FILE: false
-  # Airplane Mode (Screen Time app blocking, `Voyage/ScreenTime/`). One switch,
-  # read by the app's entitlements file, its compilation condition, its
-  # Info.plist (`VoyageScreenTime`), the extension embed script and the two
-  # extensions' signing. Debug carries the Family Controls entitlement, which
-  # every developer team may use for development. Release does not: App Store
-  # distribution needs Apple's Family Controls distribution approval, which
-  # has not been granted, so Release signs and archives exactly as before
-  # (no entitlement, no FamilyControls import, no extensions embedded).
-  #
-  # Once Apple approves all three bundle ids (com.patrickliu.voyage,
-  # com.patrickliu.voyage.deviceactivity, com.patrickliu.voyage.shieldconfig):
-  #   1. set `VOYAGE_SCREEN_TIME: YES` under `configs: Release` below,
-  #   2. create App Store profiles "Voyage Device Activity" and "Voyage Shield
-  #      Configuration" (Family Controls + the App Group) and regenerate the
-  #      "Voyage" profile with Family Controls added,
-  #   3. `xcodegen generate`, archive, and run scripts/check_release.py.
-  configs:
-    Debug:
-      VOYAGE_SCREEN_TIME: "YES"
-    Release:
-      VOYAGE_SCREEN_TIME: "NO"
 targets:
   Voyage:
     type: application
     platform: iOS
     sources:
       - path: Voyage
-    # Entitlements: the App Group is shared with VoyageWidgets so the Home
-    # Screen widget can read the snapshot the app writes
-    # (Voyage/Shared/WidgetSnapshot.swift). The group must also be registered
-    # on the developer account and added to both App Store provisioning
-    # profiles ("Voyage", "Voyage Widgets") before Release.
+    # Shared with VoyageWidgets so the Home Screen widget can read the
+    # snapshot the app writes (Voyage/Shared/WidgetSnapshot.swift). The group
+    # must also be registered on the developer account and added to both App
+    # Store provisioning profiles ("Voyage", "Voyage Widgets") before Release.
     #
-    # The file is chosen by VOYAGE_SCREEN_TIME (CODE_SIGN_ENTITLEMENTS below),
-    # so the app no longer uses XcodeGen's `entitlements:` key, which would
-    # pin one file for every configuration. Both files are kept by hand:
-    # Voyage/Support/Voyage.entitlements (App Group only, Release) and
-    # Voyage/Support/Voyage.ScreenTime.entitlements (plus Family Controls).
-    postBuildScripts:
-      # The two Screen Time extensions are embedded only when
-      # VOYAGE_SCREEN_TIME is YES, so a Release archive carries no extension
-      # it has no provisioning profile for. XcodeGen has no per-configuration
-      # embed, so the dependencies below are build-only (`embed: false`) and
-      # this phase copies the already-signed .appex bundles into PlugIns. It
-      # runs before the app's own CodeSign step, like Xcode's embed phase.
-      - name: Embed Screen Time extensions
-        basedOnDependencyAnalysis: false
-        script: |
-          dest="$TARGET_BUILD_DIR/$PLUGINS_FOLDER_PATH"
-          for ext in VoyageDeviceActivity VoyageShieldConfiguration; do
-            if [ "$VOYAGE_SCREEN_TIME" = "YES" ] && [ -d "$BUILT_PRODUCTS_DIR/$ext.appex" ]; then
-              mkdir -p "$dest"
-              rsync -a --delete "$BUILT_PRODUCTS_DIR/$ext.appex/" "$dest/$ext.appex/"
-            else
-              rm -rf "$dest/$ext.appex"
-            fi
-          done
+    # Family Controls is Airplane Mode (Screen Time app blocking,
+    # `Voyage/ScreenTime/`), as in Foqos's Foqos/foqos.entitlements
+    # (awaseem/foqos@4f6864c). Apple granted the distribution entitlement to
+    # team 3QQL2XA4VS on 2026-10-01, so Debug and Release carry it alike; the
+    # "Voyage" App Store profile must include it. Where authorization still
+    # fails (the simulator without a passcode, a restricted device) the
+    # feature hides itself at runtime (`AirplaneMode.isAvailable`).
+    entitlements:
+      path: Voyage/Support/Voyage.entitlements
+      properties:
+        com.apple.developer.family-controls: true
+        com.apple.security.application-groups:
+          - group.com.patrickliu.voyage
     preBuildScripts:
       # Ada's rule (app/vite.config.ts `refuseTestStoreKey`), applied at the
       # one point every Release build passes through: a Test Store key
@@ -107,11 +74,11 @@ targets:
     dependencies:
       - target: VoyageWidgets
         embed: true
-      # Built always, embedded by the script above only when Screen Time is on.
+      # Airplane Mode's Screen Time extensions.
       - target: VoyageDeviceActivity
-        embed: false
+        embed: true
       - target: VoyageShieldConfiguration
-        embed: false
+        embed: true
       - package: RevenueCat
         product: RevenueCat
       - package: RevenueCat
@@ -134,15 +101,6 @@ targets:
         ENABLE_PREVIEWS: true
         CODE_SIGN_STYLE: Automatic
         ENABLE_TESTABILITY: true
-        # Airplane Mode: `#if VOYAGE_SCREEN_TIME_YES` guards every file that
-        # imports FamilyControls, ManagedSettings or DeviceActivity, so a
-        # Release binary does not even link them. The entitlements file is
-        # picked by the same switch; Voyage.entitlements (XcodeGen-generated,
-        # above) stays the Release file, without Family Controls.
-        SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) VOYAGE_SCREEN_TIME_$(VOYAGE_SCREEN_TIME)"
-        VOYAGE_ENTITLEMENTS_NO: Voyage/Support/Voyage.entitlements
-        VOYAGE_ENTITLEMENTS_YES: Voyage/Support/Voyage.ScreenTime.entitlements
-        CODE_SIGN_ENTITLEMENTS: "$(VOYAGE_ENTITLEMENTS_$(VOYAGE_SCREEN_TIME))"
       configs:
         # RevenueCat Test Store key for Debug (simulator, CI, the Shipaton
         # demo). RevenueCat: "Never submit an app to the App Store configured
@@ -236,10 +194,6 @@ targets:
         CODE_SIGN_STYLE: Automatic
         SKIP_INSTALL: true
         GENERATE_INFOPLIST_FILE: false
-        # The extension exists only for Screen Time, so its code always
-        # compiles; whether it is signed (and embedded) follows the switch.
-        SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) VOYAGE_SCREEN_TIME_YES"
-        CODE_SIGNING_ALLOWED: "$(VOYAGE_SCREEN_TIME)"
       configs:
         Release:
           CODE_SIGN_STYLE: Manual
@@ -248,7 +202,9 @@ targets:
   # The shield a blocked app shows during a flight: "You're in flight", the
   # destination and the minutes to landing, read from the App Group. Foqos's
   # FoqosShieldConfig (4f6864c) is the shape: ShieldConfigurationDataSource as
-  # NSExtensionPrincipalClass, and the App Group as its only entitlement.
+  # NSExtensionPrincipalClass and the App Group. Foqos gives this extension
+  # no Family Controls entitlement; Voyage does, so all three Screen Time
+  # bundle ids are provisioned the same way (team decision, 2026-10-01).
   VoyageShieldConfiguration:
     type: app-extension
     platform: iOS
@@ -259,6 +215,7 @@ targets:
     entitlements:
       path: VoyageShieldConfiguration/VoyageShieldConfiguration.entitlements
       properties:
+        com.apple.developer.family-controls: true
         com.apple.security.application-groups:
           - group.com.patrickliu.voyage
     info:
@@ -278,12 +235,11 @@ targets:
         CODE_SIGN_STYLE: Automatic
         SKIP_INSTALL: true
         GENERATE_INFOPLIST_FILE: false
-        CODE_SIGNING_ALLOWED: "$(VOYAGE_SCREEN_TIME)"
       configs:
         Release:
           CODE_SIGN_STYLE: Manual
           CODE_SIGN_IDENTITY: "Apple Distribution"
-          PROVISIONING_PROFILE_SPECIFIER: "Voyage Shield Configuration"
+          PROVISIONING_PROFILE_SPECIFIER: "Voyage Shield Config"
   VoyageTests:
     type: bundle.unit-test
     platform: iOS

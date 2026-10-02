@@ -28,6 +28,7 @@
 		0BB91FFE101D02A87500F870 /* captain_landed_new-york.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 2E2B670CB2D758196437D340 /* captain_landed_new-york.m4a */; };
 		0C60227684184A3C82478EB5 /* DemoReelUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99CA0EDD0DD64CFDE04B6781 /* DemoReelUITests.swift */; };
 		0D5F706970670BB210E22CA5 /* LaunchFlyoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC7E7E32BC72641BAD4ABFF3 /* LaunchFlyoverView.swift */; };
+		0EA14DA14C193C82B5FAC3F5 /* VoyageDeviceActivity.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B943626837CAF4D32A4BFBDB /* VoyageDeviceActivity.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		0F6429CCC37C8498075BB67F /* GlobeRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C6F2BFB9AB249CFA3D2EB4F /* GlobeRoute.swift */; };
 		104DB4C7D5470C3499B3A9F3 /* ReplayCameraPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D29534C6DDDDDE775788062 /* ReplayCameraPlan.swift */; };
 		10CCE5803285E4F323FBAD28 /* crew_layover_raleigh-durham.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BEC500658B9DA3DE55C14A9F /* crew_layover_raleigh-durham.m4a */; };
@@ -38,6 +39,7 @@
 		14E2EB10A7D12FD253D22AFF /* FlightBriefingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07B9219A17E68AA26ABAFA5D /* FlightBriefingTests.swift */; };
 		15BEF97DF9B4093ED9142A65 /* DemoTourUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E1A44A112EA4A374D264C3A /* DemoTourUITests.swift */; };
 		161265440A6378F89192956D /* Airport.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAE328D769F7CC7D57744FF9 /* Airport.swift */; };
+		161D2FEA864B1A064F658F5F /* AirplaneModeProbeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E146782DFB627758BFDAA100 /* AirplaneModeProbeUITests.swift */; };
 		163645544B9920A76314370A /* WidgetTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 529C195BACC5C3467B381EB9 /* WidgetTheme.swift */; };
 		16469714CF5F53F6AD511521 /* captain_layover_miami.m4a in Resources */ = {isa = PBXBuildFile; fileRef = D325C03C36BD41E5DC144B5B /* captain_layover_miami.m4a */; };
 		16A32CB1EEA04037E9A2FC41 /* LogbookStorageWarning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55AC9A9549FAC8C00EAA0616 /* LogbookStorageWarning.swift */; };
@@ -72,6 +74,7 @@
 		2DF93808270B5249A5736F38 /* WidgetBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AB27C2488743B327A087B6D /* WidgetBridge.swift */; };
 		2E9C8810A7EC1E2CE462CC26 /* FlapboardWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBAA978DBBDFD3DA387ADE27 /* FlapboardWidget.swift */; };
 		306755027D47EF64B306895F /* captain_finalcall_los-angeles.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 04ACD69D1B267CB50B368A65 /* captain_finalcall_los-angeles.m4a */; };
+		3188419E47012F8CD9799785 /* VoyageShieldConfiguration.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 70A6029335A31BEAE36F1DF3 /* VoyageShieldConfiguration.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		3342DA485CCF13DE3539F3E1 /* captain_finalcall_toronto.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 388DBDAF1540AA1A0B6E05BC /* captain_finalcall_toronto.m4a */; };
 		340F15BA04F90100248FD64B /* FlightActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70EE26938771E82CCE4CF44F /* FlightActivity.swift */; };
 		345F983383718026A6595E78 /* VoyageMilesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 863EB9870E639CC6AA57C62C /* VoyageMilesTests.swift */; };
@@ -394,6 +397,8 @@
 			dstSubfolderSpec = 13;
 			files = (
 				F539099ECED8D80CDCA8CE15 /* VoyageWidgets.appex in Embed Foundation Extensions */,
+				0EA14DA14C193C82B5FAC3F5 /* VoyageDeviceActivity.appex in Embed Foundation Extensions */,
+				3188419E47012F8CD9799785 /* VoyageShieldConfiguration.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -543,7 +548,6 @@
 		6988335E65EA01D7197D4936 /* LogbookGlyphs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogbookGlyphs.swift; sourceTree = "<group>"; };
 		6A0F018E6A270A99AAFF8859 /* ScreenTimeAppBlocker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenTimeAppBlocker.swift; sourceTree = "<group>"; };
 		6A557502C604D2FB850EAF5A /* FirstClassPaywall.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirstClassPaywall.swift; sourceTree = "<group>"; };
-		6A68E87454E21D8E40B9BBA9 /* Voyage.ScreenTime.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Voyage.ScreenTime.entitlements; sourceTree = "<group>"; };
 		6B4B0BB4DDA53541AF9E921B /* SeatMapTourUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeatMapTourUITests.swift; sourceTree = "<group>"; };
 		6CA0B662898583A4CD81E164 /* WidgetSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetSnapshot.swift; sourceTree = "<group>"; };
 		6CB0E8E2B49F73535A03C4E3 /* FlightSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightSession.swift; sourceTree = "<group>"; };
@@ -692,6 +696,7 @@
 		DEBA9179EA13C95676AD72F6 /* FoundationModelsCustomsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoundationModelsCustomsService.swift; sourceTree = "<group>"; };
 		DF7C67C71E57809196E243DF /* HomeGreeting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeGreeting.swift; sourceTree = "<group>"; };
 		DF9D0F0A8DEEE9D163BE0277 /* OnboardingUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingUITests.swift; sourceTree = "<group>"; };
+		E146782DFB627758BFDAA100 /* AirplaneModeProbeUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirplaneModeProbeUITests.swift; sourceTree = "<group>"; };
 		E1C29AE0581B3A1D05AE669B /* FlightNotifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightNotifications.swift; sourceTree = "<group>"; };
 		E29771D86F89BBD9C6ADB9A2 /* VoyageClock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoyageClock.swift; sourceTree = "<group>"; };
 		E4639BD8F909C425C8B7EC5D /* WindowSceneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowSceneView.swift; sourceTree = "<group>"; };
@@ -762,6 +767,7 @@
 		12FB964947FA47E42D74D117 /* VoyageUITests */ = {
 			isa = PBXGroup;
 			children = (
+				E146782DFB627758BFDAA100 /* AirplaneModeProbeUITests.swift */,
 				DB9F85A17C4B592455396FAC /* BagTagScreenshotUITests.swift */,
 				88391717EBB94CEEF92B5FA0 /* BriefingCaptureUITests.swift */,
 				C0DF64BC2DDB95354853CC4F /* CabinServiceScreenshotUITests.swift */,
@@ -1321,7 +1327,6 @@
 				4117C4E6EEA3358F00D1B5B4 /* TestModeSeeder.swift */,
 				98D80A40384AA0FD2BE7D690 /* Theme.swift */,
 				6DE2DCE88158D88ECE067EBA /* Voyage.entitlements */,
-				6A68E87454E21D8E40B9BBA9 /* Voyage.ScreenTime.entitlements */,
 				64ED0633A31C9F28D72F2C48 /* VoyageAPIClient.swift */,
 				E29771D86F89BBD9C6ADB9A2 /* VoyageClock.swift */,
 				F2D217AFDB4461EF35491CB0 /* WeatherService.swift */,
@@ -1412,7 +1417,6 @@
 				894096D3D32E041E1CB81813 /* Resources */,
 				38EE6A7097BFE358C5FE9170 /* Frameworks */,
 				A52F1D41C8219A1CC6B91481 /* Embed Foundation Extensions */,
-				CA68040D1728A3D46F5E7A13 /* Embed Screen Time extensions */,
 			);
 			buildRules = (
 			);
@@ -1653,25 +1657,6 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		CA68040D1728A3D46F5E7A13 /* Embed Screen Time extensions */ = {
-			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "Embed Screen Time extensions";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "dest=\"$TARGET_BUILD_DIR/$PLUGINS_FOLDER_PATH\"\nfor ext in VoyageDeviceActivity VoyageShieldConfiguration; do\n  if [ \"$VOYAGE_SCREEN_TIME\" = \"YES\" ] && [ -d \"$BUILT_PRODUCTS_DIR/$ext.appex\" ]; then\n    mkdir -p \"$dest\"\n    rsync -a --delete \"$BUILT_PRODUCTS_DIR/$ext.appex/\" \"$dest/$ext.appex/\"\n  else\n    rm -rf \"$dest/$ext.appex\"\n  fi\ndone\n";
-		};
 		CE674A63248830B7E7CD37EA /* Refuse Test Store key in Release */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
@@ -1776,6 +1761,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				161D2FEA864B1A064F658F5F /* AirplaneModeProbeUITests.swift in Sources */,
 				76B28306E8EBE62563B9EABC /* BagTagScreenshotUITests.swift in Sources */,
 				CA9F1ABD4E097DCEBB020175 /* BriefingCaptureUITests.swift in Sources */,
 				5668B0676A438B2A860ADD43 /* CabinServiceScreenshotUITests.swift in Sources */,
@@ -2006,7 +1992,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = "$(VOYAGE_ENTITLEMENTS_$(VOYAGE_SCREEN_TIME))";
+				CODE_SIGN_ENTITLEMENTS = Voyage/Support/Voyage.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Distribution";
 				CODE_SIGN_STYLE = Manual;
 				DEVELOPMENT_TEAM = 3QQL2XA4VS;
@@ -2021,17 +2007,13 @@
 				PROVISIONING_PROFILE_SPECIFIER = Voyage;
 				REVENUECAT_API_KEY = REVENUECAT_API_KEY_NOT_SET;
 				SDKROOT = iphoneos;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) VOYAGE_SCREEN_TIME_$(VOYAGE_SCREEN_TIME)";
 				TARGETED_DEVICE_FAMILY = 1;
-				VOYAGE_ENTITLEMENTS_NO = Voyage/Support/Voyage.entitlements;
-				VOYAGE_ENTITLEMENTS_YES = Voyage/Support/Voyage.ScreenTime.entitlements;
 			};
 			name = Release;
 		};
 		14FFF6E7F836D48EFE3DABB4 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGNING_ALLOWED = "$(VOYAGE_SCREEN_TIME)";
 				CODE_SIGN_ENTITLEMENTS = VoyageDeviceActivity/VoyageDeviceActivity.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Distribution";
 				CODE_SIGN_STYLE = Manual;
@@ -2047,7 +2029,6 @@
 				PROVISIONING_PROFILE_SPECIFIER = "Voyage Device Activity";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) VOYAGE_SCREEN_TIME_YES";
 				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
@@ -2164,7 +2145,6 @@
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
-				VOYAGE_SCREEN_TIME = NO;
 			};
 			name = Release;
 		};
@@ -2210,7 +2190,6 @@
 		4B4AA34CB9068CCC45F2A6C4 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGNING_ALLOWED = "$(VOYAGE_SCREEN_TIME)";
 				CODE_SIGN_ENTITLEMENTS = VoyageShieldConfiguration/VoyageShieldConfiguration.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 3QQL2XA4VS;
@@ -2233,7 +2212,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = "$(VOYAGE_ENTITLEMENTS_$(VOYAGE_SCREEN_TIME))";
+				CODE_SIGN_ENTITLEMENTS = Voyage/Support/Voyage.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 3QQL2XA4VS;
@@ -2247,10 +2226,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.patrickliu.voyage;
 				REVENUECAT_API_KEY = test_LlloIJeXyDjIqWpcwNZexxJvRHW;
 				SDKROOT = iphoneos;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) VOYAGE_SCREEN_TIME_$(VOYAGE_SCREEN_TIME)";
 				TARGETED_DEVICE_FAMILY = 1;
-				VOYAGE_ENTITLEMENTS_NO = Voyage/Support/Voyage.entitlements;
-				VOYAGE_ENTITLEMENTS_YES = Voyage/Support/Voyage.ScreenTime.entitlements;
 			};
 			name = Debug;
 		};
@@ -2353,14 +2329,12 @@
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
-				VOYAGE_SCREEN_TIME = YES;
 			};
 			name = Debug;
 		};
 		A5E3C523E95ABCF031FEC336 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGNING_ALLOWED = "$(VOYAGE_SCREEN_TIME)";
 				CODE_SIGN_ENTITLEMENTS = VoyageDeviceActivity/VoyageDeviceActivity.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 3QQL2XA4VS;
@@ -2374,7 +2348,6 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.patrickliu.voyage.deviceactivity;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) VOYAGE_SCREEN_TIME_YES";
 				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
@@ -2399,7 +2372,6 @@
 		FB0200A32045AC8BA8DBA2DD /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGNING_ALLOWED = "$(VOYAGE_SCREEN_TIME)";
 				CODE_SIGN_ENTITLEMENTS = VoyageShieldConfiguration/VoyageShieldConfiguration.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Distribution";
 				CODE_SIGN_STYLE = Manual;
@@ -2412,7 +2384,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.patrickliu.voyage.shieldconfig;
-				PROVISIONING_PROFILE_SPECIFIER = "Voyage Shield Configuration";
+				PROVISIONING_PROFILE_SPECIFIER = "Voyage Shield Config";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
 				TARGETED_DEVICE_FAMILY = 1;

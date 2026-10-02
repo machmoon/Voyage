@@ -1,4 +1,3 @@
-#if VOYAGE_SCREEN_TIME_YES
 import FamilyControls
 import Foundation
 import ManagedSettings
@@ -83,4 +82,3 @@ enum AirplaneModeSelectionStore {
         selection.categories.count + selection.applications.count + selection.webDomains.count
     }
 }
-#endif

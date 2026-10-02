@@ -1,4 +1,3 @@
-#if VOYAGE_SCREEN_TIME_YES
 import FamilyControls
 import Foundation
 
@@ -61,4 +60,3 @@ final class ScreenTimeAppBlocker: AppBlocking {
         DeviceActivityCenterUtil.removeAllAirplaneModeActivities()
     }
 }
-#endif

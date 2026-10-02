@@ -1,8 +1,8 @@
+import FamilyControls
 import SwiftUI
 
 extension View {
     /// Presents the Screen Time app picker and saves what is chosen.
-    /// A no-op in builds without Screen Time, where nothing offers it.
     func airplaneModePicker(isPresented: Binding<Bool>) -> some View {
         modifier(AirplaneModePickerPresenter(isPresented: isPresented))
     }
@@ -16,8 +16,6 @@ enum AirplaneModeCopy {
     }
 }
 
-#if VOYAGE_SCREEN_TIME_YES
-import FamilyControls
 
 private struct AirplaneModePickerPresenter: ViewModifier {
     @Binding var isPresented: Bool
@@ -102,9 +100,3 @@ private struct AppPicker: View {
         isPresented = false
     }
 }
-#else
-private struct AirplaneModePickerPresenter: ViewModifier {
-    @Binding var isPresented: Bool
-    func body(content: Content) -> some View { content }
-}
-#endif

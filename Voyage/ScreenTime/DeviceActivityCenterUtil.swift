@@ -1,4 +1,3 @@
-#if VOYAGE_SCREEN_TIME_YES
 import DeviceActivity
 import Foundation
 import os
@@ -43,4 +42,3 @@ enum DeviceActivityCenterUtil {
         center.stopMonitoring(ours)
     }
 }
-#endif
