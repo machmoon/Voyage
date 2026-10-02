@@ -284,6 +284,7 @@
 		D59281AE250FEE4F8D4E047A /* VoyageApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08A62644CD80D9C5F040E411 /* VoyageApp.swift */; };
 		D684AF7F3C52364AD1779CD3 /* captain_landed_boston.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 8341D6251BBA33681C30F9E9 /* captain_landed_boston.m4a */; };
 		D6A2BA34DC9EF4283D64FCAF /* NextFlightWidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01FA828B90E37ED64EF25D6C /* NextFlightWidgetView.swift */; };
+		D7C5D5975EF03B54CAF3E71C /* OpenSkiesFieldCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64E8673B93BBEE1BDCE3382F /* OpenSkiesFieldCatalog.swift */; };
 		D7CFD62A13E149D69D6077A4 /* RealWorldWindowSceneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6EA3177491BACB00D2315D7 /* RealWorldWindowSceneView.swift */; };
 		D7FDB8190D353FE8F19A6BD6 /* InterruptedFlightRecoveryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 878BF048586F0899BE7CA8D7 /* InterruptedFlightRecoveryTests.swift */; };
 		D8B008D6634F70291A99CD6E /* crew_midpoint_san-francisco.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 8932B7364F79721178C4C7C3 /* crew_midpoint_san-francisco.m4a */; };
@@ -486,6 +487,7 @@
 		5C88294A662E6C2C66610A47 /* LocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
 		5E0F3420E15A6384027BE7CA /* crew_finalcall_new-york.m4a */ = {isa = PBXFileReference; path = "crew_finalcall_new-york.m4a"; sourceTree = "<group>"; };
 		62627218B7DFDACAA05958B7 /* BagTagView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BagTagView.swift; sourceTree = "<group>"; };
+		64E8673B93BBEE1BDCE3382F /* OpenSkiesFieldCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenSkiesFieldCatalog.swift; sourceTree = "<group>"; };
 		64ED0633A31C9F28D72F2C48 /* VoyageAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoyageAPIClient.swift; sourceTree = "<group>"; };
 		654D54193C21CA54CA1A4136 /* captain_descent_raleigh-durham.m4a */ = {isa = PBXFileReference; path = "captain_descent_raleigh-durham.m4a"; sourceTree = "<group>"; };
 		6614C142F7A822926BE8BECD /* RedesignCaptureUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedesignCaptureUITests.swift; sourceTree = "<group>"; };
@@ -1183,6 +1185,7 @@
 				7E022A608CB304EC16BA6E04 /* LogbookExport.swift */,
 				249CC56FE35BB1FBA3B5CC85 /* LoyaltyProgram.swift */,
 				6FF7B24F1FD5CBF7EA6BE0B5 /* OpenSkiesField.swift */,
+				64E8673B93BBEE1BDCE3382F /* OpenSkiesFieldCatalog.swift */,
 				C2A8F01DA97D301AB3FDFBFD /* PilotRatings.swift */,
 				84CD44E3543F506A3749B2CE /* RouteCatalog.swift */,
 				B677A2CF7162DBB0F3C7D092 /* RoutePlanner.swift */,
@@ -1713,6 +1716,7 @@
 				9CA8B5599618A7590FA87C45 /* OnboardingView.swift in Sources */,
 				0A7FECC7AB9341759077B6BD /* OpenSkiesCard.swift in Sources */,
 				936FD90F62DAABEA8B19A4F0 /* OpenSkiesField.swift in Sources */,
+				D7C5D5975EF03B54CAF3E71C /* OpenSkiesFieldCatalog.swift in Sources */,
 				7D51B3BEE86A04CFEEB4EE7D /* OpenSkiesFlight.swift in Sources */,
 				7DB27458032C55D2F718431D /* OpenSkiesViews.swift in Sources */,
 				AB3DD460AA7855763742CBBB /* PassportPhotoStore.swift in Sources */,
