@@ -237,6 +237,7 @@
 		9EFDAB849E5F8E5CE6A988A9 /* LandingPhrases.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8114D840B69C07EAA6F30E06 /* LandingPhrases.swift */; };
 		A039217A0F00ECD48B3C0C94 /* FlightSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CB0E8E2B49F73535A03C4E3 /* FlightSession.swift */; };
 		A03AA27D1B75301C85F549E3 /* AirplaneModePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C78E2A26ED89ED21B5C323C /* AirplaneModePicker.swift */; };
+		A066EBECFF584D6B9A7ED18B /* AirplaneModeCaptureUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE2BFD032EA02ADDC9440F55 /* AirplaneModeCaptureUITests.swift */; };
 		A26CB588FE2264FA9E5B3EA8 /* BagTagView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62627218B7DFDACAA05958B7 /* BagTagView.swift */; };
 		A2B1D9759B8B9B8AE2028DAB /* AirplaneModeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD5111A5A4A59E6B1787D9B4 /* AirplaneModeTests.swift */; };
 		A2E672A233A29FED8DC34823 /* crew_descent_raleigh-durham.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 9C3EAAF566544849E00467C4 /* crew_descent_raleigh-durham.m4a */; };
@@ -712,6 +713,7 @@
 		ED4D4C37B1D28FB9BA817E76 /* OpenSkiesFlight.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenSkiesFlight.swift; sourceTree = "<group>"; };
 		ED58F3DDE72063023D06C2F3 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		EDC3A5BA4D41E5179301A3C2 /* LogbookExportButtons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogbookExportButtons.swift; sourceTree = "<group>"; };
+		EE2BFD032EA02ADDC9440F55 /* AirplaneModeCaptureUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirplaneModeCaptureUITests.swift; sourceTree = "<group>"; };
 		EEADBF54A9BE3BC765AB6B39 /* DivertedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DivertedView.swift; sourceTree = "<group>"; };
 		F0C5C9C32760DDC7FD61A5E7 /* CabinAudioEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CabinAudioEngine.swift; sourceTree = "<group>"; };
 		F0E4D10CC44F29ABEA1477CB /* BagTagTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BagTagTests.swift; sourceTree = "<group>"; };
@@ -765,6 +767,7 @@
 		12FB964947FA47E42D74D117 /* VoyageUITests */ = {
 			isa = PBXGroup;
 			children = (
+				EE2BFD032EA02ADDC9440F55 /* AirplaneModeCaptureUITests.swift */,
 				DB9F85A17C4B592455396FAC /* BagTagScreenshotUITests.swift */,
 				88391717EBB94CEEF92B5FA0 /* BriefingCaptureUITests.swift */,
 				C0DF64BC2DDB95354853CC4F /* CabinServiceScreenshotUITests.swift */,
@@ -1758,6 +1761,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A066EBECFF584D6B9A7ED18B /* AirplaneModeCaptureUITests.swift in Sources */,
 				76B28306E8EBE62563B9EABC /* BagTagScreenshotUITests.swift in Sources */,
 				CA9F1ABD4E097DCEBB020175 /* BriefingCaptureUITests.swift in Sources */,
 				5668B0676A438B2A860ADD43 /* CabinServiceScreenshotUITests.swift in Sources */,
